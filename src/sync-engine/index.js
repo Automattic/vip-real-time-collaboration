@@ -1,20 +1,20 @@
 /**
  * Internal dependencies
  */
-import { createSyncProvider } from './provider';
 export { connectIndexDb } from './connect-indexdb';
 export { createSyncProvider } from './provider';
-
 /**
  * External dependencies
  */
-import * as _Y from 'yjs';
-import * as number from 'lib0/number';
 import * as buffer from 'lib0/buffer';
-import * as string from 'lib0/string';
 // @ts-ignore
 import * as sha256 from 'lib0/hash/sha256'; // eslint-disable-line import/no-unresolved
+import * as number from 'lib0/number';
+import * as string from 'lib0/string';
+import * as _Y from 'yjs';
+
 import { createWebSocketConnection } from './create-websocket-connection';
+import { createSyncProvider } from './provider';
 
 export const Y = _Y;
 
@@ -29,9 +29,7 @@ export function extractFromYGutenbergComment( content ) {
 	if ( res === null ) {
 		// Initial pull of the document. There is currently no y:gutenberg comment present.
 		// Generate a consistent new clientid.
-		const newClientId = new Uint32Array(
-			sha256.digest( string.encodeUtf8( content ) ).buffer
-		);
+		const newClientId = new Uint32Array( sha256.digest( string.encodeUtf8( content ) ).buffer );
 		return {
 			startRange: 0,
 			endRange: 0,
@@ -61,9 +59,11 @@ let syncProvider;
 export function getSyncProvider() {
 	if ( ! syncProvider ) {
 		// @ts-ignore
+		// eslint-disable-next-line no-undef
 		const connectionProvider = window?.__experimentalEnableWebSocketSync
 			? createWebSocketConnection( {
 					// @ts-ignore
+					// eslint-disable-next-line no-undef
 					password: window?.__experimentalCollaborativeEditingSecret,
 			  } )
 			: null;

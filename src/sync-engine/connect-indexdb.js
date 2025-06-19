@@ -21,7 +21,7 @@ export function connectIndexDb( objectId, objectType, doc ) {
 	const roomName = `${ objectType }-${ objectId }`;
 	const provider = new IndexeddbPersistence( roomName, doc );
 
-	return new Promise( ( resolve ) => {
+	return new Promise( resolve => {
 		provider.on( 'synced', () => {
 			resolve( () => provider.destroy() );
 		} );

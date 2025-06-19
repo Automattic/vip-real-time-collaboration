@@ -10,15 +10,20 @@
     "noUncheckedIndexedAccess": true,
     "outDir": "./build/",
     "paths": {
-      "@/*": [ "./src/*" ],
-			"@sync/*": [ "./sync-engine/src/*" ],
+      "@/*": [ "./src/*" ]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
-    "typeRoots": [ "./types", "./node_modules/@types", "./sync-engine/build-types" ],
+    "typeRoots": [ "./types", "./node_modules/@types" ],
     "sourceMap": true
   },
-  "include": [ "./types/*.d.ts", "./src/**/*", "./tests/**/*", "*.config.ts", "./sync-engine/build-types/*.d.ts" ]
+  "include": [
+    "./types/*.d.ts",
+    "./src/**/*",
+    "./tests/**/*",
+    "*.config.ts",
+    "src/sync-engine/types.ts"
+  ]
 }

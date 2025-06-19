@@ -2,13 +2,12 @@
  * WordPress dependencies
  */
 import { addAction } from '@wordpress/hooks';
-
 /**
  * External dependencies
  */
 // @ts-ignore
-import * as Y from 'yjs';
 import * as buffer from 'lib0/buffer';
+import * as Y from 'yjs';
 
 /** @typedef {import('./types').ObjectType} ObjectType */
 /** @typedef {import('./types').ObjectID} ObjectID */
@@ -36,33 +35,24 @@ export const createSyncProvider = ( connectLocal, connectRemote ) => {
 	const docs = {};
 
 	// @ts-ignore
+	// eslint-disable-next-line no-undef
 	if ( window.__experimentalEnableHeartbeatSync ) {
-		addAction( 'heartbeat.tick', 'y-sync', ( data ) => {
+		addAction( 'heartbeat.tick', 'y-sync', data => {
 			if ( ! data[ 'y-sync' ] ) {
 				return;
 			}
-			Object.entries( data[ 'y-sync' ] ).forEach(
-				( [ objectType, objectDocs ] ) => {
-					Object.entries( objectDocs ).forEach(
-						( [ objectId, remoteDocDef ] ) => {
-							const localDocDef =
-								( docs[ objectType ] || {} )[ objectId ] ||
-								null;
-							if ( localDocDef ) {
-								Y.applyUpdateV2(
-									localDocDef.ydoc,
-									buffer.fromBase64( remoteDocDef.state )
-								);
-								localDocDef.prevContentClientId =
-									remoteDocDef.contentClientId;
-							}
-						}
-					);
-				}
-			);
+			Object.entries( data[ 'y-sync' ] ).forEach( ( [ objectType, objectDocs ] ) => {
+				Object.entries( objectDocs ).forEach( ( [ objectId, remoteDocDef ] ) => {
+					const localDocDef = ( docs[ objectType ] || {} )[ objectId ] || null;
+					if ( localDocDef ) {
+						Y.applyUpdateV2( localDocDef.ydoc, buffer.fromBase64( remoteDocDef.state ) );
+						localDocDef.prevContentClientId = remoteDocDef.contentClientId;
+					}
+				} );
+			} );
 		} );
 
-		addAction( 'heartbeat.send', 'y-sync', ( data ) => {
+		addAction( 'heartbeat.send', 'y-sync', data => {
 			/**
 			 * Maps from postType/postId => contentClientId
 			 *
@@ -78,12 +68,9 @@ export const createSyncProvider = ( connectLocal, connectRemote ) => {
 				 */
 				const objectTypeRequests = {};
 				docRequests[ objectType ] = objectTypeRequests;
-				Object.entries( objectDocs ).forEach(
-					( [ objectId, localDocDef ] ) => {
-						objectTypeRequests[ objectId ] =
-							localDocDef.prevContentClientId;
-					}
-				);
+				Object.entries( objectDocs ).forEach( ( [ objectId, localDocDef ] ) => {
+					objectTypeRequests[ objectId ] = localDocDef.prevContentClientId;
+				} );
 			} );
 			data[ 'y-sync' ] = docRequests;
 		} );
@@ -124,11 +111,7 @@ export const createSyncProvider = ( connectLocal, connectRemote ) => {
 
 		if ( connectLocal ) {
 			// connect to locally saved database.
-			destroyLocalConnection = await connectLocal(
-				objectId,
-				objectType,
-				doc
-			);
+			destroyLocalConnection = await connectLocal( objectId, objectType, doc );
 		}
 
 		// Once the database syncing is done, start the remote syncing
@@ -177,10 +160,7 @@ export const createSyncProvider = ( connectLocal, connectRemote ) => {
 			throw 'Error doc ' + objectType + ' ' + objectId + ' not found';
 		}
 		docDef.ydoc.transact( () => {
-			postTypeConfigs[ objectType ].applyChangesToDoc(
-				docDef.ydoc,
-				data
-			);
+			postTypeConfigs[ objectType ].applyChangesToDoc( docDef.ydoc, data );
 		}, origin );
 	}
 

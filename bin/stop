@@ -1,0 +1,18 @@
+#!/bin/sh
+
+TASK="${1-stop}"
+
+teardown_wordpress() {
+	if [ "$TASK" = "destroy" ]; then
+		npx wp-env destroy
+		echo "👋 Run \`npm run dev\` to recreate."
+	else
+		npx wp-env stop
+		echo "⏹️ Rerun \`npm run dev\` to resume or \`npm run dev:destroy\` to clean up."
+	fi
+}
+
+# Kill any lingering Node.js processes.
+pkill -f 'vip-realtime-collaboration/node_modules/'
+
+teardown_wordpress
