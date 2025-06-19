@@ -11,14 +11,14 @@
     "outDir": "./build/",
     "paths": {
       "@/*": [ "./src/*" ],
-	  "@Wordpress/sync/*": [ "./packages/sync/src/*" ],
+			"@sync/*": [ "./sync-engine/src/*" ],
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
     "target": "es6",
-    "typeRoots": [ "./types", "./node_modules/@types", "./packages/sync/build-types" ],
+    "typeRoots": [ "./types", "./node_modules/@types", "./sync-engine/build-types" ],
     "sourceMap": true
   },
-  "include": [ "./types/*.d.ts", "./src/**/*", "./tests/**/*", "*.config.ts", "./packages/sync/build-types/*.d.ts" ]
+  "include": [ "./types/*.d.ts", "./src/**/*", "./tests/**/*", "*.config.ts", "./sync-engine/build-types/*.d.ts" ]
 }

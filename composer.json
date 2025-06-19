@@ -1,0 +1,26 @@
+{
+  "name": "automattic/vip-realtime-collaboration",
+  "authors": [
+    {
+      "name": "WPVIP"
+    }
+  ],
+  "license": "GPL-2.0-or-later",
+  "scripts": {
+    "phpcs": "phpcs",
+    "phpcs-fix": "phpcbf"
+  },
+  "require": {
+    "php": ">=8.1"
+  },
+  "require-dev": {
+    "automattic/vipwpcs": "^3.0",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "slevomat/coding-standard": "^8.15"
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

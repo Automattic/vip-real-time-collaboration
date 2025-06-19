@@ -23,7 +23,7 @@
 		"npm": ">=8.19.2"
 	},
 	"main": "build/index.js",
-	"module": "build-module/index.js",
+	"module": "build/index.js",
 	"types": "build-types",
 	"sideEffects": false,
 	"dependencies": {
