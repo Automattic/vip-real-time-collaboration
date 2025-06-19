@@ -1,0 +1,28 @@
+{
+	"name": "vip-realtime-collaboration",
+	"version": "1.0.0",
+	"description": "Real-time collaboration plugin for WordPress VIP",
+	"main": "index.js",
+	"scripts": {
+		"build:sync-engine": "cd sync-engine && npm run build",
+		"clean:sync-engine": "cd sync-engine && npm run clean",
+		"build": "wp-scripts build",
+		"start": "wp-scripts start"
+	},
+	"keywords": [
+		"wordpress",
+		"plugin",
+		"realtime",
+		"collaboration",
+		"vip"
+	],
+	"author": "Automattic",
+	"license": "GPL-2.0-or-later",
+	"devDependencies": {
+		"@wordpress/scripts": "^30.18.0"
+	},
+	"engines": {
+		"node": ">=18.12.0",
+		"npm": ">=8.19.2"
+	}
+}

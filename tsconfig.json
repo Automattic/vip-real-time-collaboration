@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "baseUrl": "./",
+    "esModuleInterop": true,
+    "jsx": "react-jsx",
+    "module": "es6",
+    "moduleResolution": "bundler",
+    "noImplicitAny": true,
+    "noUncheckedIndexedAccess": true,
+    "outDir": "./build/",
+    "paths": {
+      "@/*": [ "./src/*" ],
+	  "@Wordpress/sync/*": [ "./packages/sync/src/*" ],
+    },
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "target": "es6",
+    "typeRoots": [ "./types", "./node_modules/@types", "./packages/sync/build-types" ],
+    "sourceMap": true
+  },
+  "include": [ "./types/*.d.ts", "./src/**/*", "./tests/**/*", "*.config.ts", "./packages/sync/build-types/*.d.ts" ]
+}

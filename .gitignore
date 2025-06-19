@@ -46,3 +46,10 @@ wp-config.php
 # Note: If you wish to whitelist themes,
 # uncomment the next line
 #/wp-content/themes
+node_modules
+
+build/
+sync-engine/build
+sync-engine/build-types
+sync-engine/node_modules
+sync-engine/tsconfig.tsbuildinfo
