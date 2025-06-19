@@ -7,5 +7,6 @@
   },
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
-  }
+  },
+	"plugins": [ "." ]
 }
