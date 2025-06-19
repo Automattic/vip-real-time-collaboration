@@ -40,16 +40,11 @@
 		"yjs": "13.6.7"
 	},
 	"devDependencies": {
-		"@wordpress/scripts": "^30.18.0",
 		"glob": "7.1.2",
 		"rimraf": "5.0.10"
 	},
 	"scripts": {
-		"build": "npm run build:package-types && npm run build:packages",
-		"build:packages": "wp-scripts build --experimental-modules",
-		"build:package-types": "npx tsc",
-		"clean": "npm run clean:package-types && npm run clean:packages",
-		"clean:package-types": "tsc --build --clean && rimraf --glob \"./build-types\"",
-		"clean:packages": "rimraf --glob \"./{build,build-module,build-wp,build-style}\""
+		"build": "npx tsc",
+		"clean": "tsc --build --clean && rimraf --glob \"./build-types\" && rimraf --glob \"./build\""
 	}
 }
