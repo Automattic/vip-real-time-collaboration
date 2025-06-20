@@ -28,6 +28,10 @@
 	<arg name="extensions" value="php"/>
 	<arg value="s"/>
 
+	<!-- Disable scanning of JS/CSS files to avoid deprecation warnings -->
+	<exclude-pattern>*.js</exclude-pattern>
+	<exclude-pattern>*.css</exclude-pattern>
+
 	<!-- Rules: Check PHP version compatibility - see
 		https://github.com/PHPCompatibility/PHPCompatibilityWP -->
 	<rule ref="PHPCompatibilityWP"/>
@@ -46,6 +50,16 @@
 	<!-- Rules: Check VIP Coding Standards - see
 		https://github.com/Automattic/VIP-Coding-Standards/ -->
 	<rule ref="WordPress-VIP-Go">
+		<!-- Disable deprecated functionality due to CSS/JS file scanning not being supported anymore-->
+		<exclude name="WordPressVIPMinimum.JS.Window"/>
+		<exclude name="WordPressVIPMinimum.JS.DangerouslySetInnerHTML"/>
+		<exclude name="WordPressVIPMinimum.JS.InnerHTML"/>
+		<exclude name="WordPressVIPMinimum.JS.StrippingTags"/>
+		<exclude name="WordPressVIPMinimum.JS.StringConcat"/>
+		<exclude name="WordPressVIPMinimum.JS.HTMLExecutingFunctions"/>
+		<!-- Disable deprecated functionality not being supported anymore-->
+		<exclude name="Generic.Functions.CallTimePassByReference"/>
+
 		<!-- These disallow anonymous functions as action callbacks -->
 		<exclude name="PEAR.Functions.FunctionCallSignature.ContentAfterOpenBracket" />
 		<exclude name="PEAR.Functions.FunctionCallSignature.MultipleArguments" />

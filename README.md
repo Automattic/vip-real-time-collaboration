@@ -15,6 +15,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 ## Setup Instructions
 
 ### Prerequisites
+
 - WordPress 6.7+
 - PHP 8.2+
 - Node.js and npm
@@ -22,14 +23,17 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 ### Development Setup
 
 1. Install dependencies:
+
    ```bash
    npm install
    ```
 
 2. Start the development environment:
+
    ```bash
    npm run dev
    ```
+
    This starts WordPress at `http://localhost:8888`
 
 3. Build for production:
