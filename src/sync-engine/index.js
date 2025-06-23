@@ -1,7 +1,6 @@
 /**
  * Internal dependencies
  */
-export { connectIndexDb } from './connect-indexdb';
 export { createSyncProvider } from './provider';
 /**
  * External dependencies
