@@ -1,0 +1,70 @@
+name: Static analysis
+on:
+  pull_request:
+  push:
+    branches:
+      - trunk
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: eslint, prettier, type check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: Automattic/vip-actions/nodejs-setup@trunk
+        with:
+          node-version-file: .nvmrc
+          ignore-scripts: true
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Check formatting
+        run: npm run format:check
+
+      - name: Check types
+        run: npm run check-types
+
+  phpcs:
+    name: phpcs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+
+      - name: Install dependencies
+        run: composer install
+
+      - name: Run phpcs
+        run: composer phpcs
+
+  psalm:
+    name: Psalm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Psalm
+        uses: docker://ghcr.io/psalm/psalm-github-actions:6.5.1
+        with:
+          composer_require_dev: true
+          php-version: '8.1'
+
+  dependaban:
+    name: Dependaban
+    runs-on: ubuntu-latest
+    steps:
+      - uses: Automattic/vip-actions/dependaban@trunk
