@@ -97,10 +97,6 @@ class Synchronization {
 		if ( 'post' !== $data['post_type'] && 'revision' !== $data['post_type'] ) {
 			return $data;
 		}
-		$gutenberg_experiments = get_option( 'gutenberg-experiments' );
-		if ( ! $gutenberg_experiments || ! array_key_exists( 'gutenberg-sync-collaboration', $gutenberg_experiments ) ) {
-			return $data;
-		}
 		$content = stripslashes( $data['post_content'] );
 		$yinfo = self::get_yinfo( $content );
 		if ( $yinfo ) {
