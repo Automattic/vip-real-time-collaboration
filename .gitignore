@@ -13,18 +13,9 @@ coverage
 # Build output (only at root)
 /build/
 
-# Testing
-/artifacts/
-/test-results/
-
 # Dependency directories
-node_modules/
-
-# Sync Engine directory
-sync-engine/build
-sync-engine/build-types
-sync-engine/node_modules
-sync-engine/tsconfig.tsbuildinfo
+/node_modules/
+/vendor/
 
 # Optional npm cache directory
 .npm
@@ -32,22 +23,12 @@ sync-engine/tsconfig.tsbuildinfo
 # Optional eslint cache
 .eslintcache
 
-# Output of `npm pack`
-*.tgz
-
-# Output of `wp-scripts plugin-zip`
-*.zip
-
-# dotenv environment variables file
-.env
-
-# Composer dev dependencies
-vendor/
-.DS_Store
-
 # PHPUnit
 .phpunit.cache/
 .phpunit.result.cache
+
+# Output of `npm run plugin-zip`
+*.zip
 
 # Editors
 .idea/*

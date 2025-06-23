@@ -37,9 +37,10 @@
     "lint:css:fix": "wp-scripts lint-style --fix",
     "lint:css": "wp-scripts lint-style",
     "lint:js": "npm run lint",
-    "lint:php": "npm run lint:phpcs",
+    "lint:php": "npm run lint:phpcs && npm run lint:psalm",
     "lint:phpcs": "vendor/bin/phpcs --cache",
     "lint:phpcs:fix": "vendor/bin/phpcbf",
+    "lint:psalm": "vendor/bin/psalm.phar",
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "npm run build && composer install --prefer-dist --optimize-autoloader --no-dev && wp-scripts plugin-zip",
     "postinstall": "composer install",
@@ -49,40 +50,19 @@
   },
   "devDependencies": {
     "@automattic/eslint-plugin-wpvip": "0.13.1",
-    "@babel/preset-react": "7.27.1",
-    "@types/simple-peer": "^9.11.5",
     "@wordpress/env": "10.25.0",
     "@wordpress/hooks": "4.25.0",
     "@wordpress/scripts": "30.1.0",
-    "@wordpress/url": "4.25.0",
     "eslint": "8.57.1",
-    "fork-ts-checker-webpack-plugin": "9.1.0",
-    "happy-dom": "17.5.6",
     "husky": "9.1.7",
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
-    "react": "18.3.1",
-    "stylelint": "16.11.0",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3"
   },
   "dependencies": {
-    "@babel/runtime": "7.25.7",
-    "import-locals": "^2.0.0",
     "lib0": "^0.2.108",
-    "simple-peer": "^9.11.0",
-    "y-indexeddb": "^9.0.11",
-    "y-protocols": "^1.0.5",
     "y-websocket": "3.0.0",
     "yjs": "13.6.7"
-  },
-  "overrides": {
-    "react-autosize-textarea": {
-      "react": "^18",
-      "react-dom": "^18"
-    }
-  },
-  "stylelint": {
-    "extends": "./node_modules/@wordpress/scripts/config/.stylelintrc.json"
   }
 }
