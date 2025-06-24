@@ -58,15 +58,11 @@ let syncProvider;
 
 export function getSyncProvider() {
 	if ( ! syncProvider ) {
-		// @ts-ignore
-		// eslint-disable-next-line no-undef
-		const connectionProvider = window?.__experimentalEnableWebSocketSync
-			? createWebSocketConnection( {
-					// @ts-ignore
-					// eslint-disable-next-line no-undef
-					password: window?.__experimentalCollaborativeEditingSecret,
-			  } )
-			: null;
+		const connectionProvider = createWebSocketConnection( {
+			// @ts-ignore
+			// eslint-disable-next-line no-undef
+			password: window?.__experimentalCollaborativeEditingSecret,
+		} );
 		syncProvider = createSyncProvider(
 			// connectIndexDb,
 			null,

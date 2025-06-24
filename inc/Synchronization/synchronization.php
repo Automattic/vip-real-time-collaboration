@@ -15,8 +15,24 @@ class Synchronization {
 	 *
 	 */
 	public static function init(): void {
+		add_action( 'admin_init', 'gutenberg_rest_api_init_collaborative_editing' );
 		add_filter( 'wp_insert_post_data', [ self::class, 'filter_post_content_ydoc' ], 10, 1 );
 		add_filter( 'heartbeat_received', [ self::class, 'sync_heartbeat' ], 10, 2 );
+	}
+
+	/**
+	 * Initializes the collaborative editing secret.
+	 */
+	public static function gutenberg_rest_api_init_collaborative_editing(): void {
+		// ToDo: In VIP environments, we should use a more secure way to generate the secret.
+		$collaborative_editing_secret = get_site_option( 'vip_collaborative_editing_secret' );
+		if ( ! $collaborative_editing_secret ) {
+			$collaborative_editing_secret = wp_generate_password( 64, false );
+		}
+		add_site_option( 'collaborative_editing_secret', $collaborative_editing_secret );
+
+		// ToDo: Ideally, we should re-consider batching this alongside other scripts that we are injecting.
+		wp_add_inline_script( 'wp-sync', 'window.__experimentalCollaborativeEditingSecret = "' . $collaborative_editing_secret . '";', 'before' );
 	}
 
 	/**
