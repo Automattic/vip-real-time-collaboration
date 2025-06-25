@@ -15,7 +15,7 @@ class Synchronization {
 	 *
 	 */
 	public static function init(): void {
-		add_action( 'admin_init', 'gutenberg_rest_api_init_collaborative_editing' );
+		add_action( 'admin_init', [ self::class, 'gutenberg_rest_api_init_collaborative_editing' ] );
 		add_filter( 'wp_insert_post_data', [ self::class, 'filter_post_content_ydoc' ], 10, 1 );
 		add_filter( 'heartbeat_received', [ self::class, 'sync_heartbeat' ], 10, 2 );
 	}
