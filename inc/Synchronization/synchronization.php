@@ -10,6 +10,7 @@ namespace VIPRealtimeCollaboration\Synchronization;
  */
 class Synchronization {
 
+
 	/**
 	 * Initialize synchronization filters.
 	 *
