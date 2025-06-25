@@ -6,10 +6,10 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 
 ## What's in this repo
 
-- **sync-engine/**: Core collaboration engine with WebSocket and IndexedDB integration
 - **bin/**: Development scripts for starting/stopping the local environment
 - **inc/**: PHP includes and server-side functionality
 - **src/**: TypeScript source files for the frontend components
+  - **sync-engine/**: Core collaboration engine with WebSocket integration
 - **build/**: Compiled JavaScript assets (generated)
 
 ## Setup Instructions
@@ -17,6 +17,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 ### Prerequisites
 
 - WordPress 6.7+
+- Gutenberg 18.6+
 - PHP 8.2+
 - Node.js and npm
 
@@ -36,10 +37,9 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 
    This starts WordPress at `http://localhost:8888`
 
-3. Build for production:
-   ```bash
-   npm run build
-   ```
+### Custom Gutenberg Development
+
+If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
 
 ### Available Commands
 
