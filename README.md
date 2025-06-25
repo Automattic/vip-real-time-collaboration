@@ -10,6 +10,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 - **inc/**: PHP includes and server-side functionality
 - **src/**: TypeScript source files for the frontend components
   - **sync-engine/**: Core collaboration engine with WebSocket integration
+- **websocket-server/**: A development Node.js WebSocket server
 - **build/**: Compiled JavaScript assets (generated)
 
 ## Setup Instructions

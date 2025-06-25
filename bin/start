@@ -60,6 +60,11 @@ configure_wordpress() {
     npm run -s wp-cli config set WP_HOME "$WP_HOME"
 }
 
+start_websocket_server() {
+    echo "🔼 Starting WebSocket server..."
+    npm run -s start:websocket-server &
+}
+
 start_wordpress() {
     # Enable Xdebug when starting the server in "start" mode.
     FLAGS=""
@@ -97,6 +102,7 @@ open_browser() {
 # Cleanup after error or trapping SIGINT (Ctrl+C) and SIGTERM signals
 trap 'cleanup' INT TERM
 
+start_websocket_server
 start_wordpress
 configure_wordpress
 
