@@ -8,5 +8,5 @@
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
   },
-  "plugins": [ ".", "https://downloads.wordpress.org/plugin/gutenberg.latest-stable.zip" ]
+  "plugins": [ "." ]
 }

@@ -25,5 +25,11 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_DIRECTORY', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 
+// Autoloader
+require_once __DIR__ . '/vendor/autoload.php';
+
+// Post Content Synchronization
+Synchronization\Synchronization::init();
+
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
