@@ -1,21 +1,21 @@
 {
-	"version": "0.2.0",
-	"configurations": [
-	  {
-		"name": "Listen for Xdebug",
-		"type": "php",
-		"request": "launch",
-		"port": 9003,
-		"pathMappings": {
-		  "/var/www/html/wp-content/plugins/vip-realtime-collaboration": "${workspaceFolder}/"
-		}
-	  },
-	  {
-		"type": "chrome",
-		"request": "launch",
-		"name": "Launch Chrome against localhost",
-		"url": "http://localhost:8888/",
-		"webRoot": "${workspaceFolder}"
-	  }
-	]
-  }
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Listen for Xdebug",
+      "type": "php",
+      "request": "launch",
+      "port": 9003,
+      "pathMappings": {
+        "/var/www/html/wp-content/plugins/vip-realtime-collaboration": "${workspaceFolder}/"
+      }
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:8888/",
+      "webRoot": "${workspaceFolder}"
+    }
+  ]
+}
