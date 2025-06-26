@@ -10,7 +10,7 @@
   "example": {},
   "supports": {
     "html": false,
-    "inserter": true,
+    "inserter": false,
     "multiple": false,
     "renaming": false,
     "reusable": false

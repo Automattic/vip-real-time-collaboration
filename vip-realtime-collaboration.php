@@ -29,7 +29,7 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Post Content Synchronization
-Synchronization\Synchronization::init();
+SyncEngine\Synchronization::init();
 
 // Block Registration
 BlockManagement\BlockRegistration::init();

@@ -1,4 +1,4 @@
-/**Add commentMore actions
+/**
  * External dependencies
  */
 import { WebsocketProvider } from 'y-websocket';

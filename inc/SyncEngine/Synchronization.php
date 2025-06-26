@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Synchronization;
+namespace VIPRealtimeCollaboration\SyncEngine;
 
 /**
  * Handles Yjs document synchronization for WordPress posts.
@@ -113,6 +113,15 @@ class Synchronization {
 		if ( 'post' !== $data['post_type'] && 'revision' !== $data['post_type'] ) {
 			return $data;
 		}
+
+		// Auto-insert the virtual block if it is not already present.
+		// This ensures that the block is always present in the post content.
+		if ( ! strpos( $data['post_content'], '<!-- wp:vip-realtime-collaboration/virtual-block -->' ) ) {
+			$data['post_content'] .= '<!-- wp:vip-realtime-collaboration/virtual-block -->
+<div class="wp-block-vip-realtime-collaboration-virtual-block"> Your block. </div>
+<!-- /wp:vip-realtime-collaboration/virtual-block -->';
+		}
+
 		$content = stripslashes( $data['post_content'] );
 		$yinfo = self::get_yinfo( $content );
 		if ( $yinfo ) {

@@ -69,6 +69,7 @@ start_wordpress() {
     # Enable Xdebug when starting the server in "start" mode.
     FLAGS=""
     if [ "$SCRIPT_MODE" = "start" ]; then
+		echo "🔼 Enabling Xdebug for development..."
         FLAGS="${WP_ENV_FLAGS---xdebug}"
     fi
 

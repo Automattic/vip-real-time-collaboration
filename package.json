@@ -45,7 +45,7 @@
     "postinstall": "composer install",
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
-    "start:websocket-server": "npx --yes tsx websocket-server",
+    "start:websocket-server": "HOST=localhost PORT=1234 npx @y/websocket-server",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
