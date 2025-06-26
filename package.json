@@ -45,6 +45,7 @@
     "postinstall": "composer install",
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
+    "start:websocket-server": "npx --yes tsx websocket-server",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
@@ -58,12 +59,14 @@
     "@wordpress/i18n": "^5.26.0",
     "@wordpress/icons": "^10.26.0",
     "@wordpress/scripts": "30.1.0",
+    "@y/websocket-server": "0.1.1",
     "eslint": "8.57.1",
     "husky": "9.1.7",
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
-    "typescript": "5.8.3"
+    "typescript": "5.8.3",
+    "ws": "8.18.2"
   },
   "dependencies": {
     "lib0": "^0.2.108",
