@@ -8,5 +8,5 @@
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
   },
-  "plugins": [ ".", "../gutenberg" ]
+  "plugins": [ "." ]
 }
