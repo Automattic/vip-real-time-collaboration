@@ -62,11 +62,7 @@ export function getSyncProvider() {
 			// eslint-disable-next-line no-undef
 			password: window?.__experimentalCollaborativeEditingSecret,
 		} );
-		syncProvider = createSyncProvider(
-			// connectIndexDb,
-			null,
-			connectionProvider
-		);
+		syncProvider = createSyncProvider( null, connectionProvider );
 	}
 	return syncProvider;
 }

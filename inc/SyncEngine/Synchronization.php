@@ -114,11 +114,10 @@ class Synchronization {
 			return $data;
 		}
 
-		// Auto-insert the virtual block if it is not already present.
-		// This ensures that the block is always present in the post content.
-		if ( ! strpos( $data['post_content'], '<!-- wp:vip-realtime-collaboration/virtual-block -->' ) ) {
+		// Ensure every new post has the virtual collaboration block.
+		if ( strpos( $data['post_content'], 'wp:vip-realtime-collaboration/virtual-block' ) === false ) {
 			$data['post_content'] .= '<!-- wp:vip-realtime-collaboration/virtual-block -->
-<div class="wp-block-vip-realtime-collaboration-virtual-block"> Your block. </div>
+<div class="wp-block-vip-realtime-collaboration-virtual-block"></div>
 <!-- /wp:vip-realtime-collaboration/virtual-block -->';
 		}
 

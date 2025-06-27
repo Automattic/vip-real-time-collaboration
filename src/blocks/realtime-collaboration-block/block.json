@@ -8,9 +8,20 @@
   "icon": "smiley",
   "description": "Block to allow realtime collaboration within VIP sites",
   "example": {},
+	"attributes": {
+		"version": {
+			"type": "string"
+		},
+		"state": {
+			"type": "string"
+		},
+		"newContentClientId": {
+			"type": "string"
+		}
+	},
   "supports": {
     "html": false,
-    "inserter": false,
+    "inserter": true,
     "multiple": false,
     "renaming": false,
     "reusable": false

@@ -4,7 +4,6 @@
  * @see https://developer.wordpress.org/block-editor/reference-guides/packages/packages-i18n/
  */
 import { useBlockProps } from '@wordpress/block-editor';
-import { __ } from '@wordpress/i18n';
 
 /**
  * React hook that is used to mark the block wrapper element.
@@ -29,14 +28,19 @@ import './editor.scss';
  *
  * @return {Element} Element to render.
  */
-export function Edit(): JSX.Element {
+interface EditProps {
+	attributes: {
+		version: string;
+		newContentClientId: string;
+		state: string;
+	};
+}
+
+export function Edit( { attributes }: EditProps ): JSX.Element {
+	const { version, newContentClientId, state } = attributes;
+	console.log( 'Edit function called with attributes:', { version, newContentClientId, state } );
+
 	const blockProps = useBlockProps();
 
-	return (
-		<div { ...blockProps }>
-			<p { ...useBlockProps() }>
-				{ __( 'Realtime Collaboration: hello from the editor!', 'realtime-collaboration-block' ) }
-			</p>
-		</div>
-	);
+	return <div { ...blockProps }></div>;
 }
