@@ -12,7 +12,7 @@ cleanup() {
     echo ""
     echo "✊ Caught SIG signal. Stopping..."
 
-    printf "Stop WordPress? (y/n) "
+    printf "Stop WordPress and WebSocket server? (y/n) "
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ]; then
         npm run -s dev:stop
