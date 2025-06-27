@@ -55,16 +55,12 @@
     "@wordpress/scripts": "30.1.0",
     "@y/websocket-server": "0.1.1",
     "eslint": "8.57.1",
+    "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3",
     "ws": "8.18.2"
-  },
-  "dependencies": {
-    "lib0": "^0.2.108",
-    "y-websocket": "3.0.0",
-    "yjs": "13.6.7"
   }
 }
