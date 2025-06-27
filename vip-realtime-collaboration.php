@@ -28,8 +28,8 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 // Autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Post Content Synchronization
-Synchronization\Synchronization::init();
+// Plugin components
+new Assets\Assets();
 
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
