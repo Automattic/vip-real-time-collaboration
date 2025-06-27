@@ -1,8 +1,8 @@
 /**
  * External dependencies
  */
-import { WebsocketProvider } from 'y-websocket';
 import { addFilter } from '@wordpress/hooks';
+import { WebsocketProvider } from 'y-websocket';
 
 /**
  * Internal dependencies
