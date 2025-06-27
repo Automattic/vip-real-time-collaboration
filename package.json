@@ -69,8 +69,6 @@
     "ws": "8.18.2"
   },
   "dependencies": {
-    "lib0": "^0.2.108",
-    "y-websocket": "3.0.0",
-    "yjs": "13.6.7"
+    "y-websocket": "3.0.0"
   }
 }
