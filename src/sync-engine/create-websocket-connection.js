@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { WebsocketProvider } from 'y-websocket';
+import { addFilter } from '@wordpress/hooks';
 
 /**
  * Internal dependencies
@@ -17,7 +18,7 @@ import { WebsocketProvider } from 'y-websocket';
  * @param {string} config.password
  * @return {import('./types').ConnectDoc} Promise that resolves when the connection is established.
  */
-export function createWebSocketConnection( { password } ) {
+function createWebSocketConnection( { password } ) {
 	return function (
 		/** @type {string} */ objectId,
 		/** @type {string} */ objectType,
@@ -36,3 +37,12 @@ export function createWebSocketConnection( { password } ) {
 		return Promise.resolve( () => true );
 	};
 }
+
+// call the wordpress filter to allow plugins to modify the connection provider
+addFilter(
+	'core.getConnectionProvider',
+	'vip-realtime-collaboration/create-websocket-connection',
+	password => {
+		return createWebSocketConnection( { password } );
+	}
+);
