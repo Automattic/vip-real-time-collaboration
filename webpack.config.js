@@ -1,3 +1,9 @@
+const ForkTsCheckerWebpackPlugin = require( 'fork-ts-checker-webpack-plugin' );
+
+const additionalScripts = {
+	index: './src/index',
+};
+
 const { modernize, moduleConfig, scriptConfig } = require( './webpack.utils' );
 
 // Add watchOptions configuration to reduce file watching load
@@ -7,6 +13,6 @@ const watchOptions = {
 };
 
 module.exports = [
-	modernize( scriptConfig, [], watchOptions ),
-	modernize( moduleConfig, [], watchOptions ),
+	modernize( scriptConfig, additionalScripts, [ new ForkTsCheckerWebpackPlugin() ], watchOptions ),
+	modernize( moduleConfig, {}, [], watchOptions ),
 ];
