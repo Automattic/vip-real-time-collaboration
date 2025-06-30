@@ -9,7 +9,7 @@ addFilter(
 		}
 
 		return connectionCreators.createWebSocketConnection( {
-			serverUrl: 'ws://localhost:1234',
+			serverUrl: 'wss://real-time-collaboration-poc-node.go-vip.net/_ws/',
 		} );
 	}
 );
