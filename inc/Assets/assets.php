@@ -22,6 +22,10 @@ final class Assets {
 	}
 
 	public function load_assets(): void {
+		// Use the VIP_RTC_WS_URL constant if defined, otherwise default to localhost.
+		// This allows for easy configuration in different environments.
+		$vip_rtc_ws_url = defined( 'VIP_RTC_WS_URL' ) ? VIP_RTC_WS_URL : 'ws://localhost:1234';
+
 		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
 		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) );
 
@@ -44,5 +48,9 @@ final class Assets {
 			$asset['version'],
 			[ 'in_footer' => false ]
 		);
+
+		wp_localize_script('vip-realtime-collaboration', 'VIP_RTC', [
+			'wsUrl'           => $vip_rtc_ws_url,
+		]);
 	}
 }
