@@ -24,9 +24,13 @@ final class Assets {
 	public function load_assets(): void {
 		// Use the VIP_RTC_WS_URL constant if defined, otherwise default to localhost.
 		// This allows for easy configuration in different environments.
-		$vip_rtc_ws_url = defined( 'RTC_WS_URL' ) ? RTC_WS_URL : 'ws://localhost:1234';
+		$vip_rtc_ws_url = 'ws://localhost:1234';
 
-		error_log( sprintf( 'VIP RTC WebSocket URL: %s', $vip_rtc_ws_url ) );
+		if ( function_exists( 'vip_get_env_var' ) ) {
+			$vip_rtc_ws_url = vip_get_env_var( 'RTC_WS_URL', $vip_rtc_ws_url );
+		} elseif ( defined( 'RTC_WS_URL' ) ) {
+			$vip_rtc_ws_url = RTC_WS_URL;
+		}
 
 		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
 		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) );
