@@ -26,7 +26,7 @@ final class Assets {
 		// This allows for easy configuration in different environments.
 		$vip_rtc_ws_url = defined( 'RTC_WS_URL' ) ? RTC_WS_URL : 'ws://localhost:1234';
 
-		error_log( sprintf( 'VIP RTC WebSocket URL: %s', RTC_WS_URL ) );
+		error_log( sprintf( 'VIP RTC WebSocket URL: %s', $vip_rtc_ws_url ) );
 
 		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
 		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) );
