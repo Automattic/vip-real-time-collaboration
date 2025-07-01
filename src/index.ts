@@ -1,12 +1,6 @@
 import { addFilter } from '@wordpress/hooks';
 
-// Define the VIP_RTC interface
-interface VIPRTCConfig {
-  wsUrl: string;
-}
-
-// Declare VIP_RTC as a global variable
-declare const VIP_RTC: VIPRTCConfig | undefined;
+import { getWebSocketUrl } from './utils';
 
 addFilter(
 	'core.getSyncProviderRemoteConnection',
@@ -17,15 +11,24 @@ addFilter(
 			return connection;
 		}
 
-		if ( ! VIP_RTC || ! VIP_RTC.wsUrl  ) {
-			console.warn( 'VIP RTC WebSocket URL is not defined.' );
+		// We already error check for the WebSocket URL in the main plugin file,
+		// so this is here for safety.
+		const serverUrl = getWebSocketUrl();
+		// ToDo: Remove this before we go into production.
+		// eslint-disable-next-line no-console
+		console.log( 'WebSocket URL:', serverUrl );
+
+		if ( ! serverUrl ) {
+			// ToDo: Replace this with a proper UI notice.
+			// eslint-disable-next-line no-console
+			console.error(
+				'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
+			);
 			return null;
 		}
 
-		console.log( 'Creating WebSocket connection to:', VIP_RTC.wsUrl );
-
 		return connectionCreators.createWebSocketConnection( {
-			serverUrl: VIP_RTC.wsUrl,
+			serverUrl,
 		} );
 	}
 );

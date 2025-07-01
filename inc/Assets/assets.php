@@ -2,6 +2,8 @@
 
 namespace VIPRealtimeCollaboration\Assets;
 
+defined( 'ABSPATH' ) || exit();
+
 use function add_action;
 use function plugins_url;
 use function wp_add_inline_script;
@@ -22,14 +24,12 @@ final class Assets {
 	}
 
 	public function load_assets(): void {
-		// Use the VIP_RTC_WS_URL constant if defined, otherwise default to localhost.
-		// This allows for easy configuration in different environments.
-		$vip_rtc_ws_url = 'ws://localhost:1234';
+		$vip_rtc_ws_url = null;
 
-		if ( function_exists( 'vip_get_env_var' ) ) {
-			$vip_rtc_ws_url = vip_get_env_var( 'RTC_WS_URL', $vip_rtc_ws_url );
-		} elseif ( defined( 'RTC_WS_URL' ) ) {
-			$vip_rtc_ws_url = RTC_WS_URL;
+		// Error checking for the WebSocket URL is already done in the main plugin file.
+		// This is here just for safety.
+		if ( defined( 'VIP_RTC_WS_URL' ) ) {
+			$vip_rtc_ws_url = constant( 'VIP_RTC_WS_URL' );
 		}
 
 		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
@@ -56,7 +56,7 @@ final class Assets {
 		);
 
 		wp_localize_script('vip-realtime-collaboration', 'VIP_RTC', [
-			'wsUrl'           => $vip_rtc_ws_url,
+			'wsUrl' => $vip_rtc_ws_url,
 		]);
 	}
 }
