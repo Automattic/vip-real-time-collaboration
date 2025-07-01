@@ -3,6 +3,8 @@ import { select } from '@wordpress/data';
 import { addAction, addFilter } from '@wordpress/hooks';
 import { removeAwarenessStates } from 'y-protocols/awareness.js';
 
+import { initializeBlockWrapper } from './block-wrapper';
+
 import type * as awarenessProtocol from 'y-protocols/awareness.js';
 import type { WebsocketProvider } from 'y-websocket';
 
@@ -85,6 +87,8 @@ async function setupAwareness( awareness: awarenessProtocol.Awareness ) {
 
 	const userInfo = await getCurrentUserInfo();
 	awareness.setLocalStateField( 'user', userInfo );
+
+	initializeBlockWrapper( awareness );
 
 	window.addEventListener( 'beforeunload', () => {
 		console.log( 'beforeunload' );
