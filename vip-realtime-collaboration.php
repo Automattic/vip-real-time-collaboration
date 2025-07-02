@@ -25,9 +25,14 @@ define( 'VIP_REALTIME_COLLABORATION__LOADED', true );
 // Do not load the plugin if the WebSocket URL is not defined.
 // This is a critical configuration for the plugin to function correctly.
 if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
-	wp_admin_notice( esc_html( 'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.', 'vip_realtime_collaboration' ), [
-		'type' => 'error',
-	] );
+	// ToDo: Using wp_admin_notices causes a header already sent warning to show up. Ideally, we should be using that instead and we don't need an anonymous function.
+	add_action( 'admin_notices', function (): void {
+		?>
+			<div class="notice notice-error">
+				<p><?php esc_html_e( 'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.', 'vip_realtime_collaboration' ); ?></p>
+			</div>
+				<?php
+	}, 10, 0 );
 	return;
 }
 
