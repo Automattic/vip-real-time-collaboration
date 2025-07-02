@@ -29,7 +29,7 @@ final class Assets {
 		// Error checking for the WebSocket URL is already done in the main plugin file.
 		// This is here just for safety.
 		if ( defined( 'VIP_RTC_WS_URL' ) ) {
-			$vip_rtc_ws_url = constant( 'VIP_RTC_WS_URL' );
+			$vip_rtc_ws_url = (string) constant( 'VIP_RTC_WS_URL' );
 		}
 
 		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
