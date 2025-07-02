@@ -20,6 +20,22 @@ if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
+// Do not load the plugin if the WebSocket URL is not defined.
+if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
+	add_action( 'admin_notices', function (): void {
+		wp_admin_notice(
+			__(
+				'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
+				'vip_realtime_collaboration'
+			),
+			[ 'type' => 'error' ]
+		);
+	}, 10, 0 );
+
+	// Prevent the plugin from loading.
+	return;
+}
+
 define( 'VIP_REALTIME_COLLABORATION__LOADED', true );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_DIRECTORY', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
