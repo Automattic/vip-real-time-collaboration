@@ -55,8 +55,8 @@ final class Assets {
 			[ 'in_footer' => false ]
 		);
 
-		wp_localize_script('vip-realtime-collaboration', 'VIP_RTC', [
+		wp_localize_script( 'vip-realtime-collaboration', 'VIP_RTC', [
 			'wsUrl' => $vip_rtc_ws_url,
-		]);
+		] );
 	}
 }
