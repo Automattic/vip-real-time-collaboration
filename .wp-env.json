@@ -4,7 +4,7 @@
     "WP_DEBUG_DISPLAY": true,
     "WP_DEVELOPMENT_MODE": "plugin",
     "WP_ENVIRONMENT_TYPE": "development",
-		"VIP_RTC_WS_URL": "ws://localhost:1234"
+    "VIP_RTC_WS_URL": "ws://localhost:1234"
   },
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
