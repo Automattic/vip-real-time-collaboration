@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types = 1);
 /**
  * Allow multiple users to edit the same post at the same time.
  */
@@ -13,8 +13,7 @@ add_action( 'admin_init', __NAMESPACE__ . '\\remove_heartbeat_post_lock' );
 
 /**
  * Remove the heartbeat post lock functionality.
- *
  */
-function remove_heartbeat_post_lock() {
+function remove_heartbeat_post_lock(): void {
 	remove_filter( 'heartbeat_received', 'wp_refresh_post_lock' );
 }
