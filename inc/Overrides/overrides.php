@@ -1,9 +1,5 @@
 <?php declare(strict_types = 1);
 
-/**
- * Allow multiple users to edit the same post at the same time.
- */
-
 namespace VIPRealtimeCollaboration\Overrides;
 
 // Allow multiple users to see the edit post screen. There is a bug with this however, when autosave kicks in, see: https://core.trac.wordpress.org/ticket/63598.
