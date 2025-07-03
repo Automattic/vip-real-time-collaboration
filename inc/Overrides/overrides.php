@@ -1,4 +1,5 @@
 <?php declare(strict_types = 1);
+
 /**
  * Allow multiple users to edit the same post at the same time.
  */
