@@ -49,3 +49,7 @@ If you want to develop against a custom build of Gutenberg, copy `.wp-env.overri
 - `npm run format` - Format code
 - `npm run check-types` - TypeScript type checking
 - `npm run plugin-zip` - Create plugin zip for distribution
+
+### Environment Variables
+
+`VIP_RTC_WS_URL`: This is the websockets url that'll be used as the sync provider by Yjs. By default, it's null. On local dev environments, it's set to `ws://localhost:1234`.
