@@ -45,6 +45,7 @@ final class Overrides {
 		wp_enqueue_script(
 			'vip-realtime-collaboration-post-lock-notice',
 			plugins_url( 'inc/Overrides/js/post-lock-override.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ),
+			[ 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-components' ],
 			VIP_REALTIME_COLLABORATION__PLUGIN_VERSION,
 			[ 'in_footer' => true ]
 		);
