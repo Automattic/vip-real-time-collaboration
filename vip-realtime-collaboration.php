@@ -48,7 +48,7 @@ require_once __DIR__ . '/vendor/autoload.php';
 new Assets\Assets();
 
 // Core overrides.
-require_once __DIR__ . '/inc/Overrides/overrides.php';
+new Overrides\Overrides();
 
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
