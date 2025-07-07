@@ -1,22 +1,13 @@
-import { store as coreStore } from '@wordpress/core-data';
+import { store as coreStore, type User } from '@wordpress/core-data';
 import { select } from '@wordpress/data';
-import { addAction, addFilter } from '@wordpress/hooks';
-import { removeAwarenessStates } from 'y-protocols/awareness.js';
-
-import type * as awarenessProtocol from 'y-protocols/awareness.js';
-import type { WebsocketProvider } from 'y-websocket';
-
-interface User {
-	id: number;
-	name: string;
-	url: string;
-	description: string;
-	link: string;
-	slug: string;
-	avatar_urls: {
-		[ size: string ]: string;
-	};
-}
+import domReady from '@wordpress/dom-ready';
+import { addFilter } from '@wordpress/hooks';
+import {
+	getSyncProvider,
+	type SyncProvider,
+	type ConnectDoc,
+	type RemoteConnectionCreators,
+} from '@wordpress/sync';
 
 type UserStates = Map< number, { user: User } >;
 
@@ -34,21 +25,8 @@ addFilter(
 	}
 );
 
-addAction(
-	'rtc.provider.created',
-	'vip-realtime-collaboration',
-	async (
-		provider: WebsocketProvider,
-		{ objectType, objectId, roomName }: { objectType: string; objectId: string; roomName: string }
-	) => {
-		if ( objectType === 'postType/Posts' ) {
-			await setupAwareness( provider.awareness );
-		}
-	}
-);
-
-async function setupAwareness( awareness: awarenessProtocol.Awareness ) {
-	awareness.on(
+async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
+	awareness.addListener(
 		'change',
 		( {
 			added,
@@ -87,14 +65,13 @@ async function setupAwareness( awareness: awarenessProtocol.Awareness ) {
 	awareness.setLocalStateField( 'user', userInfo );
 
 	window.addEventListener( 'beforeunload', () => {
-		console.log( 'beforeunload' );
-		awareness.setLocalState( null );
-		removeAwarenessStates( awareness, [ awareness.clientID ], 'window unload' );
+		awareness.setLocalStateField( 'user', null );
+		awareness.removeAwarenessStates();
 	} );
 }
 
 async function getCurrentUserInfo(): Promise< User > {
-	const currentUser = await ( select( coreStore ) as any ).getCurrentUser();
+	const currentUser = select( coreStore ).getCurrentUser();
 
 	if ( ! currentUser?.id ) {
 		await new Promise( resolve => setTimeout( resolve, 100 ) );
@@ -131,3 +108,13 @@ function getCurrentUsers( states: UserStates ) {
 
 	return sortedUsers.map( user => `${ user.name } (ID ${ user.id })` ).join( ', ' );
 }
+
+domReady( function () {
+	const syncProvider: SyncProvider = getSyncProvider();
+
+	( async () => {
+		await setupAwareness( syncProvider.awareness );
+	} )().catch( error => {
+		console.error( 'Error getting awareness:', error );
+	} );
+} );
