@@ -1,20 +1,18 @@
 declare module '@wordpress/sync' {
+	interface LocalConnectionCreators {
+		createIndexedDBConnection: () => ConnectDoc;
+	}
+
 	interface RemoteConnectionCreators {
 		createWebSocketConnection: ( options: { serverUrl: string } ) => ConnectDoc;
-	};
+	}
 
-	type ConnectDoc = (
-		id: ObjectID,
-		type: ObjectType,
-		ydoc: Y.Doc
-	) => Promise< ConnectDocResult >;
+	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
 
 	type ConnectDocResult = {
 		destroy: () => void;
 		awareness: Awareness;
 	};
-
-	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => ConnectDocResult;
 
 	type SyncProvider = {
 		register: ( type: ObjectType, config: ObjectConfig ) => void;

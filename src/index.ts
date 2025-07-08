@@ -6,12 +6,21 @@ import {
 	getSyncProvider,
 	type SyncProvider,
 	type ConnectDoc,
+	type LocalConnectionCreators,
 	type RemoteConnectionCreators,
 } from '@wordpress/sync';
 
 type UserStates = Map< number, { user: User } >;
 
 import { getWebSocketUrl } from './utils';
+
+addFilter(
+	'core.getSyncProviderLocalConnection',
+	'vip-realtime-collaboration',
+	( connection: ConnectDoc | null, connectionCreators: LocalConnectionCreators ) => {
+		return connection ?? connectionCreators.createIndexedDBConnection();
+	}
+);
 
 addFilter(
 	'core.getSyncProviderRemoteConnection',
