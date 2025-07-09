@@ -15,6 +15,10 @@ namespace VIPRealtimeCollaboration;
 
 defined( 'ABSPATH' ) || exit();
 
+if ( should_exit_collaborative_editing() ) {
+	return;
+}
+
 // Check if the plugin is already loaded, if so, return early to prevent duplicate plugin instances.
 if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
@@ -52,3 +56,19 @@ new Overrides\Overrides();
 
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
+
+/**
+ * Determines whether to exit collaborative editing.
+ *
+ * @return bool True if collaborative editing should be exited, false otherwise.
+ */
+function should_exit_collaborative_editing(): bool {
+	global $post_id;
+
+	// If the post is not a block-based post, we should exit collaborative editing.
+	if ( ! empty( $post_id ) && ! \WP_Block_Editor_Context::is_block_editor( $post_id ) ) {
+		return true;
+	}
+
+	return false;
+}
