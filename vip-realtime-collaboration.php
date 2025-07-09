@@ -70,5 +70,10 @@ function should_exit_collaborative_editing(): bool {
 		return true;
 	}
 
+	// Allow collaborative editing to skip based on post ID.
+	if ( apply_filters( 'vip_realtime_collaboration_exit', false, $post_id ) ) {
+		return true;
+	}
+
 	return false;
 }
