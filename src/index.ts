@@ -2,12 +2,16 @@ import { store as coreStore, type User } from '@wordpress/core-data';
 import { select } from '@wordpress/data';
 import domReady from '@wordpress/dom-ready';
 import { addFilter } from '@wordpress/hooks';
+import { registerPlugin } from '@wordpress/plugins';
 import {
 	getSyncProvider,
 	type SyncProvider,
 	type ConnectDoc,
 	type RemoteConnectionCreators,
 } from '@wordpress/sync';
+
+import { createRTCOverlay } from './components/rtc-overlay';
+import { RTCSettingsPanel } from './components/rtc-settings-panel';
 
 type UserStates = Map< number, { user: User } >;
 
@@ -24,6 +28,10 @@ addFilter(
 		} );
 	}
 );
+
+registerPlugin( 'vip-realtime-collaboration', {
+	render: RTCSettingsPanel,
+} );
 
 async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 	awareness.addListener(
@@ -68,19 +76,22 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 		awareness.setLocalStateField( 'user', null );
 		awareness.removeAwarenessStates();
 	} );
+
+	createRTCOverlay( awareness );
 }
 
 async function getCurrentUserInfo(): Promise< User > {
 	const currentUser = select( coreStore ).getCurrentUser();
 
 	if ( ! currentUser?.id ) {
+		// getCurrentUser() returns an empty user object for a short time after load.
+		// In that case, wait and try again.
 		await new Promise( resolve => setTimeout( resolve, 100 ) );
 		return await getCurrentUserInfo();
 	}
 
 	return currentUser;
 }
-
 function userJoined( user: User, states: UserStates ) {
 	console.log( `User joined: ${ user.name } (ID ${ user.id })` );
 	console.log( 'Current users:', getCurrentUsers( states ) );
