@@ -75,5 +75,11 @@ function should_exit_collaborative_editing(): bool {
 		return true;
 	}
 
+	// Potentially skip via $_COOKIE.
+	if ( isset( $_COOKIE['vip_realtime_collaboration_exit'] ) && '1' === $_COOKIE['vip_realtime_collaboration_exit'] ) {
+		// If the cookie is set, we should exit collaborative editing.
+		return true;
+	}
+
 	return false;
 }
