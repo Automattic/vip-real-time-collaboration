@@ -17,13 +17,18 @@ export function AwarenessAvatars() {
 		return store.getCurrentUser();
 	}, [] );
 
-	const sortedOtherUsers = activeUsers
-		.filter( user => user.id !== currentUser?.id )
-		.sort( ( userA, userB ) => userA.id - userB.id );
-	const sortedUsers = [ currentUser, ...sortedOtherUsers ];
+	const otherUsers = activeUsers.filter( user => user.id !== currentUser?.id );
+	const allUsers = [ currentUser, ...otherUsers ];
 
-	const visibleUsers = sortedUsers.slice( 0, 3 );
-	const remainingUsers = sortedUsers.slice( 3 );
+	if ( allUsers.length <= 1 ) {
+		// Hide avatars when there's only one user.
+		// This also avoids showing a single user when navigating away from the editor
+		// after the connection is closed but before the page reloads.
+		return null;
+	}
+
+	const visibleUsers = allUsers.slice( 0, 3 );
+	const remainingUsers = allUsers.slice( 3 );
 
 	return (
 		<div className="vip-realtime-collaboration-avatars">

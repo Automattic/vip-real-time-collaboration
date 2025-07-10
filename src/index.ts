@@ -81,19 +81,16 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 
 			const updatePromises = modifiedUsers
 				.map( id => {
-					const state = states.get( id );
-					return state ? updateUser( state.user ) : null;
+					const { user } = states.get( id ) ?? {};
+					return user ? updateUser( id, user ) : null;
 				} )
 				.filter( promise => promise !== null );
-			await Promise.all( updatePromises );
 
-			const removePromises = removed
-				.map( id => {
-					const state = states.get( id );
-					return state ? removeUser( state.user ) : null;
-				} )
-				.filter( promise => promise !== null );
-			await Promise.all( removePromises );
+			const removePromises = removed.map( id => {
+				return removeUser( id );
+			} );
+
+			await Promise.all( [ ...updatePromises, ...removePromises ] );
 		}
 	);
 
