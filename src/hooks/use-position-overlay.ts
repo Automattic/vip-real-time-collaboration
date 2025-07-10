@@ -9,8 +9,8 @@ import { throttleByAnimationFrame } from '../utilities/throttle';
  * @param targetElement - The element to overlay on top of.
  */
 export function usePositionOverlay(
-	overlayRef: RefObject< HTMLDivElement >,
-	targetElement: Element | null
+	overlayRef: RefObject< HTMLElement >,
+	targetElement: HTMLElement | null
 ) {
 	useEffect( () => {
 		if ( targetElement === null ) {

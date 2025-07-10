@@ -1,5 +1,5 @@
 import { store as coreStore, type User } from '@wordpress/core-data';
-import { select } from '@wordpress/data';
+import { select, dispatch } from '@wordpress/data';
 import domReady from '@wordpress/dom-ready';
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
@@ -13,10 +13,10 @@ import {
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
+import { store as awarenessStore } from './store/awareness-store';
+import { getWebSocketUrl } from './utils';
 
 type UserStates = Map< number, { user: User } >;
-
-import { getWebSocketUrl } from './utils';
 
 addFilter(
 	'core.getSyncProviderLocalConnection',
@@ -62,9 +62,11 @@ registerPlugin( 'vip-realtime-collaboration', {
 } );
 
 async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
+	const { updateUser, removeUser } = dispatch( awarenessStore );
+
 	awareness.addListener(
 		'change',
-		( {
+		async ( {
 			added,
 			updated,
 			removed,
@@ -75,25 +77,23 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 		} ) => {
 			const states: UserStates = awareness.getStates() as UserStates;
 
-			if ( added.length > 0 ) {
-				for ( const id of added ) {
+			const modifiedUsers = [ ...added, ...updated ];
+
+			const updatePromises = modifiedUsers
+				.map( id => {
 					const state = states.get( id );
-					if ( state ) {
-						if ( state.user ) {
-							userJoined( state.user, states );
-						}
-					}
-				}
-			} else if ( updated.length > 0 ) {
-				for ( const id of updated ) {
+					return state ? updateUser( state.user ) : null;
+				} )
+				.filter( promise => promise !== null );
+			await Promise.all( updatePromises );
+
+			const removePromises = removed
+				.map( id => {
 					const state = states.get( id );
-					if ( state ) {
-						console.log( 'Users updated, current users:', getCurrentUsers( states ) );
-					}
-				}
-			} else if ( removed.length > 0 ) {
-				userLeft( states );
-			}
+					return state ? removeUser( state.user ) : null;
+				} )
+				.filter( promise => promise !== null );
+			await Promise.all( removePromises );
 		}
 	);
 
@@ -119,33 +119,6 @@ async function getCurrentUserInfo(): Promise< User > {
 	}
 
 	return currentUser;
-}
-function userJoined( user: User, states: UserStates ) {
-	console.log( `User joined: ${ user.name } (ID ${ user.id })` );
-	console.log( 'Current users:', getCurrentUsers( states ) );
-}
-
-function userLeft( states: UserStates ) {
-	console.log( 'User left, remaining users:', getCurrentUsers( states ) );
-}
-
-function getCurrentUsers( states: UserStates ) {
-	const users = Array.from( states.values() )
-		.map( state => {
-			if ( state?.user?.name && state?.user.id ) {
-				return state.user;
-			}
-			return false;
-		} )
-		.filter( Boolean ) as User[];
-
-	const sortedUsers = users.sort( ( userA, userB ) => userA.id - userB.id );
-
-	if ( sortedUsers.length === 0 ) {
-		return 'No users connected';
-	}
-
-	return sortedUsers.map( user => `${ user.name } (ID ${ user.id })` ).join( ', ' );
 }
 
 domReady( function () {
