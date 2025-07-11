@@ -9,6 +9,8 @@ use function add_filter;
 use function remove_filter;
 use function wp_enqueue_script;
 use function plugins_url;
+use function wp_insert_post;
+use WP_Post;
 
 /**
  * Class to handle overrides for the Block Editor functionality.
@@ -26,6 +28,8 @@ final class Overrides {
 
 		// Force the removal of refreshing the post lock, runs on admin_init as that is after the filter is set.
 		add_action( 'admin_init', [ $this, 'remove_heartbeat_post_lock' ] );
+
+		add_action( 'wp_delete_post_revision', [ $this, 'maybe_save_deleted_autosave' ], 10, 2 );
 	}
 
 	/**
@@ -49,5 +53,37 @@ final class Overrides {
 			VIP_REALTIME_COLLABORATION__PLUGIN_VERSION,
 			[ 'in_footer' => true ]
 		);
+	}
+
+	/**
+	 * Since autosave are automatically overwritten, we attempt to save a deleted
+	 * autosave as an autosave-revision as an attempt to protect against data loss
+	 * by saving a copy of the previous auto-save before it gets overwritten.
+	 *
+	 * @param int $revision_id
+	 * @param WP_Post $revision_data
+	 * @return void
+	 */
+	public function maybe_save_deleted_autosave( int $revision_id, WP_Post $revision_data ): void {
+		// Make sure post_type is a revision.
+		if ( 'revision' !== $revision_data->post_type ) {
+			return;
+		}
+
+		// Make sure revision is an autosave, if not, we skip saving it.
+		if ( ! str_contains( $revision_data->post_title, '-autosave-v1' ) ) {
+			return;
+		}
+
+		// Change the post type to autosave-revision and add the post date to the title.
+		$revision_data->post_type = 'autosave-revision';
+		$revision_data->post_title .= '-' . $revision_data->post_date;
+		// Reset the post date and modified date, so we can accurately record creation.
+		$revision_data->post_date = '';
+		$revision_data->post_date_gmt = '';
+		$revision_data->post_modified = '';
+		$revision_data->post_modified_gmt = '';
+
+		wp_insert_post( $revision_data, true );
 	}
 }
