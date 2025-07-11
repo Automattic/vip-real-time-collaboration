@@ -81,6 +81,9 @@ final class Overrides {
 		$revision_data->post_modified = '';
 		$revision_data->post_modified_gmt = '';
 
+		// Convert the post data to an array for insertion.
+		$revision_data->to_array();
+
 		wp_insert_post( $revision_data, true );
 	}
 }
