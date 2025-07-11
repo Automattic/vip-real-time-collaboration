@@ -56,7 +56,7 @@ final class Overrides {
 	}
 
 	/**
-	 * Since autosave are automatically overwritten, we attempt to save a deleted
+	 * Since autosaves are automatically overwritten, we attempt to save a deleted
 	 * autosave as an autosave-revision as an attempt to protect against data loss
 	 * by saving a copy of the previous auto-save before it gets overwritten.
 	 *
