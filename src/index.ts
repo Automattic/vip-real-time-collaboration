@@ -33,8 +33,4 @@ addFilter(
 	}
 );
 
-addFilter(
-	'core.useSyncUndoManager',
-	'vip-realtime-collaboration',
-	() => true
-);
+addFilter( 'core.useSyncUndoManager', 'vip-realtime-collaboration', () => true );
