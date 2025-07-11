@@ -32,3 +32,5 @@ addFilter(
 		} );
 	}
 );
+
+addFilter( 'core.useSyncUndoManager', 'vip-realtime-collaboration', () => true );
