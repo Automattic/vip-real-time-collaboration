@@ -15,10 +15,6 @@ namespace VIPRealtimeCollaboration;
 
 defined( 'ABSPATH' ) || exit();
 
-if ( should_exit_collaborative_editing() ) {
-	return;
-}
-
 // Check if the plugin is already loaded, if so, return early to prevent duplicate plugin instances.
 if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
@@ -55,11 +51,19 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 // Autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Plugin components
-new Assets\Assets();
+// Run on admin_init early so that we can selectively turn on functionality.
+add_action( 'admin_init', function() {
 
-// Core overrides.
-new Overrides\Overrides();
+	if ( should_exit_collaborative_editing() ) {
+		return;
+	}
+
+	// Plugin components
+	new Assets\Assets();
+
+	// Core overrides.
+	new Overrides\Overrides();
+}, 9 );
 
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
@@ -70,21 +74,9 @@ do_action( 'vip_realtime_collaboration_loaded' );
  * @return bool True if collaborative editing should be exited, false otherwise.
  */
 function should_exit_collaborative_editing(): bool {
-	global $post_id;
 
-	// If the post is not a block-based post, we should exit collaborative editing.
-	if ( ! empty( $post_id ) && ! \WP_Block_Editor_Context::is_block_editor( $post_id ) ) {
-		return true;
-	}
-
-	// Allow collaborative editing to skip based on post ID.
-	if ( apply_filters( 'vip_realtime_collaboration_exit', false, $post_id ) ) {
-		return true;
-	}
-
-	// Potentially skip via $_COOKIE.
-	if ( isset( $_COOKIE['vip_realtime_collaboration_exit'] ) && '1' === $_COOKIE['vip_realtime_collaboration_exit'] ) {
-		// If the cookie is set, we should exit collaborative editing.
+	global $pagenow;
+	if ( 'site-editor.php' == $pagenow ) {
 		return true;
 	}
 
