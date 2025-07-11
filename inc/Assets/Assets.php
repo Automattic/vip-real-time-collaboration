@@ -20,7 +20,18 @@ final class Assets {
 	}
 
 	public function enable_gutenberg_experiment(): void {
-		wp_add_inline_script( 'wp-block-editor', 'window.__experimentalEnableSync = true', 'before' );
+		$script = 'const wp = (window as any).wp;
+const isSiteEditor = !!(
+	wp?.data?.select &&
+	wp.data.select(\'core/edit-site\') &&
+	typeof wp.data.select(\'core/edit-site\').isSiteEditor === \'function\' &&
+	wp.data.select(\'core/edit-site\').isSiteEditor()
+);
+if (!isSiteEditor) {
+	window.__experimentalEnableSync = true
+}';
+
+		wp_add_inline_script( 'wp-block-editor', $script, 'before' );
 	}
 
 	public function load_assets(): void {
