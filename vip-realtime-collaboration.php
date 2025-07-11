@@ -52,7 +52,7 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 require_once __DIR__ . '/vendor/autoload.php';
 
 // Run on admin_init early so that we can selectively turn on functionality.
-add_action( 'admin_init', function(): void {
+add_action( 'admin_init', function (): void {
 
 	if ( should_exit_collaborative_editing() ) {
 		return;
