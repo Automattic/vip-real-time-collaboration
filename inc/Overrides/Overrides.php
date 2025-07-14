@@ -82,8 +82,25 @@ final class Overrides {
 		$revision_data->post_modified_gmt = '';
 
 		// Convert the post data to an array for insertion.
-		$revision_data->to_array();
+		$insert_data = $this->wp_post_to_insert_array( $revision_data );
 
-		wp_insert_post( $revision_data, true );
+		wp_insert_post( $insert_data, true );
+	}
+
+	function wp_post_to_insert_array( WP_Post $post ): array {
+		return [
+			'post_title'           => $post->post_title,
+			'post_content'         => $post->post_content,
+			'post_excerpt'         => $post->post_excerpt,
+			'post_status'          => $post->post_status,
+			'post_type'            => $post->post_type,
+			'post_author'          => $post->post_author,
+			'post_date'            => $post->post_date,
+			'post_date_gmt'        => $post->post_date_gmt,
+			'post_modified'        => $post->post_modified,
+			'post_modified_gmt'    => $post->post_modified_gmt,
+			'post_name'            => $post->post_name,
+			'post_parent'          => $post->post_parent,
+		];
 	}
 }
