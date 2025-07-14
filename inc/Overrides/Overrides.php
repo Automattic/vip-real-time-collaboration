@@ -78,8 +78,6 @@ final class Overrides {
 		// Reset the post date and modified date, so we can accurately record creation.
 		$revision_data->post_date = '';
 		$revision_data->post_date_gmt = '';
-		$revision_data->post_modified = '';
-		$revision_data->post_modified_gmt = '';
 
 		// Convert the post data to an array for insertion.
 		$insert_data = $this->wp_post_to_insert_array( $revision_data );
@@ -97,8 +95,6 @@ final class Overrides {
 			'post_author' => $post->post_author,
 			'post_date' => $post->post_date,
 			'post_date_gmt' => $post->post_date_gmt,
-			'post_modified' => $post->post_modified,
-			'post_modified_gmt' => $post->post_modified_gmt,
 			'post_name' => $post->post_name,
 			'post_parent' => $post->post_parent,
 		];
