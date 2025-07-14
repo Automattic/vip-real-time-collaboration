@@ -20,13 +20,6 @@ if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
-// Avoids setting the Sync flag twice.
-add_filter( 'pre_option_gutenberg-experiments', function ( array $experiments ): array {
-		// Remove the default sync experiment for Gutenberg to allow us to control it here.
-		unset( $experiments['gutenberg-sync-collaboration'] );
-		return $experiments;
-} );
-
 // Do not load the plugin if the WebSocket URL is not defined.
 if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
 	add_action( 'admin_notices', function (): void {
