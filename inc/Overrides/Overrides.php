@@ -76,11 +76,10 @@ final class Overrides {
 		$revision_data->post_type = 'autosave-revision';
 		$revision_data->post_title .= '-' . $revision_data->post_date;
 		// Reset the post date and modified date, so we can accurately record creation.
-		unset( $revision_data->post_date );
-		unset( $revision_data->post_date_gmt );
 
 		// Convert the post data to an array for insertion.
 		$insert_data = get_object_vars( $revision_data );
+		unset( $insert_data['ID'] );
 		unset( $insert_data['post_modified'] );
 		unset( $insert_data['post_modified_gmt'] );
 		unset( $insert_data['comment_count'] );
