@@ -85,6 +85,6 @@ final class Overrides {
 		unset( $insert_data['comment_count'] );
 		unset( $insert_data['filter'] );
 
-		wp_insert_post( $insert_data, true );
+		wp_insert_post( $insert_data );
 	}
 }
