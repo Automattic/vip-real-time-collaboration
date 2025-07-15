@@ -59,9 +59,8 @@ final class Overrides {
 	 * Since autosaves are automatically overwritten, we attempt to save a deleted
 	 * autosave as an autosave-revision as an attempt to protect against data loss
 	 * by saving a copy of the previous auto-save before it gets overwritten.
-	 * @psalm-suppress UnusedParam
 	 */
-	public function maybe_save_deleted_autosave( int $revision_id, WP_Post $revision_data ): void {
+	public function maybe_save_deleted_autosave( int $_revision_id, WP_Post $revision_data ): void {
 		// Make sure post_type is a revision.
 		if ( 'revision' !== $revision_data->post_type ) {
 			return;
