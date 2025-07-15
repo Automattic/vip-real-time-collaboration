@@ -76,8 +76,12 @@ final class Overrides {
 		$revision_data->post_type = 'autosave-revision';
 		$revision_data->post_title .= '-' . $revision_data->post_date;
 		// Reset the post date and modified date, so we can accurately record creation.
-		$revision_data->post_date = '';
-		$revision_data->post_date_gmt = '';
+		unset( $revision_data->post_date );
+		unset( $revision_data->post_date_gmt );
+		unset( $revision_data->post_modified );
+		unset( $revision_data->post_modified_gmt );
+		unset( $revision_data->comment_count );
+		unset( $revision_data->filter );
 
 		// Convert the post data to an array for insertion.
 		$insert_data = get_object_vars( $revision_data );
@@ -85,3 +89,6 @@ final class Overrides {
 		wp_insert_post( $insert_data, true );
 	}
 }
+
+
+Argument 1 of wp_insert_post expects array{ID?: int, comment_status?: string, guid?: string, import_id?: int, menu_order?: int, meta_input?: array<array-key, mixed>, page_template?: string, ping_status?: string, pinged?: string, post_author?: int, post_category?: array<array-key, int>, post_content?: string, post_content_filtered?: string, post_date?: string, post_date_gmt?: string, post_excerpt?: string, post_mime_type?: string, post_name?: string, post_parent?: int, post_password?: string, post_status?: string, post_title?: string, post_type?: string, tags_input?: array<array-key, mixed>, tax_input?: array<array-key, mixed>, to_ping?: string}, but array{ID: int, comment_count: string, comment_status: string, filter: string, guid: string, menu_order: int, ping_status: string, pinged: string, post_author: string, post_content: string, post_content_filtered: string, post_date: string, post_date_gmt: string, post_excerpt: string, post_mime_type: string, post_modified: string, post_modified_gmt: string, post_name: string, post_parent: int, post_password: string, post_status: string, post_title: string, post_type: string, to_ping: string} with additional array shape fields (post_modified, post_modified_gmt, comment_count, filter)
