@@ -78,13 +78,13 @@ final class Overrides {
 		// Reset the post date and modified date, so we can accurately record creation.
 		unset( $revision_data->post_date );
 		unset( $revision_data->post_date_gmt );
-		unset( $revision_data->post_modified );
-		unset( $revision_data->post_modified_gmt );
-		unset( $revision_data->comment_count );
-		unset( $revision_data->filter );
 
 		// Convert the post data to an array for insertion.
 		$insert_data = get_object_vars( $revision_data );
+		unset( $insert_data['post_modified'] );
+		unset( $insert_data['post_modified_gmt'] );
+		unset( $insert_data['comment_count'] );
+		unset( $insert_data['filter'] );
 
 		wp_insert_post( $insert_data, true );
 	}
