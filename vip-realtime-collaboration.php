@@ -20,11 +20,13 @@ if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
-// Avoids setting the Sync flag twice.
-add_filter( 'pre_option_gutenberg-experiments', function ( array $experiments ): array {
-		// Remove the default sync experiment for Gutenberg to allow us to control it here.
+// Avoids setting the Sync flag twice, if it exists.
+add_filter( 'pre_option_gutenberg-experiments', function ( array|false $experiments ): array|false {
+	// Remove the default sync experiment for Gutenberg to allow us to control it here.
+	if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
 		unset( $experiments['gutenberg-sync-collaboration'] );
-		return $experiments;
+	}
+	return $experiments;
 } );
 
 // Do not load the plugin if the WebSocket URL is not defined.
