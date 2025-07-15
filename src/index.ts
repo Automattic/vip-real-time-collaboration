@@ -13,10 +13,10 @@ import {
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
-import { store as awarenessStore } from './store/awareness-store';
+import { store as awarenessStore, UserState } from './store/awareness-store';
 import { getWebSocketUrl } from './utils';
 
-type UserStates = Map< number, { user: User } >;
+type UserStates = Map< number, UserState >;
 
 addFilter(
 	'core.getSyncProviderLocalConnection',
@@ -62,7 +62,7 @@ registerPlugin( 'vip-realtime-collaboration', {
 } );
 
 async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
-	const { updateUser, removeUser } = dispatch( awarenessStore );
+	const { updateUser, updateEditorState, removeStateId } = dispatch( awarenessStore );
 
 	awareness.addListener(
 		'change',
@@ -81,13 +81,22 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 
 			const updatePromises = modifiedUsers
 				.map( id => {
-					const { user } = states.get( id ) ?? {};
-					return user ? updateUser( id, user ) : null;
+					const promises = [];
+					const { user, editorState } = states.get( id ) ?? {};
+					if ( user ) {
+						promises.push( updateUser( id, user ) );
+					}
+
+					if ( editorState ) {
+						promises.push( updateEditorState( id, editorState ) );
+					}
+
+					return promises;
 				} )
-				.filter( promise => promise !== null );
+				.flat();
 
 			const removePromises = removed.map( id => {
-				return removeUser( id );
+				return removeStateId( id );
 			} );
 
 			await Promise.all( [ ...updatePromises, ...removePromises ] );
@@ -124,6 +133,6 @@ domReady( function () {
 	( async () => {
 		await setupAwareness( syncProvider.awareness );
 	} )().catch( error => {
-		console.error( 'Error getting awareness:', error );
+		console.error( 'Error setting up collaboration features:', error );
 	} );
 } );

@@ -4,30 +4,29 @@ import { type SyncProvider } from '@wordpress/sync';
 
 import './awareness-avatars.scss';
 import { AwarenessAvatars } from './awareness-avatars';
+import { useBlockHighlighting } from '../hooks/use-block-highlighting';
 import { usePositionOverlay } from '../hooks/use-position-overlay';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
-import { store as rtcSettingsStore } from '../store/settings-store';
+import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 
 export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 	const div = document.createElement( 'div' );
 	document.body.appendChild( div );
 
 	const userAvatars = createRoot( div );
-	userAvatars.render( <RTCOverlay /> );
+	userAvatars.render( <RTCOverlay awareness={ awareness } /> );
 }
 
-function RTCOverlay() {
+function RTCOverlay( { awareness }: { awareness: SyncProvider[ 'awareness' ] } ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
 	const editorElement = useWaitForSelector( '.editor-visual-editor' );
 	usePositionOverlay( overlayRef, editorElement );
 
-	const { isAwarenessOverlayEnabled } = useSelect( select => {
-		const store = select( rtcSettingsStore );
+	const isAwarenessOverlayEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	} );
 
-		return {
-			isAwarenessOverlayEnabled: store.isAwarenessOverlayEnabled(),
-		};
-	}, [] );
+	useBlockHighlighting( awareness, isAwarenessOverlayEnabled );
 
 	if ( editorElement === null ) {
 		return null;

@@ -1,21 +1,18 @@
-import { User, store as coreStore } from '@wordpress/core-data';
+import { User, store as coreStore, CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 
-import { store as awarenessStore } from '../store/awareness-store';
+import { store as awarenessStore, AwarenessStoreSelectors } from '../store/awareness-store';
 
 import './awareness-avatars.scss';
 
 export function AwarenessAvatars() {
-	const activeUsers = useSelect( select => {
-		const store = select( awarenessStore );
+	const activeUsers = useSelect< AwarenessStoreSelectors, User[] >( select => {
+		return select( awarenessStore ).getActiveUsers();
+	} );
 
-		return store.getActiveUsers();
-	}, [] );
-
-	const currentUser = useSelect( select => {
-		const store = select( coreStore );
-		return store.getCurrentUser();
-	}, [] );
+	const currentUser = useSelect< CoreDataSelectors, User >( select => {
+		return select( coreStore ).getCurrentUser();
+	} );
 
 	const otherUsers = activeUsers.filter( user => user.id !== currentUser?.id );
 	const allUsers = [ currentUser, ...otherUsers ];

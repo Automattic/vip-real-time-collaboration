@@ -2,21 +2,21 @@ import { ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 
-import { store as rtcSettingsStore } from '../store/settings-store';
+import {
+	store as rtcSettingsStore,
+	SettingsStoreActions,
+	type SettingsStoreSelectors,
+} from '../store/settings-store';
 
 export function RTCSettingsPanel() {
-	const { isEnabled } = useSelect( select => {
-		const store = select( rtcSettingsStore );
+	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	} );
 
-		return {
-			isEnabled: store.isAwarenessOverlayEnabled(),
-		};
-	}, [] );
-
-	const { setAwarenessOverlayEnabled } = useDispatch( rtcSettingsStore );
+	const { setAwarenessOverlayEnabled } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	const handleToggle = async ( enabled: boolean ) => {
-		await setAwarenessOverlayEnabled( enabled );
+		setAwarenessOverlayEnabled( enabled );
 	};
 
 	return (

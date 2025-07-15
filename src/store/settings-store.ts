@@ -60,3 +60,11 @@ export const store = createReduxStore( STORE_NAME, {
 ( register as ( store: StoreDescriptor ) => void )( store );
 
 export type { SettingsState };
+
+export type SettingsStoreActions = {
+	setAwarenessOverlayEnabled: ( enabled: boolean ) => void;
+};
+
+export type SettingsStoreSelectors = {
+	isAwarenessOverlayEnabled: () => boolean;
+};
