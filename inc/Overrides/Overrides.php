@@ -75,19 +75,28 @@ final class Overrides {
 		// Change the post type to autosave-revision and add the post date to the title.
 		$revision_data->post_type = 'autosave-revision';
 		$revision_data->post_title .= '-' . $revision_data->post_date;
-		// Reset the post date and modified date, so we can accurately record creation.
 
-		// Convert the post data to an array for insertion.
+		/**
+		 * Convert the post data to an array for insertion.
+		 *
+		 * @var array{
+		 *   ID: int,
+		 *   comment_count?: int,
+		 *   filter?: string,
+		 *   post_content?: string,
+		 *   post_modified?: string,
+		 *   post_modified_gmt?: string,
+		 * }
+		 */
 		$insert_data = get_object_vars( $revision_data );
+
+		// Reset the ID, post date, and modified date, so we can accurately record creation.
 		unset( $insert_data['ID'] );
 		unset( $insert_data['post_modified'] );
 		unset( $insert_data['post_modified_gmt'] );
 		unset( $insert_data['comment_count'] );
 		unset( $insert_data['filter'] );
 
-		/*
-		 * @psalm-suppress InvalidArgument
-		 */
 		wp_insert_post( $insert_data );
 	}
 }
