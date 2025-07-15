@@ -59,7 +59,7 @@ final class Overrides {
 	 * Since autosaves are automatically overwritten, we attempt to save a deleted
 	 * autosave as an autosave-revision as an attempt to protect against data loss
 	 * by saving a copy of the previous auto-save before it gets overwritten.
-	 * @psalm-suppress UnusedParam InvalidArgument
+	 * @psalm-suppress UnusedParam
 	 */
 	public function maybe_save_deleted_autosave( int $revision_id, WP_Post $revision_data ): void {
 		// Make sure post_type is a revision.
@@ -85,6 +85,9 @@ final class Overrides {
 		unset( $insert_data['comment_count'] );
 		unset( $insert_data['filter'] );
 
+		/*
+		 * @psalm-suppress InvalidArgument
+		 */
 		wp_insert_post( $insert_data );
 	}
 }
