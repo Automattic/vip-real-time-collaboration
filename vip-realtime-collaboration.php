@@ -20,14 +20,22 @@ if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
-// Avoids setting the Sync flag twice, if it exists.
-add_filter( 'pre_option_gutenberg-experiments', function ( array|false $experiments ): array|false {
-	// Remove the default sync experiment for Gutenberg to allow us to control it here.
-	if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-		unset( $experiments['gutenberg-sync-collaboration'] );
-	}
-	return $experiments;
-} );
+// Do not load the plugin if Gutenberg is not installed or activated.
+// We are checking the Gutenberg experiments function as we depend on it for the sync feature.
+if ( ! function_exists( 'the_gutenberg_experiments' ) ) {
+	add_action( 'admin_notices', function (): void {
+		wp_admin_notice(
+			__(
+				'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.',
+				'vip_realtime_collaboration'
+			),
+			[ 'type' => 'error' ]
+		);
+	}, 10, 0 );
+
+	// Prevent the plugin from loading.
+	return;
+}
 
 // Do not load the plugin if the WebSocket URL is not defined.
 if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
@@ -44,6 +52,15 @@ if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
 	// Prevent the plugin from loading.
 	return;
 }
+
+// Avoids setting the Sync flag twice, if it exists.
+add_filter( 'pre_option_gutenberg-experiments', function ( array|false $experiments ): array|false {
+	// Remove the default sync experiment for Gutenberg to allow us to control it here.
+	if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
+		unset( $experiments['gutenberg-sync-collaboration'] );
+	}
+	return $experiments;
+} );
 
 define( 'VIP_REALTIME_COLLABORATION__LOADED', true );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
