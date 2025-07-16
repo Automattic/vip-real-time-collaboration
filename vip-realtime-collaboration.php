@@ -13,35 +13,14 @@
 
 namespace VIPRealtimeCollaboration;
 
+use VIPRealtimeCollaboration\Assets\Assets;
+use VIPRealtimeCollaboration\Compatibility\Compatibility;
+use VIPRealtimeCollaboration\Overrides\Overrides;
+
 defined( 'ABSPATH' ) || exit();
 
 // Check if the plugin is already loaded, if so, return early to prevent duplicate plugin instances.
 if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
-	return;
-}
-
-// Avoids setting the Sync flag twice, if it exists.
-add_filter( 'pre_option_gutenberg-experiments', function ( array|false $experiments ): array|false {
-	// Remove the default sync experiment for Gutenberg to allow us to control it here.
-	if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-		unset( $experiments['gutenberg-sync-collaboration'] );
-	}
-	return $experiments;
-} );
-
-// Do not load the plugin if the WebSocket URL is not defined.
-if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
-	add_action( 'admin_notices', function (): void {
-		wp_admin_notice(
-			__(
-				'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
-				'vip_realtime_collaboration'
-			),
-			[ 'type' => 'error' ]
-		);
-	}, 10, 0 );
-
-	// Prevent the plugin from loading.
 	return;
 }
 
@@ -53,11 +32,16 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 // Autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
-// Plugin components
-new Assets\Assets();
+add_action( 'plugins_loaded', static function (): void {
+	// If the plugin cannot load, return early.
+	if ( ! Compatibility::should_plugin_load() ) {
+		return;
+	}
 
-// Core overrides.
-new Overrides\Overrides();
+	new Assets();
+	new Compatibility();
+	new Overrides();
 
-// Fire action to indicate that the plugin is loaded
-do_action( 'vip_realtime_collaboration_loaded' );
+	// Fire action to indicate that the plugin has loaded.
+	do_action( 'vip_realtime_collaboration_loaded' );
+}, 10, 0 );
