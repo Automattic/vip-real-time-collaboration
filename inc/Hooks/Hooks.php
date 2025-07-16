@@ -18,27 +18,30 @@ final class Hooks {
 	 */
 	public function register_gutenberg_experiments_filter(): void {
 		// Avoids setting the Sync flag twice, if it exists.
-		add_filter( 'pre_option_gutenberg-experiments', /**
-		 * @return (mixed|true)[]
-		 *
-		 * @psalm-return array{'gutenberg-sync-collaboration': true,...}
-		 */
-		function ( array|false $experiments ): array|false {
-			// Remove the default sync experiment for Gutenberg to allow us to control it here.
-			if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-				unset( $experiments['gutenberg-sync-collaboration'] );
-			}
+		add_filter(
+			'pre_option_gutenberg-experiments',
+			/**
+			 * @return (mixed|true)[]
+			 *
+			 * @psalm-return array{'gutenberg-sync-collaboration': true,...}
+			 */
+			function ( array|false $experiments ): array|false {
+				// Remove the default sync experiment for Gutenberg to allow us to control it here.
+				if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
+					unset( $experiments['gutenberg-sync-collaboration'] );
+				}
 
-			// If $experiments is not an array, initialize it.
-			// This is to ensure that we can safely add our own sync experiment.
-			if ( ! is_array( $experiments ) ) {
-				$experiments = [];
-			}
+				// If $experiments is not an array, initialize it.
+				// This is to ensure that we can safely add our own sync experiment.
+				if ( ! is_array( $experiments ) ) {
+					$experiments = [];
+				}
 
-			// Set our own sync experiment.
-			$experiments['gutenberg-sync-collaboration'] = true;
+				// Set our own sync experiment.
+				$experiments['gutenberg-sync-collaboration'] = true;
 
-			return $experiments;
-		}, 10, 1 );
+					return $experiments;
+			},
+		10, 1 );
 	}
 }
