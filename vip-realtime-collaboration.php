@@ -20,47 +20,10 @@ if ( defined( 'VIP_REALTIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
-// Do not load the plugin if Gutenberg is not installed or activated.
-// We are checking the Gutenberg experiments function as we depend on it for the sync feature.
-if ( ! function_exists( 'the_gutenberg_experiments' ) ) {
-	add_action( 'admin_notices', function (): void {
-		wp_admin_notice(
-			__(
-				'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.',
-				'vip_realtime_collaboration'
-			),
-			[ 'type' => 'error' ]
-		);
-	}, 10, 0 );
-
-	// Prevent the plugin from loading.
+// If the plugin cannot load, return early.
+if ( ! check_if_plugin_can_load() ) {
 	return;
 }
-
-// Do not load the plugin if the WebSocket URL is not defined.
-if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
-	add_action( 'admin_notices', function (): void {
-		wp_admin_notice(
-			__(
-				'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
-				'vip_realtime_collaboration'
-			),
-			[ 'type' => 'error' ]
-		);
-	}, 10, 0 );
-
-	// Prevent the plugin from loading.
-	return;
-}
-
-// Avoids setting the Sync flag twice, if it exists.
-add_filter( 'pre_option_gutenberg-experiments', function ( array|false $experiments ): array|false {
-	// Remove the default sync experiment for Gutenberg to allow us to control it here.
-	if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-		unset( $experiments['gutenberg-sync-collaboration'] );
-	}
-	return $experiments;
-} );
 
 define( 'VIP_REALTIME_COLLABORATION__LOADED', true );
 define( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
@@ -70,6 +33,9 @@ define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 // Autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
+// Plugin filters and hooks
+new Hooks\Hooks();
+
 // Plugin components
 new Assets\Assets();
 
@@ -78,3 +44,48 @@ new Overrides\Overrides();
 
 // Fire action to indicate that the plugin is loaded
 do_action( 'vip_realtime_collaboration_loaded' );
+
+/**
+ * Check if the plugin can load, by ensuring that:
+ *
+ * - The Gutenberg Plugin has been installed, and is active.
+ * - The WebSocket URL has been defined.
+ *
+ * @return bool True if the plugin can load, false otherwise.
+ */
+function check_if_plugin_can_load(): bool {
+	// Do not load the plugin if Gutenberg is not installed or activated.
+	// We are checking the Gutenberg experiments function as we depend on it for the sync feature.
+	if ( ! defined( 'IS_GUTENBERG_PLUGIN' ) || ! \IS_GUTENBERG_PLUGIN ) {
+		add_action( 'admin_notices', function (): void {
+			wp_admin_notice(
+				__(
+					'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.',
+					'vip_realtime_collaboration'
+				),
+				[ 'type' => 'error' ]
+			);
+		}, 10, 0 );
+
+		// Prevent the plugin from loading.
+		return false;
+	}
+
+	// Do not load the plugin if the WebSocket URL is not defined.
+	if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
+		add_action( 'admin_notices', function (): void {
+			wp_admin_notice(
+				__(
+					'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
+					'vip_realtime_collaboration'
+				),
+				[ 'type' => 'error' ]
+			);
+		}, 10, 0 );
+
+		// Prevent the plugin from loading.
+		return false;
+	}
+
+	return true;
+}
