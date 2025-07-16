@@ -3,37 +3,32 @@ import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
 const STORE_NAME = 'vip-realtime-collaboration/awareness';
 
-export interface UserState {
-	user: User;
-	editorState?: EditorState;
+export interface UserState extends User {
+	color: string;
+	editorState: EditorState;
 }
 
 export interface EditorState {
-	editorColor?: string;
 	selectedBlockId?: string;
+	selection?: {
+		attributeKey: string;
+		startOffset: number;
+		endOffset: number;
+	};
 }
 
 interface AwarenessStore {
-	activeUsers: Map< number, User >;
-	editorStates: Map< number, EditorState >;
+	users: Map< number, UserState >;
 }
 
 const DEFAULT_STATE: AwarenessStore = {
-	activeUsers: new Map(),
-	editorStates: new Map(),
+	users: new Map(),
 };
 
 const actions = {
-	// User updates
-	updateUser: ( stateId: number, user: User ): AwarenessAction => ( {
+	updateUser: ( stateId: number, userState: UserState ): AwarenessAction => ( {
 		type: 'UPDATE_USER',
-		payload: { stateId, user },
-	} ),
-
-	// Editor updates
-	updateEditorState: ( stateId: number, editorState: EditorState ): AwarenessAction => ( {
-		type: 'UPDATE_EDITOR_STATE',
-		payload: { stateId, editorState },
+		payload: { stateId, userState },
 	} ),
 
 	// State removal, call when a user leaves the editor
@@ -48,25 +43,15 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 		case 'UPDATE_USER': {
 			return {
 				...state,
-				activeUsers: state.activeUsers.set( action.payload.stateId, action.payload.user ),
-			};
-		}
-		case 'UPDATE_EDITOR_STATE': {
-			return {
-				...state,
-				editorStates: state.editorStates.set( action.payload.stateId, action.payload.editorState ),
+				users: state.users.set( action.payload.stateId, action.payload.userState ),
 			};
 		}
 		case 'REMOVE_STATE_ID': {
-			const newActiveUsers = new Map( state.activeUsers );
-			newActiveUsers.delete( action.payload.stateId );
-
-			const newEditorStates = new Map( state.editorStates );
-			newEditorStates.delete( action.payload.stateId );
+			const newUsers = new Map( state.users );
+			newUsers.delete( action.payload.stateId );
 
 			return {
-				activeUsers: newActiveUsers,
-				editorStates: newEditorStates,
+				users: newUsers,
 			};
 		}
 		default:
@@ -78,10 +63,10 @@ const selectors = {
 	getActiveUsers(
 		state: AwarenessStore,
 		options: { includeDuplicateUsers?: boolean } = {}
-	): User[] {
+	): UserState[] {
 		const { includeDuplicateUsers = false } = options;
 
-		const users = Array.from( state.activeUsers.values() );
+		const users = Array.from( state.users.values() );
 
 		if ( includeDuplicateUsers ) {
 			return users;
@@ -93,25 +78,18 @@ const selectors = {
 			return uniqueUserIds[ user.id ] ? false : ( uniqueUserIds[ user.id ] = true );
 		} );
 	},
-	getEditorStates( state: AwarenessStore ): EditorState[] {
-		return Array.from( state.editorStates.values() );
-	},
 };
 
 type UpdateUserAction = {
 	type: 'UPDATE_USER';
-	payload: { stateId: number; user: User };
-};
-type UpdateEditorStateAction = {
-	type: 'UPDATE_EDITOR_STATE';
-	payload: { stateId: number; editorState: EditorState };
+	payload: { stateId: number; userState: UserState };
 };
 type RemoveStateIdAction = {
 	type: 'REMOVE_STATE_ID';
 	payload: { stateId: number };
 };
 
-type AwarenessAction = UpdateUserAction | UpdateEditorStateAction | RemoveStateIdAction;
+type AwarenessAction = UpdateUserAction | RemoveStateIdAction;
 
 export const store = createReduxStore( STORE_NAME, {
 	reducer,
@@ -124,12 +102,10 @@ export const store = createReduxStore( STORE_NAME, {
 export type { AwarenessStore };
 
 export type AwarenessStoreActions = {
-	updateUser: ( stateId: number, user: User ) => void;
-	updateEditorState: ( stateId: number, editorState: EditorState ) => void;
+	updateUser: ( stateId: number, userState: UserState ) => void;
 	removeStateId: ( stateId: number ) => void;
 };
 
 export type AwarenessStoreSelectors = {
-	getActiveUsers: ( options?: { includeDuplicateUsers?: boolean } ) => User[];
-	getEditorStates: () => EditorState[];
+	getActiveUsers: ( options?: { includeDuplicateUsers?: boolean } ) => UserState[];
 };

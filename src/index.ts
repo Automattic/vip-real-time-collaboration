@@ -14,9 +14,10 @@ import {
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
 import { store as awarenessStore, UserState } from './store/awareness-store';
+import { getNewUserColor } from './utilities/user-color';
 import { getWebSocketUrl } from './utils';
 
-type UserStates = Map< number, UserState >;
+type UserStates = Map< number, { userState: UserState } >;
 
 addFilter(
 	'core.getSyncProviderLocalConnection',
@@ -62,7 +63,7 @@ registerPlugin( 'vip-realtime-collaboration', {
 } );
 
 async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
-	const { updateUser, updateEditorState, removeStateId } = dispatch( awarenessStore );
+	const { updateUser, removeStateId } = dispatch( awarenessStore );
 
 	awareness.addListener(
 		'change',
@@ -75,25 +76,19 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 			updated: Array< number >;
 			removed: Array< number >;
 		} ) => {
-			const states: UserStates = awareness.getStates() as UserStates;
+			const userStates: UserStates = awareness.getStates() as UserStates;
 
 			const modifiedUsers = [ ...added, ...updated ];
 
-			const updatePromises = modifiedUsers
-				.map( id => {
-					const promises = [];
-					const { user, editorState } = states.get( id ) ?? {};
-					if ( user ) {
-						promises.push( updateUser( id, user ) );
-					}
+			const updatePromises = modifiedUsers.map( id => {
+				const userState = userStates.get( id )?.userState ?? null;
 
-					if ( editorState ) {
-						promises.push( updateEditorState( id, editorState ) );
-					}
+				if ( userState ) {
+					return updateUser( id, userState );
+				}
 
-					return promises;
-				} )
-				.flat();
+				return Promise.resolve();
+			} );
 
 			const removePromises = removed.map( id => {
 				return removeStateId( id );
@@ -104,10 +99,21 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 	);
 
 	const userInfo = await getCurrentUserInfo();
-	awareness.setLocalStateField( 'user', userInfo );
+	const otherUserColors = select( awarenessStore )
+		.getActiveUsers()
+		.map( user => user.color );
+	const color = getNewUserColor( otherUserColors );
+
+	const userState: UserState = {
+		...userInfo,
+		color,
+		editorState: {},
+	};
+
+	awareness.setLocalStateField( 'userState', userState );
 
 	window.addEventListener( 'beforeunload', () => {
-		awareness.setLocalStateField( 'user', null );
+		awareness.setLocalStateField( 'userState', null );
 		awareness.removeAwarenessStates();
 	} );
 

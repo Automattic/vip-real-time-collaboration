@@ -1,24 +1,15 @@
 import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { store as coreStore, CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
+import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import {
 	AwarenessStoreSelectors,
-	EditorState,
+	UserState,
 	store as awarenessStore,
 } from '@/store/awareness-store';
-
-const USER_HIGHLIGHT_ALPHA = 'AA'; // 00-FF for #RRGGBBAA-type colors
-const USER_COLORS = [
-	`#000000${ USER_HIGHLIGHT_ALPHA }`,
-	`#000000${ USER_HIGHLIGHT_ALPHA }`,
-	`#51CD00${ USER_HIGHLIGHT_ALPHA }`,
-	`#FD4BDA${ USER_HIGHLIGHT_ALPHA }`,
-	`#FF9F00${ USER_HIGHLIGHT_ALPHA }`,
-	`#37ADFF${ USER_HIGHLIGHT_ALPHA }`,
-];
 
 /**
  * Custom hook for highlighting selected blocks in the editor
@@ -30,16 +21,14 @@ export function useBlockHighlighting(
 	isEnabled: boolean = true
 ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
-	const editorStates = useSelect< AwarenessStoreSelectors, EditorState[] >( select => {
-		return select( awarenessStore ).getEditorStates();
+	const userStates = useSelect< AwarenessStoreSelectors, UserState[] >( select => {
+		return select( awarenessStore ).getActiveUsers();
 	} );
 
 	useEffect( () => {
 		if ( ! isEnabled ) {
 			Array.from( highlightedBlockIds.current ).forEach( blockId => {
-				const blockElement = getEditorDocument().querySelector(
-					`[data-block="${ blockId }"]`
-				) as HTMLElement;
+				const blockElement = getBlockElementById( blockId );
 
 				if ( blockElement ) {
 					blockElement.style.boxShadow = '';
@@ -51,15 +40,16 @@ export function useBlockHighlighting(
 			return;
 		}
 
-		const selectedBlockIds = editorStates.map( editorState => editorState.selectedBlockId );
+		const selectedBlockIds = userStates
+			.map( userState => userState.editorState?.selectedBlockId ?? null )
+			.filter( blockId => blockId !== null );
+
 		const blocksIdsToUnhighlight = Array.from( highlightedBlockIds.current ).filter(
 			blockId => ! selectedBlockIds.includes( blockId )
 		);
 
 		blocksIdsToUnhighlight.forEach( blockId => {
-			const blockElement = getEditorDocument().querySelector(
-				`[data-block="${ blockId }"]`
-			) as HTMLElement;
+			const blockElement = getBlockElementById( blockId );
 
 			if ( blockElement ) {
 				blockElement.style.boxShadow = '';
@@ -68,24 +58,34 @@ export function useBlockHighlighting(
 			highlightedBlockIds.current.delete( blockId );
 		} );
 
-		editorStates.forEach( ( { selectedBlockId, editorColor } ) => {
+		userStates.forEach( userState => {
+			const {
+				color,
+				editorState: { selectedBlockId },
+			} = userState;
+
 			if ( selectedBlockId === undefined ) {
 				return;
 			}
 
-			const blockElement = getEditorDocument().querySelector(
-				`[data-block="${ selectedBlockId }"]`
-			) as HTMLElement;
+			const blockElement = getBlockElementById( selectedBlockId );
 
 			if ( blockElement ) {
-				blockElement.style.boxShadow = `inset 0 0 0 2px ${ editorColor ?? USER_COLORS[ 0 ] }`;
+				blockElement.style.boxShadow = `inset 0 0 0 2px ${ color }`;
 				highlightedBlockIds.current.add( selectedBlockId );
 			}
 		} );
-	}, [ editorStates, isEnabled ] );
+	}, [ userStates, isEnabled ] );
 
-	const selectedBlockId = useSelect< BlockEditorStoreSelectors, string | null >( select => {
-		return select( blockEditorStore ).getSelectedBlockClientId();
+	const { selectedBlockId, selectionStart } = useSelect<
+		BlockEditorStoreSelectors,
+		{ selectedBlockId: string | null; selectionStart: WPBlockSelection }
+	>( select => {
+		const { getSelectedBlockClientId, getSelectionStart } = select( blockEditorStore );
+		return {
+			selectedBlockId: getSelectedBlockClientId(),
+			selectionStart: getSelectionStart(),
+		};
 	} );
 
 	const userId = useSelect< CoreDataSelectors, number >( select => {
@@ -93,16 +93,24 @@ export function useBlockHighlighting(
 	} );
 
 	useEffect( () => {
-		// highlightBlock( selectedBlockId );
-
 		if ( userId ) {
-			const myColor = USER_COLORS[ userId % USER_COLORS.length ];
-			awareness.setLocalStateField( 'editorState', {
-				selectedBlockId,
-				editorColor: myColor,
-			} );
+			const localState = awareness.getLocalState();
+			const userState = localState?.userState as UserState | undefined;
+
+			if ( userState ) {
+				awareness.setLocalStateField( 'userState', {
+					...userState,
+					editorState: {
+						...userState.editorState,
+						selectedBlockId,
+						selection: {
+							startOffset: selectionStart.offset,
+						},
+					},
+				} );
+			}
 		}
-	}, [ selectedBlockId, userId ] );
+	}, [ selectedBlockId, selectionStart.offset, userId ] );
 }
 
 // Get the editor document context from iframe or the main document for element styling
@@ -118,4 +126,8 @@ const getEditorDocument = (): Document => {
 
 	// Fallback to main document (for non-iframed editors)
 	return document;
+};
+
+const getBlockElementById = ( blockId: string ): HTMLElement | null => {
+	return getEditorDocument().querySelector( `[data-block="${ blockId }"]` );
 };

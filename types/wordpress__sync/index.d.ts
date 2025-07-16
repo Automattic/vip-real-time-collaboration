@@ -31,6 +31,8 @@ declare module '@wordpress/sync' {
 				eventType: 'update' | 'change',
 				listener: AwarenessEventListener
 			) => void;
+			getClientId: () => number | null;
+			getLocalState: () => Record< string, any > | null;
 			getStates: () => Map< number, Record< string, any > > | null;
 			setLocalStateField: ( field: string, value: any ) => void;
 			removeAwarenessStates: () => void;
