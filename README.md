@@ -40,7 +40,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 ### Custom Gutenberg Development
 
 This plugin is built on top of the `add/experimental-collaborative-editing` branch, from the Gutenberg fork [here](https://github.com/Automattic/gutenberg/tree/add/experimental-collaborative-editing).
-   
+
 If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
 
 ### Available Commands
