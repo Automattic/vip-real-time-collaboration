@@ -87,5 +87,7 @@ function check_if_plugin_can_load(): bool {
 		return false;
 	}
 
+	// ToDo: Check GUTENBERG_VERSION in production and GUTENBERG_DEVELOPMENT_MODE being true in development.
+
 	return true;
 }
