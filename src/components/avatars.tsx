@@ -17,6 +17,7 @@ export function AwarenessAvatars() {
 
 	const visibleUsers = activeUsers.slice( 0, 3 );
 	const remainingUsers = activeUsers.slice( 3 );
+	const remainingUsersText = remainingUsers.map( userState => userState.name ).join( ', ' );
 
 	return (
 		<div className="vip-realtime-collaboration-avatars">
@@ -27,7 +28,7 @@ export function AwarenessAvatars() {
 			) ) }
 
 			{ remainingUsers.length > 0 && (
-				<div className="vip-realtime-collaboration-avatar-remaining">
+				<div className="vip-realtime-collaboration-avatar-remaining" title={ remainingUsersText }>
 					+{ remainingUsers.length }
 				</div>
 			) }

@@ -8,7 +8,13 @@ export const loadFromLocalStorage = < T >( key: string, defaultValue: T ): T => 
 	try {
 		const saved = localStorage.getItem( key );
 		if ( saved ) {
-			return { ...defaultValue, ...( JSON.parse( saved ) as Partial< T > ) };
+			const parsed = JSON.parse( saved ) as T;
+			// If the parsed value is an object (and not null or array), merge with defaultValue
+			if ( typeof parsed === 'object' && parsed !== null && ! Array.isArray( parsed ) ) {
+				return { ...defaultValue, ...( parsed as Partial< T > ) };
+			}
+			// For primitive values (string, number, boolean, null), return directly
+			return parsed;
 		}
 	} catch ( error ) {
 		console.warn( `Failed to load data from localStorage (key: ${ key }):`, error );

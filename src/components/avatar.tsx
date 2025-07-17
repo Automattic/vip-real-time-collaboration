@@ -19,7 +19,12 @@ export function Avatar( {
 
 	return (
 		<div className="vip-realtime-collaboration-avatar">
-			<img src={ avatarUrl } alt={ userState.name } style={ borderStyle } />
+			<img
+				src={ avatarUrl }
+				alt={ userState.name }
+				title={ userState.name }
+				style={ borderStyle }
+			/>
 		</div>
 	);
 }

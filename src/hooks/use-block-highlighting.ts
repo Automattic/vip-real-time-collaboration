@@ -36,27 +36,8 @@ export function useBlockHighlighting(
 		} )
 		.filter( block => block !== null );
 
-	useEffect( () => {
-		if ( ! isEnabled ) {
-			Array.from( highlightedBlockIds.current ).forEach( blockId => {
-				const blockElement = getBlockElementById( blockId );
-
-				if ( blockElement ) {
-					blockElement.style.boxShadow = '';
-				}
-
-				highlightedBlockIds.current.delete( blockId );
-			} );
-
-			return;
-		}
-
-		const selectedBlockIds = blocksToHighlight.map( block => block.blockId );
-		const blocksIdsToUnhighlight = Array.from( highlightedBlockIds.current ).filter(
-			blockId => ! selectedBlockIds.includes( blockId )
-		);
-
-		blocksIdsToUnhighlight.forEach( blockId => {
+	const unhighlightBlocks = ( blockIds: string[] ) => {
+		blockIds.forEach( blockId => {
 			const blockElement = getBlockElementById( blockId );
 
 			if ( blockElement ) {
@@ -65,17 +46,39 @@ export function useBlockHighlighting(
 
 			highlightedBlockIds.current.delete( blockId );
 		} );
+	};
+
+	// Draw block highlights
+	useEffect( () => {
+		if ( ! isEnabled ) {
+			// If the overlay is disabled, remove all highlights.
+			unhighlightBlocks( Array.from( highlightedBlockIds.current ) );
+			return;
+		}
+
+		// Unhighlight blocks that are no longer highlighted.
+		const selectedBlockIds = blocksToHighlight.map( block => block.blockId );
+		const blocksIdsToUnhighlight = Array.from( highlightedBlockIds.current ).filter(
+			blockId => ! selectedBlockIds.includes( blockId )
+		);
+		unhighlightBlocks( blocksIdsToUnhighlight );
+
+		// Highlight blocks that are currently highlighted.
+		if ( userStates.length === 1 ) {
+			// Don't highlight anything if we're the only user.
+			return;
+		}
 
 		blocksToHighlight.forEach( blockColorPair => {
 			const { color, blockId } = blockColorPair;
 			const blockElement = getBlockElementById( blockId );
 
 			if ( blockElement ) {
-				blockElement.style.boxShadow = `inset 0 0 0 2px ${ color }`;
+				blockElement.style.boxShadow = `${ color } 0 0 0 2px`;
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );
-	}, [ blocksToHighlight, isEnabled ] );
+	}, [ userStates, blocksToHighlight, isEnabled ] );
 
 	const selectedBlockId = useSelect< BlockEditorStoreSelectors, string | null >( select => {
 		return select( blockEditorStore ).getSelectedBlockClientId();
