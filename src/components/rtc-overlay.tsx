@@ -3,7 +3,7 @@ import { createRoot, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import './awareness-avatars.scss';
-import { AwarenessAvatars } from './awareness-avatars';
+import { AwarenessAvatars } from './avatars';
 import { useBlockHighlighting } from '../hooks/use-block-highlighting';
 import { usePositionOverlay } from '../hooks/use-position-overlay';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
@@ -13,8 +13,8 @@ export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 	const div = document.createElement( 'div' );
 	document.body.appendChild( div );
 
-	const userAvatars = createRoot( div );
-	userAvatars.render( <RTCOverlay awareness={ awareness } /> );
+	const overlayRoot = createRoot( div );
+	overlayRoot.render( <RTCOverlay awareness={ awareness } /> );
 }
 
 function RTCOverlay( { awareness }: { awareness: SyncProvider[ 'awareness' ] } ) {

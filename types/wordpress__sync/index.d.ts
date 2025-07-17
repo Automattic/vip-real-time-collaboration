@@ -28,7 +28,7 @@ declare module '@wordpress/sync' {
 
 		awareness: {
 			addListener: (
-				eventType: 'update' | 'change',
+				eventType: 'ready' | 'update' | 'change',
 				listener: AwarenessEventListener
 			) => void;
 			getClientId: () => number | null;

@@ -16,10 +16,10 @@ const METRO_COLORS = [
 	'#FA6800',
 	'#F0A30A',
 	'#E3C800',
-	// '#825A2C', (brown)
-	'#6D8764',
+	// '#825A2C', (Brown)
+	// '#6D8764', (Olive)
 	'#647687',
-	'#76608A',
+	// '#76608A', (Mauve)
 	'#A0522D',
 ];
 
@@ -32,10 +32,12 @@ const USER_HIGHLIGHT_ALPHA = 0.7; // 0-1.0 to represent opacity
  * @returns The new user color, in #RGBA or HSL format.
  */
 const getNewUserColor = ( existingColors: string[] ) => {
+	console.log( 'getNewUserColor() with existingColors', existingColors );
 	const availableColors = METRO_COLORS.filter( color => ! existingColors.includes( color ) );
 	// Get a random color from the available colors
 
 	if ( availableColors.length === 0 ) {
+		console.log( 'Generating a random color' );
 		// If all colors are used, generate one at random
 		const hue = generateRandomInt( 0, 360 );
 		const saturation = generateRandomInt( 50, 100 );
@@ -45,6 +47,7 @@ const getNewUserColor = ( existingColors: string[] ) => {
 
 	const randomIndex = Math.floor( Math.random() * availableColors.length );
 	const hexColor = availableColors[ `${ randomIndex }` ];
+	console.log( 'Using color at index', randomIndex, hexColor );
 
 	// Convert alpha to hex value between 00 and FF, e.g. 0.7 -> 'B3'
 	const alphaHex = Math.round( USER_HIGHLIGHT_ALPHA * 0xff )

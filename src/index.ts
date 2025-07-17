@@ -136,9 +136,7 @@ async function getCurrentUserInfo(): Promise< User > {
 domReady( function () {
 	const syncProvider: SyncProvider = getSyncProvider();
 
-	( async () => {
+	syncProvider.awareness.addListener( 'ready', async () => {
 		await setupAwareness( syncProvider.awareness );
-	} )().catch( error => {
-		console.error( 'Error setting up collaboration features:', error );
 	} );
 } );
