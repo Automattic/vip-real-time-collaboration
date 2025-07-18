@@ -45,7 +45,7 @@ final class Compatibility {
 		}
 
 		/* 
-  		 * Sync collaboration experiment is enabled via 
+		 * Sync collaboration experiment is enabled via 
 		 * https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21 
 		 * so this removes the core option setting from Gutenberg.
 		 */
