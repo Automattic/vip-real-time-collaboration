@@ -19,6 +19,9 @@ use WP_Post;
  * allowing multiple users to edit the same post simultaneously.
  */
 final class Overrides {
+
+	protected $autosave_post_type = 'autosave-revision';
+
 	/**
 	 * Constructor to initialize the overrides.
 	 */
@@ -30,6 +33,8 @@ final class Overrides {
 		add_action( 'admin_init', [ $this, 'remove_heartbeat_post_lock' ] );
 
 		add_action( 'wp_delete_post_revision', [ $this, 'maybe_save_deleted_autosave' ], 10, 2 );
+
+		add_action( 'init', [ $this, 'add_autosave_cron' ] );
 	}
 
 	/**
@@ -72,7 +77,7 @@ final class Overrides {
 		}
 
 		// Change the post type to autosave-revision and add the post date to the title.
-		$revision_data->post_type = 'autosave-revision';
+		$revision_data->post_type = $this->autosave_post_type;
 		$revision_data->post_title .= '-' . $revision_data->post_date;
 
 		/**
@@ -97,5 +102,50 @@ final class Overrides {
 		unset( $insert_data['filter'] );
 
 		wp_insert_post( $insert_data );
+	}
+
+	/**
+	 * Schedule a daily cron job to clean up old autosaves.
+	 *
+	 * This will run once a day to delete autosaves older than the specified number of days.
+	 */
+	public function add_autosave_cron(): void {
+		if ( ! wp_next_scheduled( 'vip_realtime_collaboration_autosave_cron' ) ) {
+			wp_schedule_event( time(), 'daily', 'vip_realtime_collaboration_autosave_cron' );
+		}
+
+		add_action( 'vip_realtime_collaboration_autosave_cron', [ $this, 'handle_autosave_cron' ] );
+	}
+
+	/**
+	 * Handle the autosave cleanup cron job.
+	 * Hard-coded limit of 30 days maximum time for autosaves to be kept.
+	 *
+	 * @return void
+	 */
+	public function handle_autosave_cron(): void {
+		/* Remove autosaves older than a specified number of days.
+		 * This is to prevent the database from being cluttered with old autosaves.
+		 * The number of days to keep autosaves can be filtered using 'autosave-revision-days-to-keep'.
+		 */
+		$days_to_keep = apply_filters( 'autosave-revision-days-to-keep', 7 ); // Number of days to keep autosaves.
+
+		if ( $days_to_keep >= 30 ) {
+			$days_to_keep = 30; // Limit to a maximum of 30 days.
+		}
+
+		// Add limitless query to get all autosaves older than the specified number of days, but only grab IDs.
+		$posts_to_delete = get_posts( [
+			'post_type'      => $this->autosave_post_type,
+			'posts_per_page' => -1,
+			'date_query'     => [
+				'before' => date( 'Y-m-d H:i:s', strtotime( "-{$days_to_keep} days" ) ),
+			],
+			'fields'         => 'ids', // Only get post IDs for deletion.
+		] );
+
+		foreach ( $posts_to_delete as $autosave ) {
+			wp_delete_post( $autosave, true ); // Force delete the autosaves.
+		}
 	}
 }
