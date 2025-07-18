@@ -44,9 +44,15 @@ final class Compatibility {
 			return $experiments;
 		}
 
-		// Ensure that the sync collaboration experiment is enabled.
+		/* 
+  		 * Sync collaboration experiment is enabled via 
+  		 * https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21 
+     		 * so this removes the core option setting from Gutenberg.
+		 */
 		// TODO: Implement our own experiment.
-		$experiments['gutenberg-sync-collaboration'] = true;
+		if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
+			unset( $experiments['gutenberg-sync-collaboration'] );
+		}
 
 		return $experiments;
 	}
