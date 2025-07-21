@@ -1,10 +1,7 @@
 /**
  * WordPress dependencies
  */
-import {
-	expect,
-	test,
-} from '@wordpress/e2e-test-utils-playwright';
+import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 /**
  * Tests the messages displayed by the plugin.
@@ -15,7 +12,8 @@ test.describe( 'The plugin displays', () => {
 	 */
 	test( 'An error when Gutenberg is not active', async ( { admin } ) => {
 		const page = admin.page;
-		const errorMessage = 'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.';
+		const errorMessage =
+			'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.';
 
 		await admin.visitAdminPage( '/plugins.php' );
 
