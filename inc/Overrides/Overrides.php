@@ -80,7 +80,6 @@ final class Overrides {
 		$revision_data->post_type = $this->autosave_post_type;
 		$revision_data->post_title .= '-' . $revision_data->post_date;
 
-		$revision_data->post_date =
 		/**
 		 * Convert the post data to an array for insertion.
 		 *
