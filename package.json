@@ -45,7 +45,7 @@
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
     "start:websocket-server": "npx --yes tsx websocket-server",
-		"test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
+    "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
