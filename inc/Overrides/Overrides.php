@@ -132,12 +132,18 @@ final class Overrides {
 			$days_to_keep = 30; // Limit to a maximum of 30 days.
 		}
 
+		if ( $days_to_keep <= 0 ) {
+			$days_to_keep_string = strtotime( '-1 day' );
+		} else {
+			$days_to_keep_string = strtotime( "-{$days_to_keep} days" );
+		}
+
 		// Add limitless query to get all autosaves older than the specified number of days, but only grab IDs.
 		$posts_to_delete = get_posts( [
 			'post_type' => $this->autosave_post_type,
 			'posts_per_page' => -1,
 			'date_query' => [
-				'before' => gmdate( 'Y-m-d H:i:s', strtotime( "-{$days_to_keep} days" ) ),
+				'before' => gmdate( 'Y-m-d H:i:s', $days_to_keep_string ),
 			],
 			'fields' => 'ids', // Only get post IDs for deletion.
 		] );
