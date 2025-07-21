@@ -9,6 +9,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 - **bin/**: Development scripts for starting/stopping the local environment
 - **inc/**: PHP includes and server-side functionality
 - **src/**: TypeScript source files for the frontend components
+- **tests/**: Tests for validating the plugin's functionalities
 - **websocket-server/**: A development Node.js WebSocket server
 - **build/**: Compiled JavaScript assets (generated)
 
@@ -29,7 +30,15 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
    npm install
    ```
 
-2. Start the development environment:
+2. Initialize husky:
+
+   ```
+   npx husky init
+   ```
+
+   You may have to run this command to make the pre-commit hook operational. This will overwrite the `.husky/pre-commit` file, which you should revert after running the command.
+
+3. Start the development environment:
 
    ```bash
    npm run dev
