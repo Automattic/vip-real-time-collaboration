@@ -20,7 +20,7 @@ use WP_Post;
  */
 final class Overrides {
 
-	protected $autosave_post_type = 'autosave-revision';
+	protected string $autosave_post_type = 'autosave-revision';
 
 	/**
 	 * Constructor to initialize the overrides.
@@ -110,7 +110,7 @@ final class Overrides {
 	 * This will run once a day to delete autosaves older than the specified number of days.
 	 */
 	public function add_autosave_cron(): void {
-		if ( ! wp_next_scheduled( 'vip_realtime_collaboration_autosave_cron' ) ) {
+		if ( false === wp_next_scheduled( 'vip_realtime_collaboration_autosave_cron' ) ) {
 			wp_schedule_event( time(), 'daily', 'vip_realtime_collaboration_autosave_cron' );
 		}
 
@@ -126,7 +126,7 @@ final class Overrides {
 		 * This is to prevent the database from being cluttered with old autosaves.
 		 * The number of days to keep autosaves can be filtered using 'autosave-revision-days-to-keep'.
 		 */
-		$days_to_keep = apply_filters( 'autosave_revision_days_to_keep', 7 ); // Number of days to keep autosaves.
+		$days_to_keep = (int) apply_filters( 'autosave_revision_days_to_keep', 7 ); // Number of days to keep autosaves.
 
 		if ( $days_to_keep >= 30 ) {
 			$days_to_keep = 30; // Limit to a maximum of 30 days.
