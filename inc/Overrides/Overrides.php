@@ -133,9 +133,9 @@ final class Overrides {
 		}
 
 		if ( $days_to_keep <= 0 ) {
-			$days_to_keep_string = strtotime( '-1 day' );
+			$days_to_keep_string = (int) strtotime( '-1 day' );
 		} else {
-			$days_to_keep_string = strtotime( "-{$days_to_keep} days" );
+			$days_to_keep_string = (int) strtotime( "-{$days_to_keep} days" );
 		}
 
 		// Add limitless query to get all autosaves older than the specified number of days, but only grab IDs.
