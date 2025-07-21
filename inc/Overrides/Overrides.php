@@ -80,6 +80,7 @@ final class Overrides {
 		$revision_data->post_type = $this->autosave_post_type;
 		$revision_data->post_title .= '-' . $revision_data->post_date;
 
+		$revision_data->post_date =
 		/**
 		 * Convert the post data to an array for insertion.
 		 *
@@ -120,15 +121,13 @@ final class Overrides {
 	/**
 	 * Handle the autosave cleanup cron job.
 	 * Hard-coded limit of 30 days maximum time for autosaves to be kept.
-	 *
-	 * @return void
 	 */
 	public function handle_autosave_cron(): void {
 		/* Remove autosaves older than a specified number of days.
 		 * This is to prevent the database from being cluttered with old autosaves.
 		 * The number of days to keep autosaves can be filtered using 'autosave-revision-days-to-keep'.
 		 */
-		$days_to_keep = apply_filters( 'autosave-revision-days-to-keep', 7 ); // Number of days to keep autosaves.
+		$days_to_keep = apply_filters( 'autosave_revision_days_to_keep', 7 ); // Number of days to keep autosaves.
 
 		if ( $days_to_keep >= 30 ) {
 			$days_to_keep = 30; // Limit to a maximum of 30 days.
@@ -136,12 +135,12 @@ final class Overrides {
 
 		// Add limitless query to get all autosaves older than the specified number of days, but only grab IDs.
 		$posts_to_delete = get_posts( [
-			'post_type'      => $this->autosave_post_type,
+			'post_type' => $this->autosave_post_type,
 			'posts_per_page' => -1,
-			'date_query'     => [
-				'before' => date( 'Y-m-d H:i:s', strtotime( "-{$days_to_keep} days" ) ),
+			'date_query' => [
+				'before' => gmdate( 'Y-m-d H:i:s', strtotime( "-{$days_to_keep} days" ) ),
 			],
-			'fields'         => 'ids', // Only get post IDs for deletion.
+			'fields' => 'ids', // Only get post IDs for deletion.
 		] );
 
 		foreach ( $posts_to_delete as $autosave ) {
