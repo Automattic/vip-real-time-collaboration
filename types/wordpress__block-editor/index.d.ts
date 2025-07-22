@@ -6,5 +6,6 @@ declare module '@wordpress/block-editor' {
 	interface BlockEditorStoreSelectors {
 		getSelectedBlockClientId: () => string | null;
 		getSelectionStart: () => WPBlockSelection;
+		getSelectionEnd: () => WPBlockSelection;
 	}
 }

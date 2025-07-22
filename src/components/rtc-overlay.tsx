@@ -8,6 +8,7 @@ import { useBlockHighlighting } from '../hooks/use-block-highlighting';
 import { usePositionOverlay } from '../hooks/use-position-overlay';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
+// import { useRenderCursors } from '@/hooks/use-render-cursors';
 
 export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 	const div = document.createElement( 'div' );
@@ -27,6 +28,7 @@ function RTCOverlay( { awareness }: { awareness: SyncProvider[ 'awareness' ] } )
 	} );
 
 	useBlockHighlighting( awareness, isAwarenessOverlayEnabled );
+	// useRenderCursors( overlayRef.current, editorElement, awareness, isAwarenessOverlayEnabled );
 
 	if ( editorElement === null ) {
 		return null;

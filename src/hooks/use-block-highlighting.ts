@@ -42,6 +42,7 @@ export function useBlockHighlighting(
 
 			if ( blockElement ) {
 				blockElement.style.boxShadow = '';
+				blockElement.style.borderRadius = '';
 			}
 
 			highlightedBlockIds.current.delete( blockId );
@@ -75,6 +76,7 @@ export function useBlockHighlighting(
 
 			if ( blockElement ) {
 				blockElement.style.boxShadow = `${ color } 0 0 0 2px`;
+				blockElement.style.borderRadius = '4px';
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );

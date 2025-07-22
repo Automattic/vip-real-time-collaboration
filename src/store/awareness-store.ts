@@ -1,6 +1,8 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
+import { type SelectionState } from '@/hooks/use-render-cursors';
+
 const STORE_NAME = 'vip-realtime-collaboration/awareness';
 
 export interface UserState extends User {
@@ -10,11 +12,7 @@ export interface UserState extends User {
 
 export interface EditorState {
 	selectedBlockId?: string;
-	selection?: {
-		attributeKey: string;
-		startOffset: number;
-		endOffset: number;
-	};
+	selection?: SelectionState;
 }
 
 interface AwarenessStore {
