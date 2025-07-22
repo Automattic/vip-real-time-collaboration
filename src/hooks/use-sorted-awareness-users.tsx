@@ -1,5 +1,6 @@
 import { CoreDataSelectors, store as coreStore, User } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
+import { useMemo } from '@wordpress/element';
 
 import {
 	AwarenessStoreSelectors,
@@ -19,15 +20,19 @@ export function useSortedAwarenessUsers(): UserState[] {
 		return select( coreStore ).getCurrentUser();
 	} );
 
-	const currentUserStateIndex = activeUsers.findIndex( user => user.id === currentUser?.id );
+	// Only return a new user array if data has changed
+	return useMemo( () => {
+		const sortedUsers = [ ...activeUsers ];
+		const currentUserStateIndex = sortedUsers.findIndex( user => user.id === currentUser?.id );
 
-	if ( currentUserStateIndex >= 0 ) {
-		const currentUserState = activeUsers.splice( currentUserStateIndex, 1 )?.[ 0 ];
+		if ( currentUserStateIndex >= 0 ) {
+			const currentUserState = sortedUsers.splice( currentUserStateIndex, 1 )?.[ 0 ];
 
-		if ( currentUserState ) {
-			activeUsers.unshift( currentUserState );
+			if ( currentUserState ) {
+				sortedUsers.unshift( currentUserState );
+			}
 		}
-	}
 
-	return activeUsers;
+		return sortedUsers;
+	}, [ currentUser, activeUsers ] );
 }

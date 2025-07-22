@@ -1,5 +1,5 @@
 import { useSelect } from '@wordpress/data';
-import { createRoot, useRef } from '@wordpress/element';
+import { createRoot } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import './awareness-avatars.scss';
@@ -8,7 +8,7 @@ import { useBlockHighlighting } from '../hooks/use-block-highlighting';
 import { usePositionOverlay } from '../hooks/use-position-overlay';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
-// import { useRenderCursors } from '@/hooks/use-render-cursors';
+import { useRenderCursors } from '@/hooks/use-render-cursors';
 
 export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 	const div = document.createElement( 'div' );
@@ -19,16 +19,15 @@ export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 }
 
 function RTCOverlay( { awareness }: { awareness: SyncProvider[ 'awareness' ] } ) {
-	const overlayRef = useRef< HTMLDivElement >( null );
 	const editorElement = useWaitForSelector( '.editor-visual-editor' );
-	usePositionOverlay( overlayRef, editorElement );
+	const overlayRef = usePositionOverlay( editorElement );
 
 	const isAwarenessOverlayEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
 	} );
 
 	useBlockHighlighting( awareness, isAwarenessOverlayEnabled );
-	// useRenderCursors( overlayRef.current, editorElement, awareness, isAwarenessOverlayEnabled );
+	useRenderCursors( overlayRef.current, editorElement, awareness, isAwarenessOverlayEnabled );
 
 	if ( editorElement === null ) {
 		return null;

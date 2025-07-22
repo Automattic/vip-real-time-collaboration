@@ -13,6 +13,7 @@ import {
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
+import { SelectionType } from './hooks/use-render-cursors';
 import { store as awarenessStore, UserState } from './store/awareness-store';
 import { getNewUserColor } from './utilities/user-color';
 import { getWebSocketUrl } from './utils';
@@ -107,7 +108,11 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 	const userState: UserState = {
 		...userInfo,
 		color,
-		editorState: {},
+		editorState: {
+			selection: {
+				type: SelectionType.None,
+			},
+		},
 	};
 
 	awareness.setLocalStateField( 'userState', userState );

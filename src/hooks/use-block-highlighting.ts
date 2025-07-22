@@ -1,8 +1,8 @@
-import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
+import { SelectionType } from './use-render-cursors';
 import {
 	AwarenessStoreSelectors,
 	UserState,
@@ -25,9 +25,9 @@ export function useBlockHighlighting(
 
 	const blocksToHighlight = userStates
 		.map( userState => {
-			if ( userState.editorState?.selectedBlockId ) {
+			if ( userState.editorState?.selection?.type === SelectionType.Cursor ) {
 				return {
-					blockId: userState.editorState.selectedBlockId,
+					blockId: userState.editorState.selection.blockId,
 					color: userState.color,
 				};
 			}
@@ -81,26 +81,6 @@ export function useBlockHighlighting(
 			}
 		} );
 	}, [ userStates, blocksToHighlight, isEnabled ] );
-
-	const selectedBlockId = useSelect< BlockEditorStoreSelectors, string | null >( select => {
-		return select( blockEditorStore ).getSelectedBlockClientId();
-	} );
-
-	// Update the local state field when our selected block changes.
-	useEffect( () => {
-		const localState = awareness.getLocalState();
-		const userState = localState?.userState as UserState | undefined;
-
-		if ( userState ) {
-			awareness.setLocalStateField( 'userState', {
-				...userState,
-				editorState: {
-					...userState.editorState,
-					selectedBlockId,
-				},
-			} );
-		}
-	}, [ selectedBlockId ] );
 }
 
 // Get the editor document context from iframe or the main document for element styling

@@ -1,17 +1,15 @@
-import { useEffect, RefObject } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 
 import { throttleByAnimationFrame } from '../utilities/throttle';
 
 /**
  * Position an overlay element over the position and size of a target element.
  *
- * @param overlayRef - Reference to the overlay element to position.
  * @param targetElement - The element to overlay on top of.
  */
-export function usePositionOverlay(
-	overlayRef: RefObject< HTMLElement >,
-	targetElement: HTMLElement | null
-) {
+export function usePositionOverlay( targetElement: HTMLElement | null ) {
+	const overlayRef = useRef< HTMLDivElement >( null );
+
 	useEffect( () => {
 		if ( targetElement === null ) {
 			return;
@@ -50,5 +48,7 @@ export function usePositionOverlay(
 			window.removeEventListener( 'resize', throttledUpdatePosition );
 			resizeObserver.disconnect();
 		};
-	}, [ targetElement, overlayRef ] );
+	}, [ targetElement ] );
+
+	return overlayRef;
 }

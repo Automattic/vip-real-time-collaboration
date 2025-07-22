@@ -11,16 +11,17 @@ export interface UserState extends User {
 }
 
 export interface EditorState {
-	selectedBlockId?: string;
-	selection?: SelectionState;
+	selection: SelectionState;
 }
 
 interface AwarenessStore {
-	users: Map< number, UserState >;
+	userMap: Map< number, UserState >;
+	userStates: UserState[];
 }
 
 const DEFAULT_STATE: AwarenessStore = {
-	users: new Map(),
+	userMap: new Map(),
+	userStates: [],
 };
 
 const actions = {
@@ -39,17 +40,26 @@ const actions = {
 const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessStore => {
 	switch ( action.type ) {
 		case 'UPDATE_USER': {
+			const newUsers = new Map( state.userMap );
+			newUsers.set( action.payload.stateId, action.payload.userState );
+
+			const newUserStates = Array.from( newUsers.values() );
+
 			return {
 				...state,
-				users: state.users.set( action.payload.stateId, action.payload.userState ),
+				userMap: newUsers,
+				userStates: newUserStates,
 			};
 		}
 		case 'REMOVE_STATE_ID': {
-			const newUsers = new Map( state.users );
+			const newUsers = new Map( state.userMap );
 			newUsers.delete( action.payload.stateId );
 
+			const newUserStates = Array.from( newUsers.values() );
+
 			return {
-				users: newUsers,
+				userMap: newUsers,
+				userStates: newUserStates,
 			};
 		}
 		default:
@@ -58,23 +68,8 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 };
 
 const selectors = {
-	getActiveUsers(
-		state: AwarenessStore,
-		options: { includeDuplicateUsers?: boolean } = {}
-	): UserState[] {
-		const { includeDuplicateUsers = false } = options;
-
-		const users = Array.from( state.users.values() );
-
-		if ( includeDuplicateUsers ) {
-			return users;
-		}
-
-		const uniqueUserIds: Record< number, boolean > = {};
-
-		return users.filter( function ( user ) {
-			return uniqueUserIds[ user.id ] ? false : ( uniqueUserIds[ user.id ] = true );
-		} );
+	getActiveUsers( state: AwarenessStore ): UserState[] {
+		return state.userStates;
 	},
 };
 
@@ -105,5 +100,5 @@ export type AwarenessStoreActions = {
 };
 
 export type AwarenessStoreSelectors = {
-	getActiveUsers: ( options?: { includeDuplicateUsers?: boolean } ) => UserState[];
+	getActiveUsers: () => UserState[];
 };

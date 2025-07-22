@@ -1,25 +1,29 @@
 import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
+import { debounce } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import { useEffect } from '@wordpress/element';
+import { useEffect, useMemo } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { UserState } from '@/store/awareness-store';
 
-enum SelectionType {
-	None,
-	CursorOnly,
-	SelectionInOneBlock,
-	SelectionInMultipleBlocks,
+/**
+ * Todo: Maybe change SelectionType values back to integers
+ */
+export enum SelectionType {
+	None = 'none',
+	Cursor = 'cursor',
+	SelectionInOneBlock = 'selection-in-1-block',
+	SelectionInMultipleBlocks = 'selection-in-multiple-blocks',
 }
 
 type SelectionNone = {
 	type: SelectionType.None;
 };
 
-type SelectionCursorOnly = {
-	type: SelectionType.CursorOnly;
+type SelectionCursor = {
+	type: SelectionType.Cursor;
 	blockId: string;
 	cursorPosition: number;
 };
@@ -41,7 +45,7 @@ type SelectionInMultipleBlocks = {
 
 export type SelectionState =
 	| SelectionNone
-	| SelectionCursorOnly
+	| SelectionCursor
 	| SelectionInOneBlock
 	| SelectionInMultipleBlocks;
 
@@ -67,69 +71,77 @@ export function useRenderCursors(
 		};
 	} );
 
-	// Update the local state field when our selected block changes.
+	// Create a debounced function that updates the awareness state
+	const debouncedUpdateSelection = useMemo(
+		() =>
+			debounce( ( ...args: unknown[] ) => {
+				const [ start, end, awarenessInstance ] = args as [
+					WPBlockSelection,
+					WPBlockSelection,
+					SyncProvider[ 'awareness' ]
+				];
+
+				const selectionState = getSelectionState( start, end );
+				const localState = awarenessInstance.getLocalState();
+				const userState = localState?.userState as UserState | undefined;
+
+				if ( userState ) {
+					awarenessInstance.setLocalStateField( 'userState', {
+						...userState,
+						editorState: {
+							...userState.editorState,
+							selection: selectionState,
+						},
+					} );
+				}
+			}, 20 ),
+		[]
+	);
+
+	// Update the local state field when our selected block changes (debounced)
 	useEffect( () => {
-		const selectionState = getSelectionState( selectionStart, selectionEnd );
-		const localState = awareness.getLocalState();
-		const userState = localState?.userState as UserState | undefined;
+		debouncedUpdateSelection( selectionStart, selectionEnd, awareness );
+	}, [ selectionStart, selectionEnd, awareness, debouncedUpdateSelection ] );
 
-		if ( userState ) {
-			awareness.setLocalStateField( 'userState', {
-				...userState,
-				editorState: {
-					...userState.editorState,
-					selection: selectionState,
-				},
-			} );
-		}
-	}, [ selectionStart, selectionEnd ] );
-
-	// Draw the cursor for each user
-	const userSelections = useSortedAwarenessUsers().map( user => {
-		return {
-			userName: user.name,
-			selection: user.editorState.selection,
-			color: user.color,
-		};
-	} );
+	const sortedUsers = useSortedAwarenessUsers();
 
 	useEffect( () => {
-		if ( ! overlay ) {
+		if ( ! overlay || ! editor || ! isEnabled ) {
 			return;
 		}
 
-		overlay.querySelectorAll( '.vip-rtc-selection' ).forEach( element => {
-			element.remove();
+		const userSelections = sortedUsers.map( user => {
+			return {
+				userName: user.name,
+				selection: user.editorState.selection ?? { type: SelectionType.None },
+				color: user.color,
+			};
 		} );
 
-		// userSelections.forEach( ( { userName, selection, color } ) => {
-		// 	if ( selection?.type === SelectionType.CursorOnly ) {
-		// 		const blockElement = editor.querySelector( `[data-block="${ blockId }"]` );
-		// 		if ( ! blockElement ) {
-		// 		}
-		// 	}
-		// } );
-	}, [ userSelections ] );
+		renderCursors( overlay, editor, userSelections );
+	}, [ sortedUsers, overlay, editor, isEnabled ] );
 }
 
 const getSelectionState = (
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection
 ): SelectionState => {
-	if ( ! selectionStart ) {
+	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
+	if ( isSelectionEmpty ) {
 		// Case 1: No selection
 		return {
 			type: SelectionType.None,
 		};
 	}
 
+	// When the page initially loads, selectionStart can contain an empty object `{}`.
 	const isSelectionInOneBlock = selectionStart.clientId === selectionEnd.clientId;
 	const isCursorOnly = isSelectionInOneBlock && selectionStart.offset === selectionEnd.offset;
 
 	if ( isCursorOnly ) {
 		// Case 2: Cursor only, no text selected
 		return {
-			type: SelectionType.CursorOnly,
+			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
 			cursorPosition: selectionStart.offset,
 		};
@@ -151,4 +163,16 @@ const getSelectionState = (
 		cursorStartPosition: selectionStart.offset,
 		cursorEndPosition: selectionEnd.offset,
 	};
+};
+
+const renderCursors = (
+	overlay: HTMLElement,
+	editor: HTMLElement,
+	userSelections: { userName: string; selection: SelectionState; color: string }[]
+) => {
+	console.log( '--- renderCursors():' );
+
+	userSelections.forEach( ( { userName, selection, color } ) => {
+		console.log( 'Draw user selection:', { userName, selection, color } );
+	} );
 };
