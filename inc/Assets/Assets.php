@@ -21,6 +21,11 @@ final class Assets {
 
 	public function enable_gutenberg_experiment(): void {
 		// This enables RTC, there is an override here: https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/fix/sync-collaboration-setting/inc/Compatibility/Compatibility.php#L47-L55 also, make sure one exists.
+		global $pagenow;
+		// Do not enable on Site Editor.
+		if ( 'site-editor.php' == $pagenow ) {
+			return;
+		}
 		wp_add_inline_script( 'wp-block-editor', 'window.__experimentalEnableSync = true', 'before' );
 	}
 
