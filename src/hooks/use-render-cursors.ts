@@ -118,7 +118,7 @@ export function useRenderCursors(
 			};
 		} );
 
-		renderCursors( overlay, blockEditorDocument, userSelections );
+		drawUserSelections( overlay, blockEditorDocument, userSelections );
 	}, [ sortedUsers, overlay, blockEditorDocument, isEnabled ] );
 }
 
@@ -165,14 +165,164 @@ const getSelectionState = (
 	};
 };
 
-const renderCursors = (
+const drawUserSelections = (
 	overlay: HTMLElement,
-	document: Document,
+	editorDocument: Document,
 	userSelections: { userName: string; selection: SelectionState; color: string }[]
 ) => {
-	console.log( '--- renderCursors():', { overlay, document } );
-
-	userSelections.forEach( ( { userName, selection, color } ) => {
-		console.log( 'Draw user selection:', { userName, selection, color } );
+	// Clear up previous state
+	const userCursors = overlay.querySelectorAll( '.vip-realtime-collaboration-user-cursor' );
+	userCursors.forEach( cursor => {
+		cursor.remove();
 	} );
+
+	// Draw cursors
+	userSelections.forEach( ( { userName, selection, color } ) => {
+		console.log( 'Draw user selection:', selection, { userName, color } );
+
+		if ( selection.type === SelectionType.None ) {
+			// Do nothing
+		} else if ( selection.type === SelectionType.Cursor ) {
+			const coords = getCursorPosition( selection, editorDocument, overlay );
+			if ( ! coords ) {
+				return;
+			}
+
+			// Create cursor element
+			// Use `document` instead of `editorDocument` because the overlay is in the parent document.
+			const cursor = document.createElement( 'div' );
+			cursor.className = 'vip-realtime-collaboration-user-cursor';
+			cursor.style.left = `${ coords.x }px`;
+			cursor.style.top = `${ coords.y }px`;
+			cursor.style.backgroundColor = color;
+			cursor.style.height = `${ coords.height }px`;
+
+			// // Create label
+			// const label = this.document.createElement( 'div' );
+			// label.className = 'cursor-label';
+			// label.textContent = `User ${ userId }`; // In a real app, you'd fetch the user's name
+			// label.style.backgroundColor = color;
+			// cursor.appendChild( label );
+
+			overlay.appendChild( cursor );
+		}
+	} );
+};
+
+const getCursorPosition = (
+	selection: SelectionCursor,
+	editorDocument: Document,
+	overlay: HTMLElement
+) => {
+	const blockElement = editorDocument.querySelector(
+		`[data-block="${ selection.blockId }"]`
+	) as HTMLElement;
+
+	if ( ! blockElement ) {
+		return null;
+	}
+
+	const coords = getOffsetPositionInBlock(
+		blockElement,
+		selection.cursorPosition,
+		editorDocument,
+		overlay
+	);
+
+	return coords ?? null;
+};
+
+const getOffsetPositionInBlock = (
+	blockElement: HTMLElement,
+	charOffset: number,
+	editorDocument: Document,
+	overlay: HTMLElement
+) => {
+	const { node, offset } = findInnerBlockOffset( blockElement, charOffset, editorDocument );
+
+	const cursorRange = editorDocument.createRange();
+
+	try {
+		cursorRange.setStart( node, offset );
+	} catch ( error ) {
+		console.error( 'Failed to create a range for cursor:', { error, node, offset } );
+		return null;
+	}
+
+	// Ensure the range only represents single point in the DOM.
+	cursorRange.collapse( true );
+
+	const cursorRect = cursorRange.getBoundingClientRect();
+	const overlayRect = overlay.getBoundingClientRect();
+	const blockRect = blockElement.getBoundingClientRect();
+
+	let cursorX = 0;
+	let cursorY = 0;
+
+	if (
+		cursorRect.x === 0 &&
+		cursorRect.y === 0 &&
+		cursorRect.width === 0 &&
+		cursorRect.height === 0
+	) {
+		// This can happen for empty blocks.
+		cursorX = blockRect.left - overlayRect.left;
+		cursorY = blockRect.top - overlayRect.top;
+	} else {
+		cursorX = cursorRect.left - overlayRect.left;
+		cursorY = cursorRect.top - overlayRect.top;
+	}
+
+	let cursorHeight = cursorRect.height;
+	if ( cursorHeight === 0 ) {
+		cursorHeight =
+			parseInt( window.getComputedStyle( blockElement ).lineHeight, 10 ) || blockRect.height;
+	}
+
+	return {
+		x: cursorX,
+		y: cursorY,
+		height: cursorHeight,
+	};
+};
+
+const findInnerBlockOffset = (
+	blockElement: HTMLElement,
+	offset: number,
+	editorDocument: Document
+) => {
+	const treeWalker = editorDocument.createTreeWalker( blockElement, NodeFilter.SHOW_TEXT );
+	let currentOffset = 0;
+	let lastTextNode = null;
+
+	console.log( 'Walker starting with:', { blockElement } );
+	let node = treeWalker.nextNode();
+
+	while ( node ) {
+		console.log( 'Walker processing node:', node );
+
+		if ( ! node.nodeValue?.length ) {
+			console.log( 'Walker skipping node:', node );
+			continue;
+		}
+
+		const nodeLength = node.nodeValue.length;
+
+		if ( currentOffset + nodeLength >= offset ) {
+			return { node, offset: offset - currentOffset };
+		}
+
+		currentOffset += nodeLength;
+		lastTextNode = node;
+
+		node = treeWalker.nextNode();
+	}
+
+	if ( lastTextNode && lastTextNode.nodeValue?.length ) {
+		console.log( 'Walker returning last text node:', lastTextNode );
+		return { node: lastTextNode, offset: lastTextNode.nodeValue.length };
+	}
+
+	console.log( 'Not sure where the cursor is, returning offset 0 on the block' );
+	return { node: blockElement, offset: 0 };
 };

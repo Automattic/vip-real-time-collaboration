@@ -68,3 +68,14 @@
 		}
 	}
 }
+
+.vip-realtime-collaboration-user-cursor {
+	position: absolute;
+	width: 2px;
+	animation: vip-realtime-collaboration-cursor-blink 1s infinite;
+}
+
+@keyframes vip-realtime-collaboration-cursor-blink {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.5; }
+}
