@@ -1,6 +1,5 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
-import { type SyncProvider } from '@wordpress/sync';
 
 import { SelectionType } from './use-render-cursors';
 import {
@@ -11,46 +10,48 @@ import {
 
 /**
  * Custom hook for highlighting selected blocks in the editor
- * @param awareness - The awareness instance
+ * @param blockEditorDocument - Ref to the block editor document, used to directly style block elements.
  * @param isEnabled - Whether the highlighting is enabled
  */
-export function useBlockHighlighting(
-	awareness: SyncProvider[ 'awareness' ],
-	isEnabled: boolean = true
-) {
+export function useBlockHighlighting( blockEditorDocument: Document | null, isEnabled: boolean ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
 	const userStates = useSelect< AwarenessStoreSelectors, UserState[] >( select => {
 		return select( awarenessStore ).getActiveUsers();
 	} );
 
-	const blocksToHighlight = userStates
-		.map( userState => {
-			if ( userState.editorState?.selection?.type === SelectionType.Cursor ) {
-				return {
-					blockId: userState.editorState.selection.blockId,
-					color: userState.color,
-				};
-			}
-
-			return null;
-		} )
-		.filter( block => block !== null );
-
-	const unhighlightBlocks = ( blockIds: string[] ) => {
-		blockIds.forEach( blockId => {
-			const blockElement = getBlockElementById( blockId );
-
-			if ( blockElement ) {
-				blockElement.style.boxShadow = '';
-				blockElement.style.borderRadius = '';
-			}
-
-			highlightedBlockIds.current.delete( blockId );
-		} );
-	};
-
 	// Draw block highlights
 	useEffect( () => {
+		// Don't do anything if editor is not rendered yet.
+		if ( blockEditorDocument === null ) {
+			return;
+		}
+
+		const unhighlightBlocks = ( blockIds: string[] ) => {
+			blockIds.forEach( blockId => {
+				const blockElement = getBlockElementById( blockEditorDocument, blockId );
+
+				if ( blockElement ) {
+					blockElement.style.boxShadow = '';
+					blockElement.style.borderRadius = '';
+				}
+
+				highlightedBlockIds.current.delete( blockId );
+			} );
+		};
+
+		const blocksToHighlight = userStates
+			.map( userState => {
+				if ( userState.editorState?.selection?.type === SelectionType.Cursor ) {
+					return {
+						blockId: userState.editorState.selection.blockId,
+						color: userState.color,
+					};
+				}
+
+				return null;
+			} )
+			.filter( block => block !== null );
+
 		if ( ! isEnabled ) {
 			// If the overlay is disabled, remove all highlights.
 			unhighlightBlocks( Array.from( highlightedBlockIds.current ) );
@@ -62,6 +63,7 @@ export function useBlockHighlighting(
 		const blocksIdsToUnhighlight = Array.from( highlightedBlockIds.current ).filter(
 			blockId => ! selectedBlockIds.includes( blockId )
 		);
+
 		unhighlightBlocks( blocksIdsToUnhighlight );
 
 		// Highlight blocks that are currently highlighted.
@@ -72,7 +74,11 @@ export function useBlockHighlighting(
 
 		blocksToHighlight.forEach( blockColorPair => {
 			const { color, blockId } = blockColorPair;
-			const blockElement = getBlockElementById( blockId );
+			const blockElement = getBlockElementById( blockEditorDocument, blockId );
+
+			if ( ! blockElement ) {
+				return;
+			}
 
 			if ( blockElement ) {
 				blockElement.style.boxShadow = `${ color } 0 0 0 2px`;
@@ -80,24 +86,12 @@ export function useBlockHighlighting(
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );
-	}, [ userStates, blocksToHighlight, isEnabled ] );
+	}, [ userStates, isEnabled, blockEditorDocument ] );
 }
 
-// Get the editor document context from iframe or the main document for element styling
-const getEditorDocument = (): Document => {
-	const iframeSelectors = [ 'iframe[name="editor-canvas"]', 'iframe.editor-canvas' ];
-
-	for ( const selector of iframeSelectors ) {
-		const editorFrame = document.querySelector( selector ) as HTMLIFrameElement;
-		if ( editorFrame?.contentDocument ) {
-			return editorFrame.contentDocument;
-		}
-	}
-
-	// Fallback to main document (for non-iframed editors)
-	return document;
-};
-
-const getBlockElementById = ( blockId: string ): HTMLElement | null => {
-	return getEditorDocument().querySelector( `[data-block="${ blockId }"]` );
+const getBlockElementById = (
+	blockEditorDocument: Document,
+	blockId: string
+): HTMLElement | null => {
+	return blockEditorDocument.querySelector( `[data-block="${ blockId }"]` );
 };

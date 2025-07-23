@@ -57,7 +57,7 @@ export type SelectionState =
  */
 export function useRenderCursors(
 	overlay: HTMLElement | null,
-	editor: HTMLElement | null,
+	blockEditorDocument: Document | null,
 	awareness: SyncProvider[ 'awareness' ],
 	isEnabled: boolean = true
 ) {
@@ -106,7 +106,7 @@ export function useRenderCursors(
 	const sortedUsers = useSortedAwarenessUsers();
 
 	useEffect( () => {
-		if ( ! overlay || ! editor || ! isEnabled ) {
+		if ( ! overlay || ! blockEditorDocument || ! isEnabled ) {
 			return;
 		}
 
@@ -118,8 +118,8 @@ export function useRenderCursors(
 			};
 		} );
 
-		renderCursors( overlay, editor, userSelections );
-	}, [ sortedUsers, overlay, editor, isEnabled ] );
+		renderCursors( overlay, blockEditorDocument, userSelections );
+	}, [ sortedUsers, overlay, blockEditorDocument, isEnabled ] );
 }
 
 const getSelectionState = (
@@ -167,10 +167,10 @@ const getSelectionState = (
 
 const renderCursors = (
 	overlay: HTMLElement,
-	editor: HTMLElement,
+	document: Document,
 	userSelections: { userName: string; selection: SelectionState; color: string }[]
 ) => {
-	console.log( '--- renderCursors():' );
+	console.log( '--- renderCursors():', { overlay, document } );
 
 	userSelections.forEach( ( { userName, selection, color } ) => {
 		console.log( 'Draw user selection:', { userName, selection, color } );

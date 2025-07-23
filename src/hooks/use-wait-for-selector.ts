@@ -11,18 +11,21 @@ const POLL_INTERVAL = 200;
  * If it's not found, poll for the selector until available.
  *
  * @param targetSelector The selector to wait for.
- * @returns The target element, or null if it doesn't exist.
+ * @returns The target element, or null if it doesn't exist
  */
-export function useWaitForSelector( targetSelector: string ) {
-	const [ targetElement, setTargetElement ] = useState< HTMLElement | null >( null );
+export function useWaitForSelector< T extends HTMLElement = HTMLElement >(
+	targetSelector: string
+): T | null {
+	const [ element, setElement ] = useState< T | null >( null );
 
 	useEffect( () => {
 		let pollInterval: NodeJS.Timeout | null = null;
 		let parentObserver: MutationObserver | null = null;
 
 		const checkForElement = () => {
-			const testTargetElement = document.querySelector( targetSelector ) as HTMLElement;
-			setTargetElement( testTargetElement || null );
+			const testTargetElement = document.querySelector( targetSelector ) as T;
+			setElement( testTargetElement || null );
+
 			return testTargetElement;
 		};
 
@@ -32,10 +35,11 @@ export function useWaitForSelector( targetSelector: string ) {
 			}
 
 			pollInterval = setInterval( () => {
-				const element = checkForElement();
-				if ( element ) {
+				const foundElement = checkForElement();
+
+				if ( foundElement ) {
 					stopPolling();
-					startObserving( element );
+					startObserving( foundElement );
 				}
 			}, POLL_INTERVAL );
 		};
@@ -47,7 +51,7 @@ export function useWaitForSelector( targetSelector: string ) {
 			}
 		};
 
-		const startObserving = ( element: HTMLElement ) => {
+		const startObserving = ( targetElement: HTMLElement ) => {
 			const throttledParentCheck = throttleByAnimationFrame( () => {
 				const currentElement = checkForElement();
 				if ( ! currentElement ) {
@@ -58,9 +62,9 @@ export function useWaitForSelector( targetSelector: string ) {
 			} );
 
 			// Observe the parent element to watch for removal of the target element.
-			if ( element.parentElement ) {
+			if ( targetElement.parentElement ) {
 				parentObserver = new MutationObserver( throttledParentCheck );
-				parentObserver.observe( element.parentElement, {
+				parentObserver.observe( targetElement.parentElement, {
 					childList: true,
 					subtree: false, // Only watch direct children
 				} );
@@ -90,5 +94,5 @@ export function useWaitForSelector( targetSelector: string ) {
 		};
 	}, [ targetSelector ] );
 
-	return targetElement;
+	return element;
 }
