@@ -45,10 +45,14 @@
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
     "start:websocket-server": "npx --yes tsx websocket-server",
+    "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
+    "test:e2e:debug": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts --ui",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
     "@automattic/eslint-plugin-wpvip": "0.13.1",
+    "@playwright/test": "^1.54.1",
+    "@wordpress/e2e-test-utils-playwright": "^1.26.0",
     "@wordpress/env": "10.25.0",
     "@wordpress/hooks": "4.25.0",
     "@wordpress/scripts": "30.1.0",
