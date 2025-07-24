@@ -61,8 +61,16 @@ final class Assets {
 			[ 'in_footer' => false ]
 		);
 
-		wp_localize_script( 'vip-realtime-collaboration', 'VIP_RTC', [
-			'wsUrl' => $vip_rtc_ws_url,
-		] );
+		$vip_rtc_encoded = wp_json_encode( [ 'wsUrl' => $vip_rtc_ws_url ] );
+		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.
+		if ( ! is_string( $vip_rtc_encoded ) || '' === $vip_rtc_encoded ) {
+			$vip_rtc_encoded = '{}';
+		}
+
+		wp_add_inline_script(
+			'vip-realtime-collaboration',
+			"var VIP_RTC = $vip_rtc_encoded;",
+			'before'
+		);
 	}
 }
