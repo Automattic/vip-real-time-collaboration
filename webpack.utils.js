@@ -35,6 +35,7 @@ function modernize( config, additionalScripts = {}, additionalPlugins = [], watc
 			alias: {
 				...config.resolve.alias,
 				'@': path.resolve( __dirname, 'src/' ),
+				yjs: path.resolve( __dirname, 'src/yjs-shim.js' ),
 			},
 		},
 		watchOptions: { ...config.watchOptions, ...watchOptions },
