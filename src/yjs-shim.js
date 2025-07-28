@@ -15,9 +15,10 @@
  * file via Webpack.
  *
  * The unused import of `@wordpress/core-data` is important to ensure that
- * `wp.sync` is laoded and available. It results in `core-data` being added to
- * our scripts dependencies (see `build/index.asset.php`). We cannot use
- * `@wordpress/sync` for this purpose because it is not yet a public package.
+ * `wp.sync` is loaded and available. It results in `core-data` being added to
+ * our script's dependencies (see `build/index.asset.php`), which influences the
+ * load order. We cannot use `@wordpress/sync` for this purpose because it is
+ * not yet a public package.
  */
 import '@wordpress/core-data';
 
