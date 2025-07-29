@@ -19,6 +19,11 @@ use function plugins_url;
 final class Overrides {
 	/**
 	 * Constructor to initialize the overrides.
+	 *
+	 * Mode 1: Full collaboration mode. (default)
+	 * Mode 2: Non-collaborative mode with standard takeover. (page_row_actions,post_row_actions)
+	 * Mode 3: View-only mode - probably more difficult!
+	 *
 	 */
 	public function __construct() {
 		// Allow multiple users to see the edit post screen. There is a bug with this however, when autosave kicks in, see: https://core.trac.wordpress.org/ticket/63598.
@@ -26,6 +31,10 @@ final class Overrides {
 
 		// Force the removal of refreshing the post lock, runs on admin_init as that is after the filter is set.
 		add_action( 'admin_init', [ $this, 'remove_heartbeat_post_lock' ] );
+
+		// Add a link to the non-collaborative mode in the post and page row actions.
+		add_filter( 'page_row_actions', [ $this, 'enable_non_collaborative_mode_link' ], 10, 2 );
+		add_filter( 'post_row_actions', [ $this, 'enable_non_collaborative_mode_link' ], 10, 2 );
 	}
 
 	/**
@@ -49,5 +58,18 @@ final class Overrides {
 			VIP_REALTIME_COLLABORATION__PLUGIN_VERSION,
 			[ 'in_footer' => true ]
 		);
+	}
+
+	public function enable_non_collaborative_mode_link( array $actions, \WP_Post $post ): array {
+		// Add a link to enable non-collaborative mode.
+		if ( current_user_can( 'edit_post', $post->ID ) && 'trash' !== $post->post_status ) {
+			$actions['enable_non_collaborative_mode'] = sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( add_query_arg( [ 'enable_non_collaborative_mode' => 1, 'post' => $post->ID ], admin_url( 'edit.php' ) ) ),
+				__( 'Private Edit', 'vip-realtime-collaboration' )
+			);
+		}
+
+		return $actions;
 	}
 }
