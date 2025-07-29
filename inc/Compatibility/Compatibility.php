@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit();
  */
 final class Compatibility {
 	public function __construct() {
-		add_filter( 'pre_option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
+		add_filter( 'pre_option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
 	}
 
 	public static function admin_notices(): void {
@@ -39,20 +39,19 @@ final class Compatibility {
 	 *
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
-	public function disable_sync_collaboration_experiment( array|false $experiments ): array|false {
+	public function enable_sync_collaboration_experiment( array|false $experiments ): array|false {
+		global $pagenow;
+
 		if ( ! is_array( $experiments ) ) {
 			return $experiments;
 		}
 
-		/* 
-		 * Sync collaboration experiment is enabled via 
-		 * https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21 
-		 * so this removes the core option setting from Gutenberg.
-		 */
-		// TODO: Implement our own experiment.
-		if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-			unset( $experiments['gutenberg-sync-collaboration'] );
+		// Do not enable on Site Editor.
+		if ( 'site-editor.php' == $pagenow ) {
+			return $experiments;
 		}
+
+		$experiments['gutenberg-sync-collaboration'] = true;
 
 		return $experiments;
 	}
