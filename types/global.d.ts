@@ -1,5 +1,13 @@
 declare global {
-	var VIP_RTC: VIPRTCConfig | undefined;
+	interface Window {
+		VIP_RTC: VIPRTCConfig | undefined;
+
+		wp: {
+			sync: {
+				Y: typeof import('yjs');
+			};
+		};
+	}
 }
 
 export {};
