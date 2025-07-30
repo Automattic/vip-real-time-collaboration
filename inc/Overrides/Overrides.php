@@ -93,10 +93,11 @@ final class Overrides {
 				esc_url(
 					add_query_arg(
 						[
+							'action' => 'edit',
 							'enable_non_collaborative_mode' => 1,
 							'post' => $post->ID,
 						],
-						admin_url( 'edit.php' )
+						admin_url( 'post.php' )
 					)
 				),
 				__( 'Private Edit', 'vip-realtime-collaboration' )
