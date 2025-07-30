@@ -26,11 +26,7 @@ final class Overrides {
 	 *
 	 */
 	public function __construct() {
-		// Allow multiple users to see the edit post screen. There is a bug with this however, when autosave kicks in, see: https://core.trac.wordpress.org/ticket/63598.
-		add_filter( 'show_post_locked_dialog', '__return_false' );
-
-		// Force the removal of refreshing the post lock, runs on admin_init as that is after the filter is set.
-		add_action( 'admin_init', [ $this, 'remove_heartbeat_post_lock' ] );
+		add_action( 'admin_init', [ $this, 'admin_init' ], 10, 0 );
 
 		// Add a link to the non-collaborative mode in the post and page row actions.
 		add_filter( 'page_row_actions', [ $this, 'enable_non_collaborative_mode_link' ], 10, 2 );
@@ -38,14 +34,37 @@ final class Overrides {
 	}
 
 	/**
-	 * Remove the heartbeat post lock functionality.
+	 * Initialize the overrides for the admin area.
+	 *
+	 * This method sets up the necessary filters and actions to disable post locking
+	 * and enable collaborative editing features. Should run on `admin_init` to ensure it is after the filters are set.
 	 */
-	public function remove_heartbeat_post_lock(): void {
+	public function admin_init(): void {
+
+		if ( has_action( 'admin_action_enable_non_collaborative_mode' ) ) {
+			$this->non_collaborative_mode();
+		} else {
+			// Default to collaborative editing mode.
+			$this->collaborative_editing_mode();
+		}
+	}
+
+	private function non_collaborative_mode(): void {
+		// Remove the Sync Collaboration experiment script when in non-collaborative mode.
+		remove_action( 'admin_init', '\\VIPRealtimeCollaboration\\Assets\\enqueue_gutenberg_experiment' );
+	}
+
+	private function collaborative_editing_mode(): void {
+		// Force the removal of refreshing the post lock, runs on admin_init as that is after the filter is set.
 		remove_filter( 'heartbeat_received', 'wp_refresh_post_lock' );
 
 		// Let's add a notice to the editor that the post lock functionality is off.
 		add_action( 'enqueue_block_editor_assets', [ $this, 'enqueue_post_lock_notice' ] );
+
+		// Allow multiple users to see the edit post screen. There is a bug with this however, when autosave kicks in, see: https://core.trac.wordpress.org/ticket/63598.
+		add_filter( 'show_post_locked_dialog', '__return_false' );
 	}
+
 
 	/**
 	 * Enqueue the post lock notice script.
