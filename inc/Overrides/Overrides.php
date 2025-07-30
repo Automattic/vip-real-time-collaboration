@@ -84,7 +84,15 @@ final class Overrides {
 		if ( current_user_can( 'edit_post', $post->ID ) && 'trash' !== $post->post_status ) {
 			$actions['enable_non_collaborative_mode'] = sprintf(
 				'<a href="%s">%s</a>',
-				esc_url( add_query_arg( [ 'enable_non_collaborative_mode' => 1, 'post' => $post->ID ], admin_url( 'edit.php' ) ) ),
+				esc_url(
+					add_query_arg(
+						[
+							'enable_non_collaborative_mode' => 1,
+							'post' => $post->ID
+						],
+						admin_url( 'edit.php' )
+					)
+				),
 				__( 'Private Edit', 'vip-realtime-collaboration' )
 			);
 		}
