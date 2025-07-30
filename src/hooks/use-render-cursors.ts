@@ -2,14 +2,18 @@ import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress
 import { debounce } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import { useEffect, useMemo } from '@wordpress/element';
+import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
+import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
+import { throttleByAnimationFrame } from '../utilities/throttle';
 import { UserState } from '@/store/awareness-store';
 
+import type { MutableRefObject } from 'react';
+
 /**
- * Todo: Maybe change SelectionType values back to integers
+ * Todo: Maybe use integers for SelectionType values
  */
 export enum SelectionType {
 	None = 'none',
@@ -51,15 +55,14 @@ export type SelectionState =
 
 /**
  * Custom hook for rendering cursors for each user in the editor.
+ * @param overlayRef - The ref to the overlay element
+ * @param blockEditorDocument - The block editor document
  * @param awareness - The awareness instance
- * @param overlay - The ref to the overlay element
- * @param isEnabled - Whether the rendering is enabled
  */
 export function useRenderCursors(
-	overlay: HTMLElement | null,
+	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null,
-	awareness: SyncProvider[ 'awareness' ],
-	isEnabled: boolean = true
+	awareness: SyncProvider[ 'awareness' ]
 ) {
 	const { selectionStart, selectionEnd } = useSelect<
 		BlockEditorStoreSelectors,
@@ -71,7 +74,10 @@ export function useRenderCursors(
 		};
 	} );
 
-	// Create a debounced function that updates the awareness state
+	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	} );
+
 	const debouncedUpdateSelection = useMemo(
 		() =>
 			debounce( ( ...args: unknown[] ) => {
@@ -98,28 +104,53 @@ export function useRenderCursors(
 		[]
 	);
 
-	// Update the local state field when our selected block changes (debounced)
+	// Update the awareness state when user selection changes (with 20ms debounce)
 	useEffect( () => {
 		debouncedUpdateSelection( selectionStart, selectionEnd, awareness );
 	}, [ selectionStart, selectionEnd, awareness, debouncedUpdateSelection ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
+	// Use a ref to store the current render function to avoid stale closures
+	const renderCursorsRef = useRef< () => void >();
+
+	// Update render function and call it when user selection or mounted elements change
 	useEffect( () => {
-		if ( ! overlay || ! blockEditorDocument || ! isEnabled ) {
-			return;
-		}
+		renderCursorsRef.current = () => {
+			if ( ! overlayRef.current || ! blockEditorDocument || ! isEnabled ) {
+				return;
+			}
 
-		const userSelections = sortedUsers.map( user => {
-			return {
-				userName: user.name,
-				selection: user.editorState.selection ?? { type: SelectionType.None },
-				color: user.color,
-			};
-		} );
+			const userSelections = sortedUsers.map( user => {
+				return {
+					userName: user.name,
+					selection: user.editorState.selection ?? { type: SelectionType.None },
+					color: user.color,
+				};
+			} );
 
-		drawUserSelections( overlay, blockEditorDocument, userSelections );
-	}, [ sortedUsers, overlay, blockEditorDocument, isEnabled ] );
+			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections );
+		};
+
+		// Render cursors immediately when data changes
+		renderCursorsRef.current();
+	}, [ sortedUsers, overlayRef.current, blockEditorDocument, isEnabled ] );
+
+	// Also re-render cursors on resize
+	useEffect( () => {
+		const handleResize = () => {
+			if ( renderCursorsRef.current ) {
+				renderCursorsRef.current();
+			}
+		};
+
+		const throttledHandleResize = throttleByAnimationFrame( handleResize );
+
+		window.addEventListener( 'resize', throttledHandleResize );
+		return () => {
+			window.removeEventListener( 'resize', throttledHandleResize );
+		};
+	}, [] );
 }
 
 const getSelectionState = (
@@ -178,8 +209,6 @@ const drawUserSelections = (
 
 	// Draw cursors
 	userSelections.forEach( ( { userName, selection, color } ) => {
-		console.log( 'Draw user selection:', selection, { userName, color } );
-
 		if ( selection.type === SelectionType.None ) {
 			// Do nothing
 		} else if ( selection.type === SelectionType.Cursor ) {
@@ -197,12 +226,12 @@ const drawUserSelections = (
 			cursor.style.backgroundColor = color;
 			cursor.style.height = `${ coords.height }px`;
 
-			// // Create label
-			// const label = this.document.createElement( 'div' );
-			// label.className = 'cursor-label';
-			// label.textContent = `User ${ userId }`; // In a real app, you'd fetch the user's name
-			// label.style.backgroundColor = color;
-			// cursor.appendChild( label );
+			// Create label
+			const label = document.createElement( 'div' );
+			label.className = 'vip-realtime-collaboration-user-cursor-label';
+			label.textContent = userName;
+			label.style.backgroundColor = color;
+			cursor.appendChild( label );
 
 			overlay.appendChild( cursor );
 		}
@@ -295,14 +324,10 @@ const findInnerBlockOffset = (
 	let currentOffset = 0;
 	let lastTextNode = null;
 
-	console.log( 'Walker starting with:', { blockElement } );
 	let node = treeWalker.nextNode();
 
 	while ( node ) {
-		console.log( 'Walker processing node:', node );
-
 		if ( ! node.nodeValue?.length ) {
-			console.log( 'Walker skipping node:', node );
 			continue;
 		}
 
@@ -319,10 +344,8 @@ const findInnerBlockOffset = (
 	}
 
 	if ( lastTextNode && lastTextNode.nodeValue?.length ) {
-		console.log( 'Walker returning last text node:', lastTextNode );
 		return { node: lastTextNode, offset: lastTextNode.nodeValue.length };
 	}
 
-	console.log( 'Not sure where the cursor is, returning offset 0 on the block' );
 	return { node: blockElement, offset: 0 };
 };

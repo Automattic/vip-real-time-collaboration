@@ -1,10 +1,9 @@
 import { useSelect } from '@wordpress/data';
-import { createRoot, useEffect, useState } from '@wordpress/element';
+import { createRoot, useEffect, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
 import './awareness-avatars.scss';
 import { AwarenessAvatars } from './avatars';
-import { usePositionOverlay } from '../hooks/use-position-overlay';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
@@ -15,45 +14,89 @@ export function createRTCOverlay( awareness: SyncProvider[ 'awareness' ] ) {
 	document.body.appendChild( div );
 
 	const overlayRoot = createRoot( div );
-	overlayRoot.render( <RTCOverlay awareness={ awareness } /> );
+	overlayRoot.render( <RTCOverlayManager awareness={ awareness } /> );
 }
 
-function RTCOverlay( { awareness }: { awareness: SyncProvider[ 'awareness' ] } ) {
-	const editorElement = useWaitForSelector( '.editor-visual-editor' );
+/**
+ * This component is responsible for creating the overlay in the editor iframe, and
+ * cleaning up the overlay when the component is unmounted.
+ */
+function RTCOverlayManager( { awareness }: { awareness: SyncProvider[ 'awareness' ] } ) {
 	const iframeElement = useWaitForSelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
-	const overlayRef = usePositionOverlay( editorElement );
-	const [ blockEditorDocument, setBlockEditorDocument ] = useState< Document | null >( null );
-
-	const isAwarenessOverlayEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
-	} );
+	const iframeOverlayRootRef = useRef< ReturnType< typeof createRoot > | null >( null );
 
 	useEffect( () => {
 		// When the iframe is loaded, set blockEditorDocument for modifying block editor contents.
 		if ( iframeElement && iframeElement.contentDocument ) {
 			onIframeLoad( iframeElement, () => {
-				setBlockEditorDocument( iframeElement.contentDocument );
+				const editorDocument = iframeElement.contentDocument;
+
+				if ( editorDocument ) {
+					// Remove existing overlay, if present
+					editorDocument.querySelector( '.vip-realtime-collaboration-overlay' )?.remove();
+
+					// Add new overlay inside the iframe
+					const overlayDiv = editorDocument.createElement( 'div' );
+					overlayDiv.className = 'vip-realtime-collaboration-overlay';
+					editorDocument.body.appendChild( overlayDiv );
+
+					// Create React root for the iframe overlay and render components inside it
+					const root = createRoot( overlayDiv );
+					iframeOverlayRootRef.current = root;
+					root.render( <RTCOverlay awareness={ awareness } iframeDocument={ editorDocument } /> );
+				}
 			} );
 		}
-	}, [ iframeElement ] );
 
-	useBlockHighlighting( blockEditorDocument, isAwarenessOverlayEnabled );
-	useRenderCursors( overlayRef.current, blockEditorDocument, awareness, isAwarenessOverlayEnabled );
+		// Cleanup function
+		return () => {
+			if ( iframeOverlayRootRef.current ) {
+				iframeOverlayRootRef.current.unmount();
+				iframeOverlayRootRef.current = null;
+			}
+		};
+	}, [ iframeElement, awareness ] );
 
-	if ( editorElement === null ) {
+	// This component doesn't render anything visible in the main document
+	// All rendering happens inside the iframe
+	return null;
+}
+
+/**
+ * This component is responsible for rendering awareness components within the editor iframe.
+ */
+function RTCOverlay( {
+	awareness,
+	iframeDocument,
+}: {
+	awareness: SyncProvider[ 'awareness' ];
+	iframeDocument: Document;
+} ) {
+	const overlayRef = useRef< HTMLDivElement | null >( null );
+
+	const isAwarenessOverlayEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	} );
+
+	useBlockHighlighting( iframeDocument );
+	useRenderCursors( overlayRef, iframeDocument, awareness );
+
+	if ( ! isAwarenessOverlayEnabled ) {
 		return null;
 	}
 
 	return (
-		<div
-			id="vip-realtime-collaboration-overlay"
-			ref={ overlayRef }
-			style={ {
-				display: isAwarenessOverlayEnabled ? 'block' : 'none',
-			} }
-		>
-			<AwarenessAvatars />
-		</div>
+		<>
+			{ /* This is a full overlay that covers the entire iframe document.
+				Good for scrollable elements like cursor indicators */ }
+			<div className="vip-realtime-collaboration-overlay-full" ref={ overlayRef } />
+
+			{ /* This is a fixed overlay that covers the iframe window.
+				Good for floating elements like awareness avatars */ }
+			<div className="vip-realtime-collaboration-overlay-fixed">
+				<AwarenessAvatars />
+			</div>
+		</>
 	);
 }
 

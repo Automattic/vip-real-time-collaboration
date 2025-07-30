@@ -2,6 +2,7 @@ import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
 import { SelectionType } from './use-render-cursors';
+import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import {
 	AwarenessStoreSelectors,
 	UserState,
@@ -11,12 +12,15 @@ import {
 /**
  * Custom hook for highlighting selected blocks in the editor
  * @param blockEditorDocument - Ref to the block editor document, used to directly style block elements.
- * @param isEnabled - Whether the highlighting is enabled
  */
-export function useBlockHighlighting( blockEditorDocument: Document | null, isEnabled: boolean ) {
+export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
 	const userStates = useSelect< AwarenessStoreSelectors, UserState[] >( select => {
 		return select( awarenessStore ).getActiveUsers();
+	} );
+
+	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
 	} );
 
 	// Draw block highlights
