@@ -88,7 +88,7 @@ final class Overrides {
 					add_query_arg(
 						[
 							'enable_non_collaborative_mode' => 1,
-							'post' => $post->ID
+							'post' => $post->ID,
 						],
 						admin_url( 'edit.php' )
 					)
