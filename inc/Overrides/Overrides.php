@@ -79,6 +79,12 @@ final class Overrides {
 		);
 	}
 
+	/**
+	 *
+	 * Add the "Enable Non-Collaborative Mode" link to the post and page row actions.
+	 *
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
+	 */
 	public function enable_non_collaborative_mode_link( array $actions, \WP_Post $post ): array {
 		// Add a link to enable non-collaborative mode.
 		if ( current_user_can( 'edit_post', $post->ID ) && 'trash' !== $post->post_status ) {
