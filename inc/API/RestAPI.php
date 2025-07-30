@@ -13,16 +13,18 @@ use WP_Error;
 /**
  * REST API controller for WebSocket authentication.
  */
-class RestAPI extends WP_REST_Controller {
+final class RestAPI extends WP_REST_Controller {
 
 	public function __construct() {
 		$this->namespace = 'vip-rtc/v1';
 		$this->rest_base = 'websocket';
+		$this->schema = [];
 	}
 
 	/**
 	 * Register REST API routes.
 	 */
+	#[\Override]
 	public function register_routes(): void {
 		register_rest_route(
 			$this->namespace,
@@ -38,10 +40,11 @@ class RestAPI extends WP_REST_Controller {
 	/**
 	 * Get a WebSocket authentication token.
 	 *
-	 * @param WP_REST_Request $request Full details about the request.
+	 * @param WP_REST_Request $_request Full details about the request.
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
-	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+	public function get_auth_token( WP_REST_Request $_request ): WP_REST_Response|WP_Error {
 		// Generate a short-lived token
 		$token = WebSocketAuth::generate_token();
 
@@ -64,10 +67,11 @@ class RestAPI extends WP_REST_Controller {
 	/**
 	 * Check if the current user has permission to get an auth token.
 	 *
-	 * @param WP_REST_Request $request Full details about the request.
+	 * @param WP_REST_Request $_request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
-	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
+	public function get_auth_token_permissions_check( WP_REST_Request $_request ): bool|WP_Error {
 		/**
 		 * TODO: Add permission check for the user to verify they have access to post for
 		 * which the websocket access token is being requested.
