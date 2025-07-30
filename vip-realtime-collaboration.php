@@ -13,6 +13,7 @@
 
 namespace VIPRealtimeCollaboration;
 
+use VIPRealtimeCollaboration\API\RestAPI;
 use VIPRealtimeCollaboration\Assets\Assets;
 use VIPRealtimeCollaboration\Compatibility\Compatibility;
 use VIPRealtimeCollaboration\Overrides\Overrides;
@@ -44,4 +45,14 @@ add_action( 'plugins_loaded', static function (): void {
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_realtime_collaboration_loaded' );
+}, 10, 0 );
+
+add_action( 'rest_api_init', static function (): void {
+	// If the plugin cannot load, return early.
+	if ( ! Compatibility::should_plugin_load() ) {
+		return;
+	}
+
+	$rest_api = new RestAPI();
+	$rest_api->register_routes();
 }, 10, 0 );

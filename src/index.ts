@@ -1,6 +1,6 @@
 import { addFilter } from '@wordpress/hooks';
 
-import { getWebSocketUrl } from './utils';
+import { getWebSocketConnectionConfig } from './webSocketConnection';
 
 addFilter(
 	'core.getSyncProviderRemoteConnection',
@@ -11,14 +11,10 @@ addFilter(
 			return connection;
 		}
 
-		// We already error check for the WebSocket URL in the main plugin file,
-		// so this is here for safety.
-		const serverUrl = getWebSocketUrl();
-		// ToDo: Remove this before we go into production.
-		// eslint-disable-next-line no-console
-		console.log( 'WebSocket URL:', serverUrl );
+		// Get WebSocket configuration
+		const webSocketConnectionConfig = getWebSocketConnectionConfig();
 
-		if ( ! serverUrl ) {
+		if ( webSocketConnectionConfig.serverUrl === '' ) {
 			// ToDo: Replace this with a proper UI notice.
 			// eslint-disable-next-line no-console
 			console.error(
@@ -27,9 +23,7 @@ addFilter(
 			return null;
 		}
 
-		return connectionCreators.createWebSocketConnection( {
-			serverUrl,
-		} );
+		return connectionCreators.createWebSocketConnection( webSocketConnectionConfig );
 	}
 );
 
