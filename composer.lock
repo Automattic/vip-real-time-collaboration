@@ -4,70 +4,68 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9de6396c9f99a84d5d9adb7b830f6e29",
+    "content-hash": "95f8710d75e59b35b8c1aed354ced385",
     "packages": [
         {
-            "name": "firebase/php-jwt",
-            "version": "v6.11.1",
+            "name": "adhocore/jwt",
+            "version": "1.1.3",
             "source": {
                 "type": "git",
-                "url": "https://github.com/firebase/php-jwt.git",
-                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66"
+                "url": "https://github.com/adhocore/php-jwt.git",
+                "reference": "ad417603d9d45578b6af2089ad5b78f101c82367"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/firebase/php-jwt/zipball/d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
-                "reference": "d1e91ecf8c598d073d0995afa8cd5c75c6e19e66",
+                "url": "https://api.github.com/repos/adhocore/php-jwt/zipball/ad417603d9d45578b6af2089ad5b78f101c82367",
+                "reference": "ad417603d9d45578b6af2089ad5b78f101c82367",
                 "shasum": ""
             },
             "require": {
-                "php": "^8.0"
+                "php": "^7.0 || ^8.0"
             },
             "require-dev": {
-                "guzzlehttp/guzzle": "^7.4",
-                "phpspec/prophecy-phpunit": "^2.0",
-                "phpunit/phpunit": "^9.5",
-                "psr/cache": "^2.0||^3.0",
-                "psr/http-client": "^1.0",
-                "psr/http-factory": "^1.0"
-            },
-            "suggest": {
-                "ext-sodium": "Support EdDSA (Ed25519) signatures",
-                "paragonie/sodium_compat": "Support EdDSA (Ed25519) signatures when libsodium is not present"
+                "phpunit/phpunit": "^7.5 || ^8.5"
             },
             "type": "library",
             "autoload": {
                 "psr-4": {
-                    "Firebase\\JWT\\": "src"
+                    "Ahc\\Jwt\\": "src/"
                 }
             },
             "notification-url": "https://packagist.org/downloads/",
             "license": [
-                "BSD-3-Clause"
+                "MIT"
             ],
             "authors": [
                 {
-                    "name": "Neuman Vong",
-                    "email": "neuman+pear@twilio.com",
-                    "role": "Developer"
-                },
-                {
-                    "name": "Anant Narayanan",
-                    "email": "anant@php.net",
-                    "role": "Developer"
+                    "name": "Jitendra Adhikari",
+                    "email": "jiten.adhikary@gmail.com"
                 }
             ],
-            "description": "A simple library to encode and decode JSON Web Tokens (JWT) in PHP. Should conform to the current spec.",
-            "homepage": "https://github.com/firebase/php-jwt",
+            "description": "Ultra lightweight JSON web token (JWT) library for PHP5.5+.",
             "keywords": [
+                "auth",
+                "json-web-token",
                 "jwt",
-                "php"
+                "jwt-auth",
+                "jwt-php",
+                "token"
             ],
             "support": {
-                "issues": "https://github.com/firebase/php-jwt/issues",
-                "source": "https://github.com/firebase/php-jwt/tree/v6.11.1"
+                "issues": "https://github.com/adhocore/php-jwt/issues",
+                "source": "https://github.com/adhocore/php-jwt/tree/1.1.3"
             },
-            "time": "2025-04-09T20:32:01+00:00"
+            "funding": [
+                {
+                    "url": "https://paypal.me/ji10",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/adhocore",
+                    "type": "github"
+                }
+            ],
+            "time": "2025-02-18T01:00:50+00:00"
         }
     ],
     "packages-dev": [

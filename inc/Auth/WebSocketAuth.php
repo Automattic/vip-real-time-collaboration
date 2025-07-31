@@ -2,7 +2,7 @@
 
 namespace VIPRealtimeCollaboration\Auth;
 
-use Firebase\JWT\JWT;
+use Ahc\Jwt\JWT;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -22,7 +22,7 @@ final class WebSocketAuth {
 		}
 
 		$current_user = wp_get_current_user();
-		
+
 		// Get the JWT secret from constant with fallback
 		$jwt_secret = defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ? (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' ) : 'rtc_websocket_auth_secret';
 
@@ -38,8 +38,14 @@ final class WebSocketAuth {
 
 		// Generate JWT token
 		try {
-			return JWT::encode( $payload, $jwt_secret, 'HS256' );
+			$jwt = new JWT( $jwt_secret, 'HS256' );
+			return $jwt->encode( $payload );
 		} catch ( \Exception $e ) {
+			// Log error for debugging using WordPress compliant method
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'VIP RTC: Failed to generate JWT token: ' . esc_html( $e->getMessage() ) );
+			}
 			return null;
 		}
 	}
