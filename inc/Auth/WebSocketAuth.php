@@ -2,6 +2,8 @@
 
 namespace VIPRealtimeCollaboration\Auth;
 
+use Firebase\JWT\JWT;
+
 defined( 'ABSPATH' ) || exit();
 
 /**
@@ -36,34 +38,7 @@ final class WebSocketAuth {
 
 		// Generate JWT token
 		try {
-			// Create base64url encode function
-			$base64url_encode = function ( string $data ): string {
-				return rtrim( strtr( base64_encode( $data ), '+/', '-_' ), '=' );
-			};
-			
-			// Create header
-			$header_json = wp_json_encode( [
-				'alg' => 'HS256',
-				'typ' => 'JWT',
-			] );
-			if ( false === $header_json ) {
-				return null;
-			}
-			$header = $base64url_encode( $header_json );
-			
-			// Create payload
-			$payload_json = wp_json_encode( $payload );
-			if ( false === $payload_json ) {
-				return null;
-			}
-			$payload_encoded = $base64url_encode( $payload_json );
-		
-			// Create signature
-			$signature_input = $header . '.' . $payload_encoded;
-			$signature = $base64url_encode( hash_hmac( 'sha256', $signature_input, $jwt_secret, true ) );
-			
-			// Return complete JWT
-			return $signature_input . '.' . $signature;
+			return JWT::encode( $payload, $jwt_secret, 'HS256' );
 		} catch ( \Exception $e ) {
 			return null;
 		}
