@@ -11,11 +11,14 @@ defined( 'ABSPATH' ) || exit();
  */
 final class WebSocketAuth {
 	/**
-	 * Generate a JWT token for the current user.
+	 * Generate a JWT token for the current user with entity permissions.
 	 *
-	 * @return string|null The JWT token or null if user is not logged in.
+	 * @param string $entity_type Optional entity type to include in token.
+	 * @param string $entity_id Optional entity ID to include in token.
+	 *
+	 * @return string|null The JWT token or null if user is not logged in or lacks permission.
 	 */
-	public static function generate_token(): ?string {
+	public static function generate_token( string $entity_type, string $entity_id ): ?string {
 		// Check if user is logged in
 		if ( ! is_user_logged_in() ) {
 			return null;
@@ -24,7 +27,11 @@ final class WebSocketAuth {
 		$current_user = wp_get_current_user();
 
 		// Get the JWT secret from constant with fallback
-		$jwt_secret = defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ? (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' ) : 'rtc_websocket_auth_secret';
+		if ( defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ) {
+			$jwt_secret = (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' );
+		} else {
+			$jwt_secret = 'rtc_websocket_auth_secret';
+		}
 
 		// Prepare the payload
 		$payload = [
@@ -32,6 +39,9 @@ final class WebSocketAuth {
 			'username' => $current_user->user_login,
 			'email' => $current_user->user_email,
 			'display_name' => $current_user->display_name,
+			'entity_type' => $entity_type,
+			'entity_id' => $entity_id,
+			'room_name' => sprintf( '%s-%s', $entity_type, $entity_id ),
 			'iat' => time(), // Issued at
 			'exp' => time() + 30, // Expires in 30 seconds
 		];
@@ -41,7 +51,7 @@ final class WebSocketAuth {
 			$jwt = new JWT( $jwt_secret, 'HS256' );
 			return $jwt->encode( $payload );
 		} catch ( \Exception $e ) {
-			// Log error for debugging using WordPress compliant method
+			// Log error for debugging
 			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( 'VIP RTC: Failed to generate JWT token: ' . esc_html( $e->getMessage() ) );

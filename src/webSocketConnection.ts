@@ -7,11 +7,15 @@ function getWebSocketUrl(): string | undefined {
 /**
  * Fetch a fresh authentication token from the REST API.
  */
-async function fetchAuthToken(): Promise< string > {
+async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): Promise< string > {
 	try {
 		const data = await apiFetch< { token: string } >( {
 			path: '/vip-rtc/v1/websocket/auth',
 			method: 'POST',
+			data: {
+				syncObjectType,
+				syncObjectId,
+			},
 		} );
 
 		if ( ! data.token ) {
@@ -26,47 +30,48 @@ async function fetchAuthToken(): Promise< string > {
 	}
 }
 
-/**
- * Handle connection close event to fetch a new auth token and manually reconnect.
- */
-const onConnectionClose = ( _event: CloseEvent | null, provider: WebsocketProvider ) => {
+const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) => {
 	/**
-	 * Disable providershouldReconnect to prevent websocket from attempting to reconnect before
-	 * the new auth token is fetched (they are short-lived).
-	 * When the provider.connect() is called it attempts connection as well as updates
-	 * provider.shouldConnect to true. Once that is updated, y-websocket will re-attempt
-	 * connection with exponential backoff.
+	 * Handle connection close event to fetch a new auth token and manually reconnect.
 	 */
-	provider.shouldConnect = false;
+	return ( _event: CloseEvent | null, provider: WebsocketProvider ) => {
+		/**
+		 * Disable providershouldReconnect to prevent websocket from attempting to reconnect before
+		 * the new auth token is fetched (they are short-lived).
+		 * When the provider.connect() is called it attempts connection as well as updates
+		 * provider.shouldConnect to true. Once that is updated, y-websocket will re-attempt
+		 * connection with exponential backoff.
+		 */
+		provider.shouldConnect = false;
 
-	fetchAuthToken()
-		.then( authToken => {
-			provider.params = {
-				auth: authToken,
-			};
-			provider.connect();
-		} )
-		.catch( error => {
-			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-			// eslint-disable-next-line no-console
-			console.error( `Failed to fetch auth token and reconnect: ${ errorMessage }` );
-		} );
+		fetchAuthToken( syncObjectType, syncObjectId )
+			.then( authToken => {
+				provider.params = {
+					auth: authToken,
+				};
+				provider.connect();
+			} )
+			.catch( error => {
+				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				// eslint-disable-next-line no-console
+				console.error(
+					`[RTC:WebSocket] Failed to fetch auth token and reconnect: ${ errorMessage }`
+				);
+			} );
+	};
 };
 
 /**
  * Configure the websocket provider to use auth token for websocket connection.
- *
- * TODO: Pass objectType and objectId to fetch token API for performing
- * permission check in WP API before returning the auth token.
  */
 const configureProvider = async (
 	provider: WebsocketProvider,
-	_syncObjectType: string,
-	_syncObjectId: string
+	syncObjectType: string,
+	syncObjectId: string
 ): Promise< void > => {
-	provider.on( 'connection-close', onConnectionClose );
+	provider.on( 'connection-close', getOnConnectionClose( syncObjectType, syncObjectId ) );
 
-	const authToken = await fetchAuthToken();
+	const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
 
 	provider.params = {
 		auth: authToken,
