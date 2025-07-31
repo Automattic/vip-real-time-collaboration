@@ -23,9 +23,29 @@ const connectionTimeout = parseInt(
 	10
 );
 
-const verifyToken = ( token: string ) => {
+interface SyncTokenPayload extends jwt.JwtPayload {
+	user_id: number;
+	username: string;
+	email: string;
+	display_name: string;
+	entity_type: string;
+	entity_id: string;
+	room_name: string;
+}
+
+const verifyToken = ( token: string ): SyncTokenPayload => {
 	const jwtPayload = jwt.verify( token, jwtSecret );
-	return jwtPayload;
+	return jwtPayload as SyncTokenPayload;
+};
+
+/**
+ * Verify that the roomName in the JWT payload matches with the request URL
+ */
+const validateTokenPayload = ( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) => {
+	const { room_name: roomName } = jwtPayload;
+	const urlPath = request.url?.split( '?' )[ 0 ];
+
+	return urlPath === `/${ roomName }`;
 };
 
 const handleAuthentication = (
@@ -42,7 +62,13 @@ const handleAuthentication = (
 	}
 
 	try {
-		verifyToken( authToken );
+		const jwtPayload = verifyToken( authToken );
+		const isValid = validateTokenPayload( request, jwtPayload );
+		if ( ! isValid ) {
+			socket.write( 'HTTP/1.1 403 Forbidden\r\n\r\n' );
+			socket.destroy();
+			return false;
+		}
 		return true;
 	} catch ( error ) {
 		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
