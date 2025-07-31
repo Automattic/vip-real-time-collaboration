@@ -30,7 +30,7 @@ final class RestAPI extends WP_REST_Controller {
 			$this->namespace,
 			'/' . $this->rest_base . '/auth',
 			[
-				'methods' => 'GET',
+				'methods' => 'POST',
 				'callback' => [ $this, 'get_auth_token' ],
 				'permission_callback' => [ $this, 'get_auth_token_permissions_check' ],
 			]

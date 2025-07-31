@@ -11,7 +11,7 @@ async function fetchAuthToken(): Promise< string > {
 	try {
 		const data = await apiFetch< { token: string } >( {
 			path: '/vip-rtc/v1/websocket/auth',
-			method: 'GET',
+			method: 'POST',
 		} );
 
 		if ( ! data.token ) {
