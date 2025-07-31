@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit();
  */
 final class Compatibility {
 	public function __construct() {
-		add_filter( 'pre_option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
+		add_filter( 'option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
 	}
 
 	public static function admin_notices(): void {
