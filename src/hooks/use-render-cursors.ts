@@ -274,14 +274,33 @@ const drawUserSelections = (
 
 	// Draw cursors
 	userSelections.forEach( ( { userName, selection, color } ) => {
+		let coords: { x: number; y: number; height: number } | null = null;
+
 		if ( selection.type === SelectionType.None ) {
 			// Do nothing
 		} else if ( selection.type === SelectionType.Cursor ) {
-			const coords = getCursorPosition( selection, editorDocument, overlay );
-			if ( ! coords ) {
-				return;
-			}
+			coords = getCursorPosition( selection, editorDocument, overlay );
+		} else if ( selection.type === SelectionType.SelectionInOneBlock ) {
+			// Until selection logic is implemented, render a selection as a cursor at the beginning of the selection.
+			const selectionAsCursor: SelectionCursor = {
+				type: SelectionType.Cursor,
+				blockId: selection.blockId,
+				cursorPosition: selection.cursorStartPosition,
+			};
 
+			coords = getCursorPosition( selectionAsCursor, editorDocument, overlay );
+		} else if ( selection.type === SelectionType.SelectionInMultipleBlocks ) {
+			// Until selection logic is implemented, render a selection as a cursor at the beginning of the selection.
+			const selectionAsCursor: SelectionCursor = {
+				type: SelectionType.Cursor,
+				blockId: selection.blockStartId,
+				cursorPosition: selection.cursorStartPosition,
+			};
+
+			coords = getCursorPosition( selectionAsCursor, editorDocument, overlay );
+		}
+
+		if ( coords ) {
 			// Create cursor element
 			// Use `document` instead of `editorDocument` because the overlay is in the parent document.
 			const cursor = document.createElement( 'div' );
