@@ -23,7 +23,7 @@ export function AwarenessAvatars() {
 		<div className="vip-realtime-collaboration-avatars">
 			{ visibleUsers.map( userState => (
 				<div key={ userState.id } className="vip-realtime-collaboration-avatar">
-					<Avatar userState={ userState } />
+					<Avatar userState={ userState } showUserColorBorder={ true } />
 				</div>
 			) ) }
 

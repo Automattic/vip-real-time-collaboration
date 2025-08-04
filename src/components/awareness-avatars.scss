@@ -85,22 +85,26 @@
 	}
 }
 
+.vip-realtime-collaboration-user {
+	position: absolute;
+}
+
 .vip-realtime-collaboration-user-cursor {
 	position: absolute;
 	width: 2px;
 	animation: vip-realtime-collaboration-cursor-blink 1s infinite;
+}
 
-	.vip-realtime-collaboration-user-cursor-label {
-		position: absolute;
-		font-size: 11px;
-		padding: 2px 6px;
-		border-radius: 4px;
-		transform: translateY(-100%);
-		margin-top: -2px;
-		background-color: #ff6b6b;
-		color: white;
-		white-space: nowrap;
-	}
+.vip-realtime-collaboration-user-label {
+	position: absolute;
+	font-size: 11px;
+	padding: 2px 6px;
+	border-radius: 4px;
+	transform: translateY(-100%);
+	margin-top: -2px;
+	background-color: black;
+	color: white;
+	white-space: nowrap;
 }
 
 @keyframes vip-realtime-collaboration-cursor-blink {

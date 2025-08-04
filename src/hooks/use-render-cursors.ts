@@ -268,9 +268,9 @@ const drawUserSelections = (
 	isEnabled: boolean
 ) => {
 	// Clear up previous state
-	const userCursors = overlay.querySelectorAll( '.vip-realtime-collaboration-user-cursor' );
-	userCursors.forEach( cursor => {
-		cursor.remove();
+	const userContainers = overlay.querySelectorAll( '.vip-realtime-collaboration-user' );
+	userContainers.forEach( container => {
+		container.remove();
 	} );
 
 	if ( ! isEnabled ) {
@@ -306,23 +306,30 @@ const drawUserSelections = (
 		}
 
 		if ( coords ) {
-			// Create cursor element
+			// Create parent container
 			// Use `document` instead of `editorDocument` because the overlay is in the parent document.
+			const userContainer = document.createElement( 'div' );
+			userContainer.className = 'vip-realtime-collaboration-user';
+			userContainer.style.left = `${ coords.x }px`;
+			userContainer.style.top = `${ coords.y }px`;
+
+			// Create cursor element
 			const cursor = document.createElement( 'div' );
 			cursor.className = 'vip-realtime-collaboration-user-cursor';
-			cursor.style.left = `${ coords.x }px`;
-			cursor.style.top = `${ coords.y }px`;
 			cursor.style.backgroundColor = color;
 			cursor.style.height = `${ coords.height }px`;
 
 			// Create label
 			const label = document.createElement( 'div' );
-			label.className = 'vip-realtime-collaboration-user-cursor-label';
+			label.className = 'vip-realtime-collaboration-user-label';
 			label.textContent = userName;
 			label.style.backgroundColor = color;
-			cursor.appendChild( label );
 
-			overlay.appendChild( cursor );
+			// Append cursor and label to the container
+			userContainer.appendChild( cursor );
+			userContainer.appendChild( label );
+
+			overlay.appendChild( userContainer );
 		}
 	} );
 };

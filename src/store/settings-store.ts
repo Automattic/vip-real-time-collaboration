@@ -63,6 +63,7 @@ const reducer = (
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
+		}
 		default:
 			return state;
 	}
