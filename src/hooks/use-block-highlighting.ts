@@ -20,7 +20,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 	} );
 
 	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+		return select( rtcSettingsStore ).isAwarenessHighlightsEnabled();
 	} );
 
 	// Draw block highlights

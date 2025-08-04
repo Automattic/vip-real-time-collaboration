@@ -12,15 +12,32 @@ import {
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 
 export function RTCSettingsPanel() {
-	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	const { isAvatarsEnabled, isHighlightsEnabled, isCursorsEnabled } = useSelect<
+		SettingsStoreSelectors,
+		{ isAvatarsEnabled: boolean; isHighlightsEnabled: boolean; isCursorsEnabled: boolean }
+	>( select => {
+		return {
+			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
+			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
+		};
 	} );
 
-	const { setAwarenessOverlayEnabled } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
+	const { setAwarenessAvatarsEnabled, setAwarenessHighlightsEnabled, setAwarenessCursorsEnabled } =
+		useDispatch< SettingsStoreActions >( rtcSettingsStore );
+
 	const activeUsers = useSortedAwarenessUsers();
 
-	const handleToggle = ( enabled: boolean ) => {
-		setAwarenessOverlayEnabled( enabled );
+	const handleToggleAvatars = ( enabled: boolean ) => {
+		setAwarenessAvatarsEnabled( enabled );
+	};
+
+	const handleToggleHighlights = ( enabled: boolean ) => {
+		setAwarenessHighlightsEnabled( enabled );
+	};
+
+	const handleToggleCursors = ( enabled: boolean ) => {
+		setAwarenessCursorsEnabled( enabled );
 	};
 
 	return (
@@ -31,10 +48,26 @@ export function RTCSettingsPanel() {
 		>
 			<div>
 				<ToggleControl
-					label="Enable Overlay"
-					checked={ isEnabled }
+					label="Enable Avatars"
+					checked={ isAvatarsEnabled }
 					onChange={ ( enabled: boolean ) => {
-						void handleToggle( enabled );
+						handleToggleAvatars( enabled );
+					} }
+				/>
+
+				<ToggleControl
+					label="Enable Highlights"
+					checked={ isHighlightsEnabled }
+					onChange={ ( enabled: boolean ) => {
+						handleToggleHighlights( enabled );
+					} }
+				/>
+
+				<ToggleControl
+					label="Enable Cursors"
+					checked={ isCursorsEnabled }
+					onChange={ ( enabled: boolean ) => {
+						handleToggleCursors( enabled );
 					} }
 				/>
 			</div>

@@ -74,16 +74,12 @@ function RTCOverlay( {
 } ) {
 	const overlayRef = useRef< HTMLDivElement | null >( null );
 
-	const isAwarenessOverlayEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+	const isAvatarsEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isAwarenessAvatarsEnabled();
 	} );
 
 	useBlockHighlighting( iframeDocument );
 	useRenderCursors( overlayRef, iframeDocument, awareness );
-
-	if ( ! isAwarenessOverlayEnabled ) {
-		return null;
-	}
 
 	return (
 		<>
@@ -94,7 +90,7 @@ function RTCOverlay( {
 			{ /* This is a fixed overlay that covers the iframe window.
 				Good for floating elements like awareness avatars */ }
 			<div className="vip-realtime-collaboration-overlay-fixed">
-				<AwarenessAvatars />
+				{ isAvatarsEnabled && <AwarenessAvatars /> }
 			</div>
 		</>
 	);

@@ -119,7 +119,7 @@ export function useRenderCursors(
 	);
 
 	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
+		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
 	} );
 
 	const debouncedUpdateSelection = useMemo(
@@ -140,7 +140,7 @@ export function useRenderCursors(
 	// Update render function and call it when user selection or mounted elements change
 	useEffect( () => {
 		renderCursorsRef.current = () => {
-			if ( ! overlayRef.current || ! blockEditorDocument || ! isEnabled ) {
+			if ( ! overlayRef.current || ! blockEditorDocument ) {
 				return;
 			}
 
@@ -152,7 +152,7 @@ export function useRenderCursors(
 				};
 			} );
 
-			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections );
+			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, isEnabled );
 		};
 
 		// Render cursors immediately when data changes
@@ -264,13 +264,18 @@ const getSelectionState = (
 const drawUserSelections = (
 	overlay: HTMLElement,
 	editorDocument: Document,
-	userSelections: { userName: string; selection: SelectionState; color: string }[]
+	userSelections: { userName: string; selection: SelectionState; color: string }[],
+	isEnabled: boolean
 ) => {
 	// Clear up previous state
 	const userCursors = overlay.querySelectorAll( '.vip-realtime-collaboration-user-cursor' );
 	userCursors.forEach( cursor => {
 		cursor.remove();
 	} );
+
+	if ( ! isEnabled ) {
+		return;
+	}
 
 	// Draw cursors
 	userSelections.forEach( ( { userName, selection, color } ) => {
@@ -431,7 +436,6 @@ const findInnerBlockOffset = (
 	offset: number,
 	editorDocument: Document
 ) => {
-	// console.log( '--- Finding inner block offset for:', { blockElement, offset } );
 	const treeWalker = editorDocument.createTreeWalker( blockElement, NodeFilter.SHOW_TEXT );
 	let currentOffset = 0;
 	let lastTextNode = null;
