@@ -7,5 +7,17 @@ declare module '@wordpress/block-editor' {
 		getSelectedBlockClientId: () => string | null;
 		getSelectionStart: () => WPBlockSelection;
 		getSelectionEnd: () => WPBlockSelection;
+		isBlockValid: ( clientId: string ) => boolean;
+		getBlock: ( clientId: string ) => BlockInstance;
+	}
+
+	interface BlockEditorStoreActions {
+		selectBlock: ( clientId: string, initialPosition?: number ) => void;
+		selectionChange: (
+			clientId: string,
+			attributeKey?: string,
+			startOffset?: number,
+			endOffset?: number
+		) => void;
 	}
 }

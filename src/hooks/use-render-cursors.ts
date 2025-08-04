@@ -1,10 +1,16 @@
-import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
+import {
+	BlockEditorStoreSelectors,
+	BlockEditorStoreActions,
+	store as blockEditorStore,
+} from '@wordpress/block-editor';
+import { BlockInstance, isUnmodifiedDefaultBlock } from '@wordpress/blocks';
 import { debounce } from '@wordpress/compose';
-import { useSelect } from '@wordpress/data';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { type SyncProvider } from '@wordpress/sync';
 
+import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import { throttleByAnimationFrame } from '../utilities/throttle';
@@ -64,47 +70,64 @@ export function useRenderCursors(
 	blockEditorDocument: Document | null,
 	awareness: SyncProvider[ 'awareness' ]
 ) {
-	const { selectionStart, selectionEnd } = useSelect<
+	const { selectionStart, selectionEnd, isBlockValid } = useSelect<
 		BlockEditorStoreSelectors,
-		{ selectionStart: WPBlockSelection; selectionEnd: WPBlockSelection }
+		{
+			selectionStart: WPBlockSelection;
+			selectionEnd: WPBlockSelection;
+			isBlockValid: ( clientId: string ) => boolean;
+		}
 	>( select => {
 		return {
 			selectionStart: select( blockEditorStore ).getSelectionStart(),
 			selectionEnd: select( blockEditorStore ).getSelectionEnd(),
+			isBlockValid: select( blockEditorStore ).isBlockValid,
 		};
 	} );
+
+	const { selectionChange } = useDispatch< BlockEditorStoreActions >( blockEditorStore );
+	const { getBlock } = useSelect<
+		BlockEditorStoreSelectors,
+		{ getBlock: ( clientId: string ) => BlockInstance }
+	>( select => {
+		return {
+			getBlock: select( blockEditorStore ).getBlock,
+		};
+	} );
+
+	// Workaround:
+	// When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
+	// second block, the selection is not updated.
+	// Intercept the `mergeBlocks` call and update the selection after WordPress has processed the merge.
+	useInterceptActionDispatch(
+		blockEditorStore,
+		'mergeBlocks',
+		( originalAction, args: unknown[] ) => {
+			originalAction( ...args );
+
+			// Trigger selection update after the merge
+			setTimeout( () => {
+				const clientIds = args as string[];
+				for ( const clientId of clientIds ) {
+					const block = getBlock( clientId );
+					if ( isBlockValid( clientId ) && isUnmodifiedDefaultBlock( block ) ) {
+						selectionChange( clientId );
+					}
+				}
+			}, 0 );
+		}
+	);
 
 	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessOverlayEnabled();
 	} );
 
 	const debouncedUpdateSelection = useMemo(
-		() =>
-			debounce( ( ...args: unknown[] ) => {
-				const [ start, end, awarenessInstance ] = args as [
-					WPBlockSelection,
-					WPBlockSelection,
-					SyncProvider[ 'awareness' ]
-				];
-
-				const selectionState = getSelectionState( start, end );
-				const localState = awarenessInstance.getLocalState();
-				const userState = localState?.userState as UserState | undefined;
-
-				if ( userState ) {
-					awarenessInstance.setLocalStateField( 'userState', {
-						...userState,
-						editorState: {
-							...userState.editorState,
-							selection: selectionState,
-						},
-					} );
-				}
-			}, 20 ),
+		() => debounce( updateSelection as ( ...args: unknown[] ) => void, 20 ),
 		[]
 	);
 
-	// Update the awareness state when user selection changes (with 20ms debounce)
+	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
 		debouncedUpdateSelection( selectionStart, selectionEnd, awareness );
 	}, [ selectionStart, selectionEnd, awareness, debouncedUpdateSelection ] );
@@ -153,6 +176,41 @@ export function useRenderCursors(
 	}, [] );
 }
 
+/**
+ * Updates the awareness state with the current user's selection.
+ * Converts WordPress block editor selection to a SelectionState and broadcasts it to other users.
+ *
+ * @param start - The start position of the selection
+ * @param end - The end position of the selection
+ * @param awarenessInstance - The awareness instance to update
+ */
+const updateSelection = (
+	start: WPBlockSelection,
+	end: WPBlockSelection,
+	awarenessInstance: SyncProvider[ 'awareness' ]
+) => {
+	const selectionState = getSelectionState( start, end );
+	const localState = awarenessInstance.getLocalState();
+	const userState = localState?.userState as UserState | undefined;
+
+	if ( userState ) {
+		awarenessInstance.setLocalStateField( 'userState', {
+			...userState,
+			editorState: {
+				...userState.editorState,
+				selection: selectionState,
+			},
+		} );
+	}
+};
+
+/**
+ * Converts WordPress block editor selection to a SelectionState.
+ *
+ * @param selectionStart - The start position of the selection
+ * @param selectionEnd - The end position of the selection
+ * @returns The SelectionState
+ */
 const getSelectionState = (
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection
@@ -196,6 +254,13 @@ const getSelectionState = (
 	};
 };
 
+/**
+ * Draws user selections on the overlay.
+ *
+ * @param overlay - The overlay element
+ * @param editorDocument - The editor document
+ * @param userSelections - The user selections
+ */
 const drawUserSelections = (
 	overlay: HTMLElement,
 	editorDocument: Document,
@@ -238,6 +303,14 @@ const drawUserSelections = (
 	} );
 };
 
+/**
+ * Given a selection, returns the coordinates of the cursor in the block.
+ *
+ * @param selection - The selection
+ * @param editorDocument - The editor document
+ * @param overlay - The overlay element
+ * @returns The position of the cursor
+ */
 const getCursorPosition = (
 	selection: SelectionCursor,
 	editorDocument: Document,
@@ -261,6 +334,15 @@ const getCursorPosition = (
 	return coords ?? null;
 };
 
+/**
+ * Given a block element and a character offset, returns the coordinates for drawing a visual cursor in the block.
+ *
+ * @param blockElement - The block element
+ * @param charOffset - The character offset
+ * @param editorDocument - The editor document
+ * @param overlay - The overlay element
+ * @returns The position of the cursor
+ */
 const getOffsetPositionInBlock = (
 	blockElement: HTMLElement,
 	charOffset: number,
@@ -315,18 +397,36 @@ const getOffsetPositionInBlock = (
 	};
 };
 
+const MAX_NODE_OFFSET_COUNT = 1000;
+
+/**
+ * Given a block element and a character offset, returns an exact inner node and offset for use in a range.
+ *
+ * @param blockElement - The block element
+ * @param offset - The character offset
+ * @param editorDocument - The editor document
+ * @returns The node and offset of the character at the offset
+ */
 const findInnerBlockOffset = (
 	blockElement: HTMLElement,
 	offset: number,
 	editorDocument: Document
 ) => {
+	// console.log( '--- Finding inner block offset for:', { blockElement, offset } );
 	const treeWalker = editorDocument.createTreeWalker( blockElement, NodeFilter.SHOW_TEXT );
 	let currentOffset = 0;
 	let lastTextNode = null;
 
-	let node = treeWalker.nextNode();
+	let node: Node | null = null;
+	let nodeCount = 1;
 
-	while ( node ) {
+	while ( ( node = treeWalker.nextNode() ) ) {
+		nodeCount++;
+
+		if ( nodeCount > MAX_NODE_OFFSET_COUNT ) {
+			return { node: blockElement, offset: 0 };
+		}
+
 		if ( ! node.nodeValue?.length ) {
 			continue;
 		}
