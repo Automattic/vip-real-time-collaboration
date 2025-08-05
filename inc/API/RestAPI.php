@@ -1,11 +1,11 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\API;
+namespace VIPRealTimeCollaboration\API;
 
 defined( 'ABSPATH' ) || exit();
 
-use VIPRealtimeCollaboration\Auth\EntityPermissions;
-use VIPRealtimeCollaboration\Auth\WebSocketAuth;
+use VIPRealTimeCollaboration\Auth\EntityPermissions;
+use VIPRealTimeCollaboration\Auth\WebSocketAuth;
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;

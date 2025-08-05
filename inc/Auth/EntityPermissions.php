@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Auth;
+namespace VIPRealTimeCollaboration\Auth;
 
 use WP_Error;
 
@@ -8,11 +8,11 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * WordPress Entity Permissions Handler
- * 
+ *
  * Handles permission checking for entities in the format kind/name
  */
 final class EntityPermissions {
-	
+
 	/**
 	 * Capability mappings for root entities
 	 */
@@ -21,7 +21,7 @@ final class EntityPermissions {
 		'site' => 'edit_theme_options',  // Global styles/theme settings
 		'postType' => 'read',            // Post type definitions
 	];
-	
+
 	/**
 	 * Check if the current user has permission to access an entity.
 	 *
@@ -71,7 +71,7 @@ final class EntityPermissions {
 				__( 'Post ID must be numeric', 'vip-realtime-collaboration' )
 			);
 		}
-		
+
 		// Map action to WordPress capability
 		$capability = match ( $action ) {
 			'read' => 'read_post',
@@ -89,7 +89,7 @@ final class EntityPermissions {
 				)
 			);
 		}
-		
+
 		return true;
 	}
 
@@ -108,18 +108,18 @@ final class EntityPermissions {
 	 */
 	private static function check_root_permission( string $root_entity ): WP_Error|bool {
 		$capability = 'read';
-		
+
 		if ( ! current_user_can( $capability ) ) {
 			return new WP_Error(
-				'insufficient_permissions', 
-				sprintf( 
+				'insufficient_permissions',
+				sprintf(
 					/* translators: %s: the root entity name (e.g., base, site, postType) */
-					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ), 
-					$root_entity 
-				) 
+					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ),
+					$root_entity
+				)
 			);
 		}
-		
+
 		return true;
 	}
 
@@ -143,11 +143,11 @@ final class EntityPermissions {
 			$entity_id,
 			$action
 		);
-		
+
 		if ( null !== $result ) {
 			return is_wp_error( $result ) ? $result : true;
 		}
-		
+
 		// Extract kind from entity_type for error message
 		$kind = explode( '/', $entity_type )[0];
 		return new WP_Error(

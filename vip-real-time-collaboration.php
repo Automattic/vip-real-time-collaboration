@@ -13,7 +13,7 @@
 
 namespace VIPRealTimeCollaboration;
 
-use VIPRealtimeCollaboration\API\RestAPI;
+use VIPRealTimeCollaboration\API\RestAPI;
 use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use VIPRealTimeCollaboration\Overrides\Overrides;
