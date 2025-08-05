@@ -4,6 +4,7 @@ declare global {
 
 		wp: {
 			sync: {
+				SyncProvider: typeof import('@wordpress/sync').SyncProvider;
 				Y: typeof import('yjs');
 			};
 		};

@@ -15,18 +15,7 @@ use function wp_enqueue_script;
  */
 final class Assets {
 	public function __construct() {
-		add_action( 'admin_init', [ $this, 'enable_gutenberg_experiment' ], 10, 0 );
 		add_action( 'admin_init', [ $this, 'load_assets' ], 10, 0 );
-	}
-
-	public function enable_gutenberg_experiment(): void {
-		// This enables RTC, there is an override here: https://github.a8c.com/Automattic/vip-real-time-collaboration/blob/fix/sync-collaboration-setting/inc/Compatibility/Compatibility.php#L47-L55 also, make sure one exists.
-		global $pagenow;
-		// Do not enable on Site Editor.
-		if ( 'site-editor.php' == $pagenow ) {
-			return;
-		}
-		wp_add_inline_script( 'wp-block-editor', 'window.__experimentalEnableSync = true', 'before' );
 	}
 
 	public function load_assets(): void {
@@ -46,7 +35,7 @@ final class Assets {
 		}
 
 		/**
-		 * @psalm-var array{
+		 * @var array{
 		 *   dependencies: array{string},
 		 *   version: string,
 		 * }
