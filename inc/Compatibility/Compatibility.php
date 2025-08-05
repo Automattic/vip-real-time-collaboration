@@ -73,9 +73,19 @@ final class Compatibility {
 	 * Check if the WebSocket URL has been defined.
 	 *
 	 * @return bool True if the WebSocket URL is defined, false otherwise.
+	 *
+	 * @psalm-suppress RedundantCondition
 	 */
 	private static function is_websocket_url_defined(): bool {
-		return defined( 'VIP_RTC_WS_URL' ) && ! empty( constant( 'VIP_RTC_WS_URL' ) );
+		$defined = defined( 'VIP_RTC_WS_URL' );
+
+		if ( ! $defined ) {
+			return false;
+		}
+
+		$value = constant( 'VIP_RTC_WS_URL' );
+
+		return is_string( $value ) && '' !== $value;
 	}
 
 	/**

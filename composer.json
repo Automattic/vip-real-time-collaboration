@@ -14,22 +14,31 @@
   "scripts": {
     "phpcs": "phpcs",
     "phpcs-fix": "phpcbf",
-    "psalm": "psalm.phar --no-cache"
+    "psalm": "psalm.phar --no-cache",
+    "testwp": "@php ./vendor/bin/phpunit --no-coverage --order-by=random -c phpunit-integration.xml"
   },
   "require": {
     "php": ">=8.1"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
-    "slevomat/coding-standard": "^8.15",
-    "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "psalm/phar": "^6.5",
+    "php-stubs/wordpress-globals": "^0.2.0",
     "php-stubs/wordpress-stubs": "^6.6",
-    "php-stubs/wordpress-globals": "^0.2.0"
+    "php-stubs/wordpress-tests-stubs": "^6.8",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
+    "phpunit/phpunit": "^9",
+    "psalm/phar": "^6.5",
+    "slevomat/coding-standard": "^8.15",
+    "yoast/wp-test-utils": "^1.2"
   },
   "config": {
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "VIPRealTimeCollaboration\\Tests\\": "tests/"
     }
   }
 }
