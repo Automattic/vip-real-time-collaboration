@@ -15,7 +15,7 @@ const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
 const DEFAULT_PORT = 1234;
 const DEFAULT_HOST = 'localhost';
 
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = process.env.RTC_WEBSOCKET_AUTH_SECRET;
 if ( ! jwtSecret ) {
 	// eslint-disable-next-line no-console
 	console.error( 'JWT_SECRET environment variable is not set' );

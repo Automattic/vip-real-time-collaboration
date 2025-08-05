@@ -62,7 +62,7 @@ configure_wordpress() {
 
 start_websocket_server() {
     echo "🔼 Starting WebSocket server..."
-    JWT_SECRET=rtc_websocket_auth_secret npm run -s start:websocket-server &
+    RTC_WEBSOCKET_AUTH_SECRET=rtc_websocket_auth_secret npm run -s start:websocket-server &
 }
 
 start_wordpress() {
