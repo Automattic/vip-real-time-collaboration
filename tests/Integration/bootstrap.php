@@ -6,8 +6,8 @@ namespace VIPRealTimeCollaboration\Tests\Integration;
 require_once __DIR__ . '/../../vendor/autoload.php';
 
 // Set the tests directory.
-$_wp_tests_dir = getenv( 'WP_TESTS_DIR' );
-$_tests_dir = $_wp_tests_dir ? $_wp_tests_dir : getenv( 'WP_PHPUNIT__DIR' );
+$_wp_tests_dir = (string) getenv( 'WP_TESTS_DIR' );
+$_tests_dir = $_wp_tests_dir ? $_wp_tests_dir : (string) getenv( 'WP_PHPUNIT__DIR' );
 if ( ! $_tests_dir ) {
 	$_tests_dir = rtrim( sys_get_temp_dir(), '/\\' ) . '/wordpress-tests-lib';
 }
@@ -26,13 +26,16 @@ if ( false !== $_phpunit_polyfills_path ) {
 }
 
 // Give access to required functions/classes.
+/** @psalm-suppress UnresolvableInclude */
 require_once "{$_tests_dir}/includes/functions.php";
 require_once __DIR__ . '/../../vendor/yoast/wp-test-utils/src/WPIntegration/bootstrap-functions.php';
 
 // Manually load the plugin being tested.
+/** @psalm-suppress UndefinedFunction */
 tests_add_filter( 'muplugins_loaded', function (): void {
 	require __DIR__ . '/../../vip-real-time-collaboration.php';
 } );
 
 // Start up the WP testing environment.
+/** @psalm-suppress UnresolvableInclude */
 require "{$_tests_dir}/includes/bootstrap.php";
