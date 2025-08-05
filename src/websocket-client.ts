@@ -137,7 +137,7 @@ export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
  * @return {ConnectDoc} A function that connects a Y.Doc to a WebSocket server.
  */
 export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
-	return function ( objectId: string, objectType: string, doc: Y.Doc ) {
+	return function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
 		const roomName = `${ objectType }-${ objectId }`;
 		let provider = null;
 
