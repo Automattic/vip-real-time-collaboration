@@ -39,14 +39,14 @@ fi
 
 release_type=$1
 
-# Get current version from vip-realtime-collaboration.php
-php_file="vip-realtime-collaboration.php"
+# Get current version from vip-real-time-collaboration.php
+php_file="vip-real-time-collaboration.php"
 current_version=$(sed -n "s/.*Version: \([0-9.]*\).*/\1/p" "$php_file")
 new_version=$(increment_version "$current_version" "$release_type")
 
-# Update vip-realtime-collaboration.php
+# Update vip-real-time-collaboration.php
 sed -i.bak "s/Version: $current_version/Version: $new_version/" "$php_file"
-sed -i.bak "s/define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '$current_version' );/define( 'VIP_REALTIME_COLLABORATION__PLUGIN_VERSION', '$new_version' );/" "$php_file"
+sed -i.bak "s/define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION', '$current_version' );/define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION', '$new_version' );/" "$php_file"
 rm "${php_file}.bak"
 
 echo "Updated $php_file from $current_version to $new_version"

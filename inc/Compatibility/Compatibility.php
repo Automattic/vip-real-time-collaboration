@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Compatibility;
+namespace VIPRealTimeCollaboration\Compatibility;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -9,15 +9,15 @@ defined( 'ABSPATH' ) || exit();
  */
 final class Compatibility {
 	public function __construct() {
-		add_filter( 'pre_option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
+		add_filter( 'option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
 	}
 
 	public static function admin_notices(): void {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
 				__(
-					'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.',
-					'vip_realtime_collaboration'
+					'The Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
 			);
@@ -26,8 +26,8 @@ final class Compatibility {
 		if ( ! self::is_websocket_url_defined() ) {
 			wp_admin_notice(
 				__(
-					'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
-					'vip_realtime_collaboration'
+					'The WebSocket URL has not been configured. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
 			);
@@ -44,9 +44,9 @@ final class Compatibility {
 			return $experiments;
 		}
 
-		/* 
-		 * Sync collaboration experiment is enabled via 
-		 * https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21 
+		/*
+		 * Sync collaboration experiment is enabled via
+		 * https://github.a8c.com/Automattic/vip-real-time-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21
 		 * so this removes the core option setting from Gutenberg.
 		 */
 		// TODO: Implement our own experiment.

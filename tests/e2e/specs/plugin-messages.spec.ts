@@ -13,7 +13,7 @@ test.describe( 'The plugin should display', () => {
 	test( 'An error when Gutenberg is not active', async ( { admin } ) => {
 		const page = admin.page;
 		const errorMessage =
-			'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.';
+			'The Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.';
 
 		await admin.visitAdminPage( '/plugins.php' );
 
