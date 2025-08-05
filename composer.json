@@ -22,12 +22,13 @@
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
-    "slevomat/coding-standard": "^8.15",
-    "phpcompatibility/phpcompatibility-wp": "^2.1",
-    "psalm/phar": "^6.5",
-    "php-stubs/wordpress-stubs": "^6.6",
     "php-stubs/wordpress-globals": "^0.2.0",
+    "php-stubs/wordpress-stubs": "^6.6",
+    "php-stubs/wordpress-tests-stubs": "^6.8",
+    "phpcompatibility/phpcompatibility-wp": "^2.1",
     "phpunit/phpunit": "^9",
+    "psalm/phar": "^6.5",
+    "slevomat/coding-standard": "^8.15",
     "yoast/wp-test-utils": "^1.2"
   },
   "config": {

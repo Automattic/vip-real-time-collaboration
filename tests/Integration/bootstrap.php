@@ -31,7 +31,6 @@ require_once "{$_tests_dir}/includes/functions.php";
 require_once __DIR__ . '/../../vendor/yoast/wp-test-utils/src/WPIntegration/bootstrap-functions.php';
 
 // Manually load the plugin being tested.
-/** @psalm-suppress UndefinedFunction */
 tests_add_filter( 'muplugins_loaded', function (): void {
 	require __DIR__ . '/../../vip-real-time-collaboration.php';
 } );
