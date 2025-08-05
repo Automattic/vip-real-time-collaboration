@@ -13,7 +13,7 @@ teardown_wordpress() {
 }
 
 # Kill any lingering Node.js processes.
-pkill -f 'vip-realtime-collaboration/node_modules/'
+pkill -f 'vip-real-time-collaboration/node_modules/'
 pkill -f 'tsx websocket-server'
 
 teardown_wordpress

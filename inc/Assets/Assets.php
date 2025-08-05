@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Assets;
+namespace VIPRealTimeCollaboration\Assets;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -20,7 +20,7 @@ final class Assets {
 	}
 
 	public function enable_gutenberg_experiment(): void {
-		// This enables RTC, there is an override here: https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/fix/sync-collaboration-setting/inc/Compatibility/Compatibility.php#L47-L55 also, make sure one exists.
+		// This enables RTC, there is an override here: https://github.a8c.com/Automattic/vip-real-time-collaboration/blob/fix/sync-collaboration-setting/inc/Compatibility/Compatibility.php#L47-L55 also, make sure one exists.
 		global $pagenow;
 		// Do not enable on Site Editor.
 		if ( 'site-editor.php' == $pagenow ) {
@@ -38,8 +38,8 @@ final class Assets {
 			$vip_rtc_ws_url = (string) constant( 'VIP_RTC_WS_URL' );
 		}
 
-		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
-		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) );
+		$asset_file = dirname( constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
+		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) );
 
 		if ( ! file_exists( $asset_file ) ) {
 			wp_die( sprintf( 'The asset file %s is missing. Run `npm run build` to generate it.', esc_html( $asset_file ) ) );
@@ -54,7 +54,7 @@ final class Assets {
 		$asset = include $asset_file;
 
 		wp_enqueue_script(
-			'vip-realtime-collaboration',
+			'vip-real-time-collaboration',
 			$script_file,
 			$asset['dependencies'],
 			$asset['version'],
@@ -68,7 +68,7 @@ final class Assets {
 		}
 
 		wp_add_inline_script(
-			'vip-realtime-collaboration',
+			'vip-real-time-collaboration',
 			"var VIP_RTC = $vip_rtc_encoded;",
 			'before'
 		);
