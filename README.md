@@ -1,6 +1,6 @@
-# VIP Realtime Collaboration
+# VIP Real-Time Collaboration
 
-A realtime collaboration plugin made by VIP for enhancing the Block Editor experience with real-time collaborative editing capabilities.
+A real-time collaboration plugin made by VIP for enhancing the Block Editor experience with real-time collaborative editing capabilities.
 
 The `sync-engine` is based on the work done by Kevin Jahns that can be found in [this PR](https://github.com/WordPress/gutenberg/pull/68483).
 

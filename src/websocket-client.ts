@@ -1,7 +1,20 @@
+/**
+ * External dependencies
+ */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { WebsocketProvider, WebsocketProviderOptions } from 'y-websocket';
 
-import { getWebSocketUrl, getErrorMessage } from './utils';
+import { getErrorMessage, getWebSocketUrl } from './utils';
+
+import type { ConnectDoc } from '@wordpress/sync';
+import type * as Y from 'yjs';
+
+interface WebSocketConnectionConfig {
+	options?: WebsocketProviderOptions;
+	password?: string;
+	serverUrl: string;
+}
 
 /**
  * Fetch a fresh authentication token from the REST API.
@@ -60,11 +73,11 @@ const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) =>
 /**
  * Configure the websocket provider to use auth token for websocket connection.
  */
-const configureProvider = async (
+async function configureProvider(
 	provider: WebsocketProvider,
 	syncObjectType: string,
 	syncObjectId: string
-): Promise< void > => {
+): Promise< void > {
 	provider.on( 'connection-close', getOnConnectionClose( syncObjectType, syncObjectId ) );
 
 	try {
@@ -85,9 +98,9 @@ const configureProvider = async (
 			) }: ${ errorMessage }`
 		);
 	}
-};
+}
 
-export const getWebSocketConnectionConfig = (): WebSocketConnectionConfig => {
+export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
 	/**
 	 * We already error check for the WebSocket URL in the main plugin file,
 	 * so this is here for safety.
@@ -112,8 +125,33 @@ export const getWebSocketConnectionConfig = (): WebSocketConnectionConfig => {
 			 */
 			connect: false,
 		},
-		configureProvider,
 	};
 
 	return config;
-};
+}
+
+/**
+ * Function that creates a new WebSocket Connection.
+ *
+ * @param {WebsocketConnectionConfig} config The configuration for the WebSocket connection.
+ * @return {ConnectDoc} A function that connects a Y.Doc to a WebSocket server.
+ */
+export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
+	return function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
+		const roomName = `${ objectType }-${ objectId }`;
+		let provider = null;
+
+		try {
+			provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
+			void configureProvider( provider, objectType, objectId );
+		} catch {}
+
+		return Promise.resolve( {
+			awareness: provider?.awareness,
+			destroy: () => {
+				// The WebsocketProvider handles its own cleanup. If needed, we could
+				// implement a way to disconnect or clean up resources here.
+			},
+		} );
+	};
+}

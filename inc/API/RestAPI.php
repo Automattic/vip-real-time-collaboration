@@ -1,11 +1,11 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\API;
+namespace VIPRealTimeCollaboration\API;
 
 defined( 'ABSPATH' ) || exit();
 
-use VIPRealtimeCollaboration\Auth\EntityPermissions;
-use VIPRealtimeCollaboration\Auth\WebSocketAuth;
+use VIPRealTimeCollaboration\Auth\EntityPermissions;
+use VIPRealTimeCollaboration\Auth\WebSocketAuth;
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -20,6 +20,8 @@ final class RestAPI extends WP_REST_Controller {
 		$this->namespace = 'vip-rtc/v1';
 		$this->rest_base = 'websocket';
 		$this->schema = [];
+
+		add_action( 'rest_api_init', [ $this, 'register_routes' ], 10, 0 );
 	}
 
 	/**

@@ -1,6 +1,7 @@
-declare module 'y-websocket' {
-	import * as Y from 'yjs';
+import type * as Y from 'yjs';
+import type { Awareness } from 'y-protocols/awareness';
 
+declare module 'y-websocket' {
 	interface WebsocketProviderOptions {
 		connect?: boolean;
 		params?: Record< string, string >;
@@ -16,28 +17,4 @@ declare module 'y-websocket' {
 		'connection-error': ( event: Event, provider: WebsocketProvider ) => void;
 		sync: ( state: boolean ) => void;
 	};
-
-	export class WebsocketProvider {
-		constructor( serverUrl: string, roomname: string, doc: Y.Doc, opts?: WebsocketProviderOptions );
-
-		params: Record< string, string >;
-		shouldConnect: boolean;
-
-		connect(): void;
-		disconnect(): void;
-
-		on< K extends keyof WebsocketProviderEvents >(
-			eventName: K,
-			handler: WebsocketProviderEvents[ K ]
-		): void;
-
-		off< K extends keyof WebsocketProviderEvents >(
-			eventName: K,
-			handler: WebsocketProviderEvents[ K ]
-		): void;
-
-		wsconnected: boolean;
-		wsconnecting: boolean;
-		synced: boolean;
-	}
 }
