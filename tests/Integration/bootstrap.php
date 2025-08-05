@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Tests\Integration;
+namespace VIPRealTimeCollaboration\Tests\Integration;
 
 // Require composer dependencies.
 require_once __DIR__ . '/../../vendor/autoload.php';
@@ -31,7 +31,7 @@ require_once __DIR__ . '/../../vendor/yoast/wp-test-utils/src/WPIntegration/boot
 
 // Manually load the plugin being tested.
 tests_add_filter( 'muplugins_loaded', function (): void {
-	require __DIR__ . '/../../vip-realtime-collaboration.php';
+	require __DIR__ . '/../../vip-real-time-collaboration.php';
 } );
 
 // Start up the WP testing environment.

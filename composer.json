@@ -37,7 +37,7 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "VIPRealtimeCollaboration\\Tests\\": "tests/"
+      "VIPRealTimeCollaboration\\Tests\\": "tests/"
     }
   }
 }

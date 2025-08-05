@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Tests\Traits;
+namespace VIPRealTimeCollaboration\Tests\Traits;
 
 use ReflectionClass;
 use ReflectionException;

@@ -1,9 +1,9 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Tests\Integration;
+namespace VIPRealTimeCollaboration\Tests\Integration;
 
-use VIPRealtimeCollaboration\Compatibility\Compatibility;
-use VIPRealtimeCollaboration\Tests\Traits\ReflectionUtils;
+use VIPRealTimeCollaboration\Compatibility\Compatibility;
+use VIPRealTimeCollaboration\Tests\Traits\ReflectionUtils;
 use Yoast\WPTestUtils\WPIntegration\TestCase;
 
 /**
@@ -15,9 +15,9 @@ final class CompatibilityTest extends TestCase {
 	/**
 	 * Verifies that should_plugin_load() works as expected.
 	 *
-	 * @covers \VIPRealtimeCollaboration\Compatibility\Compatibility::should_plugin_load
-	 * @uses \VIPRealtimeCollaboration\Compatibility\Compatibility::is_websocket_url_defined
-	 * @uses \VIPRealtimeCollaboration\Compatibility\Compatibility::is_gutenberg_plugin_active
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::should_plugin_load
+	 * @uses \VIPRealTimeCollaboration\Compatibility\Compatibility::is_websocket_url_defined
+	 * @uses \VIPRealTimeCollaboration\Compatibility\Compatibility::is_gutenberg_plugin_active
 	 */
 	public function test_should_plugin_load(): void {
 		$is_websocket_url_defined = self::get_method( 'is_websocket_url_defined', Compatibility::class );
