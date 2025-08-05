@@ -2,8 +2,7 @@ import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 
 import { SyncProviderWithAwareness } from './provider';
-import { createWebSocketConnection } from './websocket-client';
-import { getWebSocketConnectionConfig } from './webSocketConnection';
+import { createWebSocketConnection, getWebSocketConnectionConfig } from './websocket-client';
 
 import type { SyncProvider } from '@wordpress/sync';
 
