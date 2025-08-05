@@ -20,6 +20,8 @@ final class RestAPI extends WP_REST_Controller {
 		$this->namespace = 'vip-rtc/v1';
 		$this->rest_base = 'websocket';
 		$this->schema = [];
+
+		add_action( 'rest_api_init', [ $this, 'register_routes' ], 10, 0 );
 	}
 
 	/**

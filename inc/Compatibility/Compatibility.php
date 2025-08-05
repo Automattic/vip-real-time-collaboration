@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Compatibility;
+namespace VIPRealTimeCollaboration\Compatibility;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -9,15 +9,16 @@ defined( 'ABSPATH' ) || exit();
  */
 final class Compatibility {
 	public function __construct() {
-		add_filter( 'option_gutenberg-experiments', [ $this, 'disable_sync_collaboration_experiment' ], 10, 1 );
+		add_filter( 'option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
+		add_filter( 'default_option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
 	}
 
 	public static function admin_notices(): void {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
 				__(
-					'The Gutenberg plugin has not been installed. The VIP Realtime Collaboration plugin has been disabled.',
-					'vip_realtime_collaboration'
+					'The Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
 			);
@@ -26,8 +27,8 @@ final class Compatibility {
 		if ( ! self::is_websocket_url_defined() ) {
 			wp_admin_notice(
 				__(
-					'The WebSocket URL has not been configured. The VIP Realtime Collaboration plugin has been disabled.',
-					'vip_realtime_collaboration'
+					'The WebSocket URL has not been configured. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
 			);
@@ -35,24 +36,25 @@ final class Compatibility {
 	}
 
 	/**
-	 * Registers the necessary filters for the plugin.
+	 * Force-enable sync collaboration experiment.
 	 *
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
-	public function disable_sync_collaboration_experiment( array|false $experiments ): array|false {
-		if ( ! is_array( $experiments ) ) {
+	public function enable_sync_collaboration_experiment( array|false $experiments ): array|false {
+		global $pagenow;
+
+		// Do not enable on Site Editor.
+		if ( 'site-editor.php' === $pagenow ) {
 			return $experiments;
 		}
 
-		/* 
-		 * Sync collaboration experiment is enabled via 
-		 * https://github.a8c.com/Automattic/vip-realtime-collaboration/blob/8573048cbd0a8bc43784e7cee81b48b6644bd28d/inc/Assets/assets.php#L21 
-		 * so this removes the core option setting from Gutenberg.
-		 */
-		// TODO: Implement our own experiment.
-		if ( isset( $experiments['gutenberg-sync-collaboration'] ) && $experiments['gutenberg-sync-collaboration'] ) {
-			unset( $experiments['gutenberg-sync-collaboration'] );
+		if ( ! is_array( $experiments ) ) {
+			return [
+				'gutenberg-sync-collaboration' => true,
+			];
 		}
+
+		$experiments['gutenberg-sync-collaboration'] = true;
 
 		return $experiments;
 	}
@@ -71,9 +73,19 @@ final class Compatibility {
 	 * Check if the WebSocket URL has been defined.
 	 *
 	 * @return bool True if the WebSocket URL is defined, false otherwise.
+	 *
+	 * @psalm-suppress RedundantCondition
 	 */
 	private static function is_websocket_url_defined(): bool {
-		return defined( 'VIP_RTC_WS_URL' ) && ! empty( constant( 'VIP_RTC_WS_URL' ) );
+		$defined = defined( 'VIP_RTC_WS_URL' );
+
+		if ( ! $defined ) {
+			return false;
+		}
+
+		$value = constant( 'VIP_RTC_WS_URL' );
+
+		return is_string( $value ) && '' !== $value;
 	}
 
 	/**
