@@ -26,22 +26,25 @@ final class WebSocketAuth {
 
 		$current_user = wp_get_current_user();
 
-		// Get the JWT secret from constant with fallback
+		// Get the JWT secret from constant
 		if ( defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ) {
 			$jwt_secret = (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' );
 		} else {
-			$jwt_secret = 'rtc_websocket_auth_secret';
+			// Log error for debugging
+			if ( defined( 'WP_DEBUG' ) ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'VIP RTC: RTC_WEBSOCKET_AUTH_SECRET is not defined' );
+			}
+
+			return null;
 		}
 
 		// Prepare the payload
 		$payload = [
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
-			'email' => $current_user->user_email,
-			'display_name' => $current_user->display_name,
 			'entity_type' => $entity_type,
 			'entity_id' => $entity_id,
-			'room_name' => sprintf( '%s-%s', $entity_type, $entity_id ),
 			'iat' => time(), // Issued at
 			'exp' => time() + 30, // Expires in 30 seconds
 		];
@@ -52,7 +55,7 @@ final class WebSocketAuth {
 			return $jwt->encode( $payload );
 		} catch ( \Exception $e ) {
 			// Log error for debugging
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+			if ( defined( 'WP_DEBUG' ) ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
 				error_log( 'VIP RTC: Failed to generate JWT token: ' . esc_html( $e->getMessage() ) );
 			}
