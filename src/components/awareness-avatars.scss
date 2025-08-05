@@ -2,17 +2,17 @@
 	background-color: #fff;
 	border-radius: 16px;
 	border: 1px solid #ddd;
-	padding: 4px 6px;
+	padding: 4px 8px;
 	position: absolute;
 	top: 10px;
-	right: 10px;
+	right: 8px;
 	pointer-events: auto;
 
 	display: flex;
 	align-items: center;
 
 	.vip-realtime-collaboration-avatar {
-		margin-left: -8px;
+		margin-left: -10px;
 
 		&:nth-child(1) {
 			margin-left: 0;
@@ -34,15 +34,15 @@
 }
 
 .vip-realtime-collaboration-avatar {
-	width: 26px;
-	height: 26px;
+	width: 28px;
+	height: 28px;
 
 	img {
 		width: 24px;
 		height: 24px;
 		border-radius: 50%;
 		object-fit: cover;
-		border: 1px solid #fff;
+		border: 2px solid #fff;
 
 		/* Fallback for images that haven't loaded yet */
 		font-size: 0; // Hide alt text while the image loads.
