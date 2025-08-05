@@ -1,4 +1,5 @@
 import { addFilter } from '@wordpress/hooks';
+import { __ } from '@wordpress/i18n';
 
 import { getWebSocketConnectionConfig } from './webSocketConnection';
 
@@ -18,7 +19,10 @@ addFilter(
 			// ToDo: Replace this with a proper UI notice.
 			// eslint-disable-next-line no-console
 			console.error(
-				'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
+				__(
+					'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.',
+					'vip-realtime-collaboration'
+				)
 			);
 			return null;
 		}

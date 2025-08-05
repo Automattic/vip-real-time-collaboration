@@ -1,33 +1,26 @@
 import apiFetch from '@wordpress/api-fetch';
+import { __ } from '@wordpress/i18n';
 
-function getWebSocketUrl(): string | undefined {
-	return window.VIP_RTC?.wsUrl;
-}
+import { getWebSocketUrl, getErrorMessage } from './utils';
 
 /**
  * Fetch a fresh authentication token from the REST API.
  */
 async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): Promise< string > {
-	try {
-		const data = await apiFetch< { token: string } >( {
-			path: '/vip-rtc/v1/websocket/auth',
-			method: 'POST',
-			data: {
-				syncObjectType,
-				syncObjectId,
-			},
-		} );
+	const data = await apiFetch< { token: string } >( {
+		path: '/vip-rtc/v1/websocket/auth',
+		method: 'POST',
+		data: {
+			syncObjectType,
+			syncObjectId,
+		},
+	} );
 
-		if ( ! data.token ) {
-			throw new Error( 'Failed to fetch auth token' );
-		}
-
-		return data.token;
-	} catch ( error ) {
-		throw new Error(
-			`Failed to fetch auth token: ${ error instanceof Error ? error.message : String( error ) }`
-		);
+	if ( ! data.token ) {
+		throw new Error( __( 'No auth token returned', 'vip-realtime-collaboration' ) );
 	}
+
+	return data.token;
 }
 
 const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) => {
@@ -52,10 +45,13 @@ const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) =>
 				provider.connect();
 			} )
 			.catch( error => {
-				const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+				const errorMessage = getErrorMessage( error );
 				// eslint-disable-next-line no-console
 				console.error(
-					`[RTC:WebSocket] Failed to fetch auth token and reconnect: ${ errorMessage }`
+					`[RTC:WebSocket] ${ __(
+						'Failed to fetch auth token and reconnect to WebSocket',
+						'vip-realtime-collaboration'
+					) }: ${ errorMessage }`
 				);
 			} );
 	};
@@ -71,13 +67,24 @@ const configureProvider = async (
 ): Promise< void > => {
 	provider.on( 'connection-close', getOnConnectionClose( syncObjectType, syncObjectId ) );
 
-	const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
+	try {
+		const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
 
-	provider.params = {
-		auth: authToken,
-	};
+		provider.params = {
+			auth: authToken,
+		};
 
-	provider.connect();
+		provider.connect();
+	} catch ( error ) {
+		const errorMessage = getErrorMessage( error );
+		// eslint-disable-next-line no-console
+		console.error(
+			`[RTC:WebSocket] ${ __(
+				'Failed to fetch auth token and connect to WebSocket',
+				'vip-realtime-collaboration'
+			) }: ${ errorMessage }`
+		);
+	}
 };
 
 export const getWebSocketConnectionConfig = (): WebSocketConnectionConfig => {

@@ -36,14 +36,20 @@ final class RestAPI extends WP_REST_Controller {
 				'permission_callback' => [ $this, 'get_auth_token_permissions_check' ],
 				'args' => [
 					'syncObjectType' => [
-						'description' => 'The entity type for synchronization (e.g., postType/post, root/base)',
+						'description' => __(
+							'The entity type for synchronization (e.g., postType/post, root/base)',
+							'vip-realtime-collaboration'
+						),
 						'type' => 'string',
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
 						'validate_callback' => [ $this, 'validate_entity_type' ],
 					],
 					'syncObjectId' => [
-						'description' => 'The entity ID for synchronization',
+						'description' => __(
+							'The entity ID for synchronization',
+							'vip-realtime-collaboration'
+						),
 						'type' => 'string',
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
@@ -152,9 +158,10 @@ final class RestAPI extends WP_REST_Controller {
 
 		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
 		if ( true !== $permission_check ) {
+			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-realtime-collaboration' );
 			return new WP_Error(
 				'rest_forbidden',
-				is_wp_error( $permission_check ) ? $permission_check->get_error_message() : 'Permission denied',
+				$error_message,
 				[ 'status' => 401 ]
 			);
 		}

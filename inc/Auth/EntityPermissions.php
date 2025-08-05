@@ -37,7 +37,10 @@ final class EntityPermissions {
 		// Parse entity type
 		$parts = explode( '/', $entity_type, 2 );
 		if ( count( $parts ) !== 2 ) {
-			return new WP_Error( 'invalid_entity', 'Invalid entity type format' );
+			return new WP_Error(
+				'invalid_entity',
+				__( 'Invalid entity type format', 'vip-realtime-collaboration' )
+			);
 		}
 
 		[ $kind, $name ] = $parts;
@@ -63,7 +66,10 @@ final class EntityPermissions {
 	): WP_Error|bool {
 		// Validate post ID format
 		if ( ! is_numeric( $entity_id ) ) {
-			return new WP_Error( 'invalid_post_id', 'Post ID must be numeric' );
+			return new WP_Error(
+				'invalid_post_id',
+				__( 'Post ID must be numeric', 'vip-realtime-collaboration' )
+			);
 		}
 		
 		// Map action to WordPress capability
@@ -74,8 +80,14 @@ final class EntityPermissions {
 		};
 
 		if ( ! current_user_can( $capability, absint( $entity_id ) ) ) {
-			return new WP_Error( 'insufficient_permissions', 
-			sprintf( 'You do not have permission to %s this content', $action ?? 'edit' ) );
+			return new WP_Error(
+				'insufficient_permissions',
+				sprintf(
+					/* translators: %s: the action being performed (e.g., edit, read, delete) */
+					__( 'You do not have permission to %s this content', 'vip-realtime-collaboration' ),
+					$action ?? __( 'edit', 'vip-realtime-collaboration' )
+				)
+			);
 		}
 		
 		return true;
@@ -98,8 +110,14 @@ final class EntityPermissions {
 		$capability = 'read';
 		
 		if ( ! current_user_can( $capability ) ) {
-			return new WP_Error( 'insufficient_permissions', 
-			sprintf( 'You do not have permission to access %s settings', $root_entity ) );
+			return new WP_Error(
+				'insufficient_permissions', 
+				sprintf( 
+					/* translators: %s: the root entity name (e.g., base, site, postType) */
+					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ), 
+					$root_entity 
+				) 
+			);
 		}
 		
 		return true;
@@ -132,6 +150,13 @@ final class EntityPermissions {
 		
 		// Extract kind from entity_type for error message
 		$kind = explode( '/', $entity_type )[0];
-		return new WP_Error( 'unknown_entity_kind', "Unknown entity kind: {$kind}" );
+		return new WP_Error(
+			'unknown_entity_kind',
+			sprintf(
+				/* translators: %s: the entity kind (e.g., postType, root, custom) */
+				__( 'Unknown entity kind: %s', 'vip-realtime-collaboration' ),
+				$kind
+			)
+		);
 	}
 }
