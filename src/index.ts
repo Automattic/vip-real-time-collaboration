@@ -1,6 +1,6 @@
 import { addFilter } from '@wordpress/hooks';
 
-import { createSyncProvider } from './provider';
+import { SyncProviderWithAwareness } from './provider';
 import { getWebSocketUrl } from './utils';
 import { createWebSocketConnection } from './websocket-client';
 
@@ -27,5 +27,5 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 		serverUrl,
 	} );
 
-	return createSyncProvider( null, remoteConnection );
+	return new SyncProviderWithAwareness( null, remoteConnection );
 } );

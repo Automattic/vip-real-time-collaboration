@@ -5,6 +5,7 @@ import type { Awareness } from 'y-protocols/awareness';
 import type * as Y from 'yjs';
 
 declare module '@wordpress/sync' {
+	type EntityID = string;
 	type ObjectID = string;
 	type ObjectType = string;
 	type ObjectData = object;
@@ -18,12 +19,12 @@ declare module '@wordpress/sync' {
 		removed: AwarenessClientID[];
 	} ) => void;
 
-	type AwarenessStates = Map< AwarenessClientID, Record< string, unknown > >;
+	type AwarenessStates = Map< AwarenessClientID, Record< string, any > >;
 
 	type CRDTDoc = Y.Doc;
 
 	type ConnectDocResult = {
-		awareness: Awareness | null;
+		awareness?: Awareness;
 		destroy: () => void;
 	};
 
@@ -37,27 +38,23 @@ declare module '@wordpress/sync' {
 		supportsAwareness: boolean;
 	};
 
-	type SyncProvider = {
-		__fallback?: boolean;
-		bootstrap: (
+	class SyncProvider {
+		protected connections: Map< EntityID, ConnectDocResult >;
+
+		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
+		public bootstrap(
 			syncConfig: SyncConfig,
 			initialData: ObjectData,
 			handleChanges: ( data: Partial< ObjectData > ) => void
-		) => Promise< void >;
-		configs: Map< ObjectType, SyncConfig >;
-		discard: ( type: ObjectType, id: ObjectID ) => void;
-		update: (
+		): Promise< void >;
+		public configs: Map< ObjectType, SyncConfig >;
+		public discard( type: ObjectType, id: ObjectID ): void;
+		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
+		public update(
 			type: ObjectType,
 			record: ObjectData,
 			changes: Partial< ObjectData >,
 			origin: string
-		) => void;
-
-		awarenessManager?: {
-			addListener: ( eventType: 'update' | 'change', listener: AwarenessEventListener ) => void;
-			getStates: () => AwarenessStates;
-			setLocalState: ( field: string, value: unknown ) => void;
-			removeStates: () => void;
-		};
-	};
+		): void;
+	}
 }

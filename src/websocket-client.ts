@@ -30,7 +30,7 @@ export function createWebSocketConnection( config: WebsocketConnectionConfig ): 
 		} catch {}
 
 		return Promise.resolve( {
-			awareness: provider?.awareness || null,
+			awareness: provider?.awareness,
 			destroy: () => {
 				// The WebsocketProvider handles its own cleanup. If needed, we could
 				// implement a way to disconnect or clean up resources here.
