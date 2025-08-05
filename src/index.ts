@@ -4,7 +4,7 @@ import { getWebSocketUrl } from './utils';
 
 addFilter(
 	'core.getSyncProviderRemoteConnection',
-	'vip-realtime-collaboration',
+	'vip-real-time-collaboration',
 	( connection: ConnectDoc | null, connectionCreators: RemoteConnectionCreators ) => {
 		if ( connection ) {
 			// If a connection already exists, return it.
@@ -22,7 +22,7 @@ addFilter(
 			// ToDo: Replace this with a proper UI notice.
 			// eslint-disable-next-line no-console
 			console.error(
-				'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
+				'VIP Real-Time Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
 			);
 			return null;
 		}
@@ -33,4 +33,4 @@ addFilter(
 	}
 );
 
-addFilter( 'core.useSyncUndoManager', 'vip-realtime-collaboration', () => true );
+addFilter( 'core.useSyncUndoManager', 'vip-real-time-collaboration', () => true );

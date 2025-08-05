@@ -1,5 +1,5 @@
 {
-  "name": "automattic/vip-realtime-collaboration",
+  "name": "automattic/vip-real-time-collaboration",
   "authors": [
     {
       "name": "WPVIP"
@@ -8,7 +8,7 @@
   "license": "GPL-2.0-or-later",
   "autoload": {
     "psr-4": {
-      "VIPRealtimeCollaboration\\": "inc/"
+      "VIPRealTimeCollaboration\\": "inc/"
     }
   },
   "scripts": {
