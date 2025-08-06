@@ -104,7 +104,7 @@ final class EntityPermissions {
 	 * @TODO: Investigate if this check should be stricter to check for edit capabilities
  * like manage_options, edit_theme_options, etc. instead of just read.
 	 *
-	 * @param string $root_entity The root entity name.
+	 * @param string $entity_type The root entity name.
 	 */
 	private static function check_root_permission( string $entity_type ): WP_Error|bool {
 		$capability = 'read';
@@ -115,7 +115,7 @@ final class EntityPermissions {
 				sprintf(
 					/* translators: %s: the root entity name (e.g., base, site, postType) */
 					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ),
-					$root_entity
+					$entity_type
 				)
 			);
 		}
