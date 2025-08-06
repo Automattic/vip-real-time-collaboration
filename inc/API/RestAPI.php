@@ -68,7 +68,6 @@ final class RestAPI extends WP_REST_Controller {
 	 * @param WP_REST_Request $_request The request object.
 	 * @param string          $_param   The parameter name.
 	 * @return bool True if valid, false otherwise.
-	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function validate_entity_type(
 		mixed $value,
@@ -89,7 +88,6 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$entity_type = $request->get_param( 'syncObjectType' );
@@ -107,7 +105,14 @@ final class RestAPI extends WP_REST_Controller {
 		// Generate a short-lived token with entity information
 		$token = WebSocketAuth::generate_token( $entity_type, $entity_id );
 
-		if ( null === $token ) {
+		if ( is_wp_error( $token ) ) {
+			// Log error for debugging
+			/** @psalm-suppress TypeDoesNotContainType */
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'VIP RTC: WebSocket auth token generation failed: ' . $token->get_error_message() );
+			}
+
 			return new WP_Error(
 				'token_generation_failed',
 				__( 'Failed to generate authentication token.', 'vip-realtime-collaboration' ),
@@ -129,7 +134,6 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
-	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
 		if ( ! is_user_logged_in() ) {

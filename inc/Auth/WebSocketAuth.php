@@ -3,6 +3,7 @@
 namespace VIPRealTimeCollaboration\Auth;
 
 use Ahc\Jwt\JWT;
+use WP_Error;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -16,32 +17,35 @@ final class WebSocketAuth {
 	 * @param string $entity_type Optional entity type to include in token.
 	 * @param string $entity_id Optional entity ID to include in token.
 	 *
-	 * @return string|null The JWT token or null if user is not logged in or lacks permission.
+	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
-	public static function generate_token( string $entity_type, string $entity_id ): ?string {
+	public static function generate_token( string $entity_type, string $entity_id ): string|WP_Error {
 		// Check if user is logged in
 		if ( ! is_user_logged_in() ) {
-			return null;
+			return new \WP_Error(
+				'user_not_logged_in',
+				__( 'User is not logged in.', 'vip-realtime-collaboration' )
+			);
 		}
 
 		$current_user = wp_get_current_user();
 
 		// Check if user ID is valid (not 0)
 		if ( ! $current_user->ID ) {
-			return null;
+			return new \WP_Error(
+				'invalid_user_id',
+				__( 'Invalid user.', 'vip-realtime-collaboration' )
+			);
 		}
 
 		// Get the JWT secret from constant
 		if ( defined( 'VIP_RTC_WS_AUTH_SECRET' ) ) {
 			$jwt_secret = (string) constant( 'VIP_RTC_WS_AUTH_SECRET' );
 		} else {
-			// Log error for debugging
-			if ( defined( 'WP_DEBUG' ) ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'VIP RTC: VIP_RTC_WS_AUTH_SECRET is not defined' );
-			}
-
-			return null;
+			return new \WP_Error(
+				'missing_jwt_secret',
+				__( 'VIP_RTC_WS_AUTH_SECRET is not defined.', 'vip-realtime-collaboration' )
+			);
 		}
 
 		// Prepare the payload
@@ -59,12 +63,14 @@ final class WebSocketAuth {
 			$jwt = new JWT( $jwt_secret, 'HS256' );
 			return $jwt->encode( $payload );
 		} catch ( \Exception $e ) {
-			// Log error for debugging
-			if ( defined( 'WP_DEBUG' ) ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'VIP RTC: Failed to generate JWT token: ' . esc_html( $e->getMessage() ) );
-			}
-			return null;
+			return new \WP_Error(
+				'jwt_generation_failed',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Failed to generate JWT token: %s', 'vip-realtime-collaboration' ),
+					$e->getMessage()
+				)
+			);
 		}
 	}
 }
