@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Overrides;
+namespace VIPRealTimeCollaboration\Overrides;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -71,10 +71,10 @@ final class Overrides {
 	 */
 	public function enqueue_post_lock_notice(): void {
 		wp_enqueue_script(
-			'vip-realtime-collaboration-post-lock-notice',
-			plugins_url( 'inc/Overrides/js/post-lock-override.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ),
+			'vip-real-time-collaboration-post-lock-notice',
+			plugins_url( 'inc/Overrides/js/post-lock-override.js', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ),
 			[ 'wp-blocks', 'wp-i18n', 'wp-element', 'wp-components' ],
-			VIP_REALTIME_COLLABORATION__PLUGIN_VERSION,
+			VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION,
 			[ 'in_footer' => true ]
 		);
 	}
