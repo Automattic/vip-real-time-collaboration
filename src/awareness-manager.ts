@@ -6,28 +6,25 @@ import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-pr
 import type { AwarenessEventListener, AwarenessStates, EntityID } from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
 
-interface AwarenessActions {
+interface AwarenessPendingActions {
 	listeners: [ string, AwarenessEventListener ][];
 	localState: Map< string, unknown >;
 }
 
 export class AwarenessManager {
-	private actions: AwarenessActions = {
-		listeners: [],
-		localState: new Map< string, unknown >(),
-	};
 	private instances: Map< EntityID, Awareness > = new Map();
+	private pendingActions: Map< EntityID, AwarenessPendingActions > = new Map();
 
 	public bootstrap( entityId: EntityID, awareness: Awareness ): void {
 		this.instances.set( entityId, awareness );
 
-		this.actions.listeners.forEach(
-			( [ eventType, listener ]: [ string, AwarenessEventListener ] ) => {
+		this.pendingActions
+			.get( entityId )
+			?.listeners.forEach( ( [ eventType, listener ]: [ string, AwarenessEventListener ] ) => {
 				awareness.on( eventType, listener );
-			}
-		);
+			} );
 
-		Array.from( this.actions.localState.entries() ).forEach(
+		Array.from( this.pendingActions.get( entityId )?.localState?.entries() ?? [] ).forEach(
 			( [ field, value ]: [ string, unknown ] ) => {
 				awareness.setLocalStateField( field, value );
 			}
@@ -37,47 +34,74 @@ export class AwarenessManager {
 	/**
 	 * Add a listener for awareness events on all awareness documents.
 	 */
-	public addListener( eventType: 'change' | 'update', listener: AwarenessEventListener ) {
-		Array.from( this.instances.values() ).forEach( awareness => {
-			awareness.on( eventType, listener );
-		} );
+	public addListener(
+		entityId: EntityID,
+		eventType: 'change' | 'update',
+		listener: AwarenessEventListener
+	): void {
+		if ( ! this.instances.has( entityId ) ) {
+			this.getPendingActions( entityId ).listeners.push( [ eventType, listener ] );
+			return;
+		}
 
-		this.actions.listeners.push( [ eventType, listener ] );
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		this.instances.get( entityId )!.on( eventType, listener );
 	}
 
 	/**
-	 * Get the states of all awareness documents.
+	 * Get the states of an awareness document.
 	 */
-	public getAllLocalState(): AwarenessStates {
-		return new Map(
-			Array.from( this.instances.values() ).map( awareness => [
-				awareness.clientID,
-				awareness.getStates(),
-			] )
-		);
+	public getAllStates( entityId: EntityID ): AwarenessStates {
+		return this.instances.get( entityId )?.getStates() ?? {};
 	}
 
 	/**
-	 * Removes the states of all awareness documents.
+	 * Remove the states of an awareness document.
 	 */
-	public removeAllLocalState(): void {
-		Array.from( this.instances.values() ).forEach( awareness => {
-			removeAwarenessStatesFromProtocol(
-				awareness,
-				[ awareness.clientID ],
-				'removeAwarenessStates'
-			);
-		} );
+	public removeAllStates( entityId: EntityID ): void {
+		const instance = this.instances.get( entityId );
+		if ( instance ) {
+			removeAwarenessStatesFromProtocol( instance, [ instance.clientID ], 'removeAwarenessStates' );
+		}
 	}
 
 	/**
-	 * Set a local state field on all awareness documents.
+	 * Get the local state from an awareness document.
 	 */
-	public setLocalState( field: string, value: unknown ) {
-		Array.from( this.instances.values() ).forEach( awareness => {
-			awareness.setLocalStateField( field, value );
-		} );
+	public getLocalStates( entityId: EntityID ): AwarenessStates {
+		return this.instances.get( entityId )?.getLocalState() ?? {};
+	}
 
-		this.actions.localState.set( field, value );
+	/**
+	 * Get a local state field from all awareness documents.
+	 */
+	public getLocalState( entityId: EntityID, field: string ): unknown {
+		const state = this.instances.get( entityId )?.getLocalState() ?? {};
+		return state[ field ] ?? null; // eslint-disable-line security/detect-object-injection
+	}
+
+	/**
+	 * Set a local state field on an awareness documents.
+	 */
+	public setLocalState( entityId: EntityID, field: string, value: unknown ): void {
+		if ( ! this.instances.has( entityId ) ) {
+			this.getPendingActions( entityId ).localState.set( field, value );
+			return;
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		this.instances.get( entityId )!.setLocalStateField( field, value );
+	}
+
+	private getPendingActions( entityId: EntityID ): AwarenessPendingActions {
+		if ( ! this.pendingActions.has( entityId ) ) {
+			this.pendingActions.set( entityId, {
+				listeners: [],
+				localState: new Map(),
+			} );
+		}
+
+		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+		return this.pendingActions.get( entityId )!;
 	}
 }
