@@ -1,8 +1,7 @@
-import http from 'http';
-import { Duplex } from 'stream';
-
 import { setupWSConnection } from '@y/websocket-server/utils';
+import http from 'http';
 import jwt from 'jsonwebtoken';
+import { Duplex } from 'stream';
 import { WebSocketServer } from 'ws';
 
 /**
