@@ -3,6 +3,7 @@
 namespace VIPRealTimeCollaboration\Auth;
 
 use Ahc\Jwt\JWT;
+use VIPRealTimeCollaboration\Auth\EntityPermissions;
 use WP_Error;
 
 defined( 'ABSPATH' ) || exit();
@@ -35,6 +36,24 @@ final class WebSocketAuth {
 			return new \WP_Error(
 				'invalid_user_id',
 				__( 'Invalid user.', 'vip-realtime-collaboration' )
+			);
+		}
+
+		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
+		if ( true !== $permission_check ) {
+			if ( is_wp_error( $permission_check ) ) {
+				return new \WP_Error(
+					'permission_denied',
+					sprintf(
+						/* translators: %s: error message */
+						__( 'User does not have permission to access this entity. Error: %s', 'vip-realtime-collaboration' ),
+						$permission_check->get_error_message()
+					)
+				);
+			}
+			return new \WP_Error(
+				'permission_denied',
+				__( 'User does not have permission to access this entity.', 'vip-realtime-collaboration' )
 			);
 		}
 
