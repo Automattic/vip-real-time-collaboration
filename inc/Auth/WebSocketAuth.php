@@ -26,6 +26,11 @@ final class WebSocketAuth {
 
 		$current_user = wp_get_current_user();
 
+		// Check if user ID is valid (not 0)
+		if ( ! $current_user->ID ) {
+			return null;
+		}
+
 		// Get the JWT secret from constant
 		if ( defined( 'VIP_RTC_WS_AUTH_SECRET' ) ) {
 			$jwt_secret = (string) constant( 'VIP_RTC_WS_AUTH_SECRET' );
