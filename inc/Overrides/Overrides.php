@@ -110,11 +110,11 @@ final class Overrides {
 	 * This will run once a day to delete autosaves older than the specified number of days.
 	 */
 	public function add_autosave_cron(): void {
-		if ( false === wp_next_scheduled( 'vip_realtime_collaboration_autosave_cron' ) ) {
-			wp_schedule_event( time(), 'daily', 'vip_realtime_collaboration_autosave_cron' );
+		if ( false === wp_next_scheduled( 'vip_real-time_collaboration_autosave_cron' ) ) {
+			wp_schedule_event( time(), 'daily', 'vip_real-time_collaboration_autosave_cron' );
 		}
 
-		add_action( 'vip_realtime_collaboration_autosave_cron', [ $this, 'handle_autosave_cron' ] );
+		add_action( 'vip_real-time_collaboration_autosave_cron', [ $this, 'handle_autosave_cron' ] );
 	}
 
 	/**
