@@ -39,7 +39,7 @@ final class EntityPermissions {
 		if ( count( $parts ) !== 2 ) {
 			return new WP_Error(
 				'invalid_entity',
-				__( 'Invalid entity type format', 'vip-realtime-collaboration' )
+				__( 'Invalid entity type format', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -68,7 +68,7 @@ final class EntityPermissions {
 		if ( ! is_numeric( $entity_id ) ) {
 			return new WP_Error(
 				'invalid_post_id',
-				__( 'Post ID must be numeric', 'vip-realtime-collaboration' )
+				__( 'Post ID must be numeric', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -84,8 +84,8 @@ final class EntityPermissions {
 				'insufficient_permissions',
 				sprintf(
 					/* translators: %s: the action being performed (e.g., edit, read, delete) */
-					__( 'You do not have permission to %s this content', 'vip-realtime-collaboration' ),
-					$action ?? __( 'edit', 'vip-realtime-collaboration' )
+					__( 'You do not have permission to %s this content', 'vip-real-time-collaboration' ),
+					$action ?? __( 'edit', 'vip-real-time-collaboration' )
 				)
 			);
 		}
@@ -104,9 +104,9 @@ final class EntityPermissions {
 	 * @TODO: Investigate if this check should be stricter to check for edit capabilities
  * like manage_options, edit_theme_options, etc. instead of just read.
 	 *
-	 * @param string $root_entity The root entity name.
+	 * @param string $entity_type The root entity name.
 	 */
-	private static function check_root_permission( string $root_entity ): WP_Error|bool {
+	private static function check_root_permission( string $entity_type ): WP_Error|bool {
 		$capability = 'read';
 
 		if ( ! current_user_can( $capability ) ) {
@@ -114,8 +114,8 @@ final class EntityPermissions {
 				'insufficient_permissions',
 				sprintf(
 					/* translators: %s: the root entity name (e.g., base, site, postType) */
-					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ),
-					$root_entity
+					__( 'You do not have permission to access %s settings', 'vip-real-time-collaboration' ),
+					$entity_type
 				)
 			);
 		}
@@ -154,7 +154,7 @@ final class EntityPermissions {
 			'unknown_entity_kind',
 			sprintf(
 				/* translators: %s: the entity kind (e.g., postType, root, custom) */
-				__( 'Unknown entity kind: %s', 'vip-realtime-collaboration' ),
+				__( 'Unknown entity kind: %s', 'vip-real-time-collaboration' ),
 				$kind
 			)
 		);

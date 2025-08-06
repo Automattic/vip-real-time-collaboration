@@ -5,7 +5,7 @@
     "WP_DEVELOPMENT_MODE": "plugin",
     "WP_ENVIRONMENT_TYPE": "development",
     "VIP_RTC_WS_URL": "ws://localhost:1234",
-    "RTC_WEBSOCKET_AUTH_SECRET": "rtc_websocket_auth_secret"
+    "VIP_RTC_WS_AUTH_SECRET": "vip_rtc_ws_auth_secret"
   },
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
