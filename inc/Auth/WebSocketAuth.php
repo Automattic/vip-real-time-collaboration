@@ -27,13 +27,13 @@ final class WebSocketAuth {
 		$current_user = wp_get_current_user();
 
 		// Get the JWT secret from constant
-		if ( defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ) {
-			$jwt_secret = (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' );
+		if ( defined( 'VIP_RTC_WS_AUTH_SECRET' ) ) {
+			$jwt_secret = (string) constant( 'VIP_RTC_WS_AUTH_SECRET' );
 		} else {
 			// Log error for debugging
 			if ( defined( 'WP_DEBUG' ) ) {
 				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'VIP RTC: RTC_WEBSOCKET_AUTH_SECRET is not defined' );
+				error_log( 'VIP RTC: VIP_RTC_WS_AUTH_SECRET is not defined' );
 			}
 
 			return null;
