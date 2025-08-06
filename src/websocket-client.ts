@@ -30,7 +30,7 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 	} );
 
 	if ( ! data.token ) {
-		throw new Error( __( 'No auth token returned', 'vip-realtime-collaboration' ) );
+		throw new Error( __( 'No auth token returned', 'vip-real-time-collaboration' ) );
 	}
 
 	return data.token;
@@ -63,7 +63,7 @@ const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) =>
 				console.error(
 					`[RTC:WebSocket] ${ __(
 						'Failed to fetch auth token and reconnect to WebSocket',
-						'vip-realtime-collaboration'
+						'vip-real-time-collaboration'
 					) }: ${ errorMessage }`
 				);
 			} );
@@ -94,7 +94,7 @@ async function configureProvider(
 		console.error(
 			`[RTC:WebSocket] ${ __(
 				'Failed to fetch auth token and connect to WebSocket',
-				'vip-realtime-collaboration'
+				'vip-real-time-collaboration'
 			) }: ${ errorMessage }`
 		);
 	}

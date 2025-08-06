@@ -25,7 +25,7 @@ final class WebSocketAuth {
 		if ( ! is_user_logged_in() ) {
 			return new \WP_Error(
 				'user_not_logged_in',
-				__( 'User is not logged in.', 'vip-realtime-collaboration' )
+				__( 'User is not logged in.', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -35,7 +35,7 @@ final class WebSocketAuth {
 		if ( ! $current_user->ID ) {
 			return new \WP_Error(
 				'invalid_user_id',
-				__( 'Invalid user.', 'vip-realtime-collaboration' )
+				__( 'Invalid user.', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -46,14 +46,14 @@ final class WebSocketAuth {
 					'permission_denied',
 					sprintf(
 						/* translators: %s: error message */
-						__( 'User does not have permission to access this entity. Error: %s', 'vip-realtime-collaboration' ),
+						__( 'User does not have permission to access this entity. Error: %s', 'vip-real-time-collaboration' ),
 						$permission_check->get_error_message()
 					)
 				);
 			}
 			return new \WP_Error(
 				'permission_denied',
-				__( 'User does not have permission to access this entity.', 'vip-realtime-collaboration' )
+				__( 'User does not have permission to access this entity.', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -63,7 +63,7 @@ final class WebSocketAuth {
 		} else {
 			return new \WP_Error(
 				'missing_jwt_secret',
-				__( 'VIP_RTC_WS_AUTH_SECRET is not defined.', 'vip-realtime-collaboration' )
+				__( 'VIP_RTC_WS_AUTH_SECRET is not defined.', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -86,7 +86,7 @@ final class WebSocketAuth {
 				'jwt_generation_failed',
 				sprintf(
 					/* translators: %s: error message */
-					__( 'Failed to generate JWT token: %s', 'vip-realtime-collaboration' ),
+					__( 'Failed to generate JWT token: %s', 'vip-real-time-collaboration' ),
 					$e->getMessage()
 				)
 			);

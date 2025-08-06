@@ -40,7 +40,7 @@ final class RestAPI extends WP_REST_Controller {
 					'syncObjectType' => [
 						'description' => __(
 							'The entity type for synchronization (e.g., postType/post, root/base)',
-							'vip-realtime-collaboration'
+							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
 						'required' => true,
@@ -50,7 +50,7 @@ final class RestAPI extends WP_REST_Controller {
 					'syncObjectId' => [
 						'description' => __(
 							'The entity ID for synchronization',
-							'vip-realtime-collaboration'
+							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
 						'required' => true,
@@ -101,7 +101,7 @@ final class RestAPI extends WP_REST_Controller {
 		if ( ! is_string( $entity_type ) || ! is_string( $entity_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
-				__( 'syncObjectType and syncObjectId must be strings.', 'vip-realtime-collaboration' ),
+				__( 'syncObjectType and syncObjectId must be strings.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
 		}
@@ -119,7 +119,7 @@ final class RestAPI extends WP_REST_Controller {
 
 			return new WP_Error(
 				'token_generation_failed',
-				__( 'Failed to generate authentication token.', 'vip-realtime-collaboration' ),
+				__( 'Failed to generate authentication token.', 'vip-real-time-collaboration' ),
 				[ 'status' => 500 ]
 			);
 		}
@@ -145,7 +145,7 @@ final class RestAPI extends WP_REST_Controller {
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
-				__( 'You must be logged in to access this endpoint.', 'vip-realtime-collaboration' ),
+				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' ),
 				[ 'status' => 401 ]
 			);
 		}
@@ -163,14 +163,14 @@ final class RestAPI extends WP_REST_Controller {
 		) {
 			return new WP_Error(
 				'missing_parameters',
-				__( 'syncObjectType and syncObjectId are required.', 'vip-realtime-collaboration' ),
+				__( 'syncObjectType and syncObjectId are required.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
 		}
 
 		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
 		if ( true !== $permission_check ) {
-			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-realtime-collaboration' );
+			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-real-time-collaboration' );
 			return new WP_Error(
 				'rest_forbidden',
 				$error_message,

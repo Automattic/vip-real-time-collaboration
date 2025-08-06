@@ -18,5 +18,5 @@ export function getErrorMessage( error: unknown ): string {
 		return error.message;
 	}
 
-	return __( 'Unknown error', 'vip-realtime-collaboration' );
+	return __( 'Unknown error', 'vip-real-time-collaboration' );
 }

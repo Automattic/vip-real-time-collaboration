@@ -39,7 +39,7 @@ final class EntityPermissions {
 		if ( count( $parts ) !== 2 ) {
 			return new WP_Error(
 				'invalid_entity',
-				__( 'Invalid entity type format', 'vip-realtime-collaboration' )
+				__( 'Invalid entity type format', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -68,7 +68,7 @@ final class EntityPermissions {
 		if ( ! is_numeric( $entity_id ) ) {
 			return new WP_Error(
 				'invalid_post_id',
-				__( 'Post ID must be numeric', 'vip-realtime-collaboration' )
+				__( 'Post ID must be numeric', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -84,8 +84,8 @@ final class EntityPermissions {
 				'insufficient_permissions',
 				sprintf(
 					/* translators: %s: the action being performed (e.g., edit, read, delete) */
-					__( 'You do not have permission to %s this content', 'vip-realtime-collaboration' ),
-					$action ?? __( 'edit', 'vip-realtime-collaboration' )
+					__( 'You do not have permission to %s this content', 'vip-real-time-collaboration' ),
+					$action ?? __( 'edit', 'vip-real-time-collaboration' )
 				)
 			);
 		}
@@ -114,7 +114,7 @@ final class EntityPermissions {
 				'insufficient_permissions',
 				sprintf(
 					/* translators: %s: the root entity name (e.g., base, site, postType) */
-					__( 'You do not have permission to access %s settings', 'vip-realtime-collaboration' ),
+					__( 'You do not have permission to access %s settings', 'vip-real-time-collaboration' ),
 					$entity_type
 				)
 			);
@@ -154,7 +154,7 @@ final class EntityPermissions {
 			'unknown_entity_kind',
 			sprintf(
 				/* translators: %s: the entity kind (e.g., postType, root, custom) */
-				__( 'Unknown entity kind: %s', 'vip-realtime-collaboration' ),
+				__( 'Unknown entity kind: %s', 'vip-real-time-collaboration' ),
 				$kind
 			)
 		);
