@@ -35,7 +35,7 @@ declare module '@wordpress/sync' {
 		fromCRDTDoc: ( ydoc: Y.Doc ) => ObjectData;
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
-		supportsAwareness: boolean;
+		supportsAwareness?: boolean;
 	};
 
 	class SyncProvider {

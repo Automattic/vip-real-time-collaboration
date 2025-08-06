@@ -30,7 +30,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const entityId = this.getEntityId( objectType, objectId );
 
 		Array.from( this.connections.values() ).forEach( connection => {
-			if ( connection.awareness ) {
+			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}
 		} );
