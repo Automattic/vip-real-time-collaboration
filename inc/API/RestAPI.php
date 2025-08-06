@@ -68,6 +68,8 @@ final class RestAPI extends WP_REST_Controller {
 	 * @param WP_REST_Request $_request The request object.
 	 * @param string          $_param   The parameter name.
 	 * @return bool True if valid, false otherwise.
+	 * 
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function validate_entity_type(
 		mixed $value,
@@ -88,6 +90,8 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
+	 * 
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$entity_type = $request->get_param( 'syncObjectType' );
@@ -134,6 +138,8 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
+	 * 
+	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
 		if ( ! is_user_logged_in() ) {
