@@ -1,7 +1,6 @@
 import { setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
-import { Duplex } from 'stream';
 import { WebSocketServer } from 'ws';
 
 /**
@@ -89,13 +88,11 @@ function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTo
 	return true;
 }
 
-function isRequestAuthenticated( request: http.IncomingMessage, socket: Duplex ): boolean {
+function isRequestAuthenticated( request: http.IncomingMessage ): boolean {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 
 	if ( ! authToken ) {
-		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
-		socket.destroy();
 		return false;
 	}
 
@@ -103,14 +100,10 @@ function isRequestAuthenticated( request: http.IncomingMessage, socket: Duplex )
 		const jwtPayload = verifyToken( authToken );
 		const isValid = validateTokenPayload( request, jwtPayload );
 		if ( ! isValid ) {
-			socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
-			socket.destroy();
 			return false;
 		}
 		return true;
 	} catch ( error ) {
-		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
-		socket.destroy();
 		return false;
 	}
 }
@@ -146,10 +139,9 @@ server.on( 'upgrade', ( request, socket, head ) => {
 	/**
 	 * Verify authentication before establishing WebSocket connection
 	 */
-	if ( ! isRequestAuthenticated( request, socket ) ) {
-		/**
-		 * Authentication failed, connection already rejected in isRequestAuthenticated
-		 */
+	if ( ! isRequestAuthenticated( request ) ) {
+		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
+		socket.destroy();
 		return;
 	}
 
