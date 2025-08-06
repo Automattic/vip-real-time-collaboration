@@ -89,7 +89,7 @@ function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTo
 	return true;
 }
 
-function handleAuthentication( request: http.IncomingMessage, socket: Duplex ): boolean {
+function isRequestAuthenticated( request: http.IncomingMessage, socket: Duplex ): boolean {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 
@@ -146,9 +146,9 @@ server.on( 'upgrade', ( request, socket, head ) => {
 	/**
 	 * Verify authentication before establishing WebSocket connection
 	 */
-	if ( ! handleAuthentication( request, socket ) ) {
+	if ( ! isRequestAuthenticated( request, socket ) ) {
 		/**
-		 * Authentication failed, connection already rejected in handleAuthentication
+		 * Authentication failed, connection already rejected in isRequestAuthenticated
 		 */
 		return;
 	}
