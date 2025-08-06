@@ -106,7 +106,7 @@ final class EntityPermissions {
 	 *
 	 * @param string $root_entity The root entity name.
 	 */
-	private static function check_root_permission( string $root_entity ): WP_Error|bool {
+	private static function check_root_permission( string $entity_type ): WP_Error|bool {
 		$capability = 'read';
 
 		if ( ! current_user_can( $capability ) ) {
