@@ -24,6 +24,19 @@
     <stubs>
         <file name="vendor/php-stubs/wordpress-globals/wordpress-globals.php"/>
         <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"/>
-        <file name="vip-realtime-collaboration.php"/>
+		<file name="vendor/php-stubs/wordpress-tests-stubs/wordpress-tests-stubs.php"/>
+        <file name="vip-real-time-collaboration.php"/>
     </stubs>
+    <issueHandlers>
+        <PossiblyUnusedParam>
+            <errorLevel type="suppress">
+                <file name="tests/Traits/ReflectionUtils.php" />
+            </errorLevel>
+        </PossiblyUnusedParam>
+        <UnusedClass>
+            <errorLevel type="suppress">
+                <directory name="tests/Integration" />
+            </errorLevel>
+        </UnusedClass>
+    </issueHandlers>
 </psalm>

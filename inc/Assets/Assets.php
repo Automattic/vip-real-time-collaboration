@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Assets;
+namespace VIPRealTimeCollaboration\Assets;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -15,12 +15,7 @@ use function wp_enqueue_script;
  */
 final class Assets {
 	public function __construct() {
-		add_action( 'admin_init', [ $this, 'enable_gutenberg_experiment' ], 10, 0 );
 		add_action( 'admin_init', [ $this, 'load_assets' ], 10, 0 );
-	}
-
-	public function enable_gutenberg_experiment(): void {
-		wp_add_inline_script( 'wp-block-editor', 'window.__experimentalEnableSync = true', 'before' );
 	}
 
 	public function load_assets(): void {
@@ -29,18 +24,19 @@ final class Assets {
 		// Error checking for the WebSocket URL is already done in the main plugin file.
 		// This is here just for safety.
 		if ( defined( 'VIP_RTC_WS_URL' ) ) {
+			/** @psalm-suppress RedundantCast */
 			$vip_rtc_ws_url = (string) constant( 'VIP_RTC_WS_URL' );
 		}
 
-		$asset_file = dirname( constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
-		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REALTIME_COLLABORATION__PLUGIN_ROOT' ) );
+		$asset_file = dirname( constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
+		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) );
 
 		if ( ! file_exists( $asset_file ) ) {
 			wp_die( sprintf( 'The asset file %s is missing. Run `npm run build` to generate it.', esc_html( $asset_file ) ) );
 		}
 
 		/**
-		 * @psalm-var array{
+		 * @var array{
 		 *   dependencies: array{string},
 		 *   version: string,
 		 * }
@@ -48,15 +44,23 @@ final class Assets {
 		$asset = include $asset_file;
 
 		wp_enqueue_script(
-			'vip-realtime-collaboration',
+			'vip-real-time-collaboration',
 			$script_file,
 			$asset['dependencies'],
 			$asset['version'],
 			[ 'in_footer' => false ]
 		);
 
-		wp_localize_script( 'vip-realtime-collaboration', 'VIP_RTC', [
-			'wsUrl' => $vip_rtc_ws_url,
-		] );
+		$vip_rtc_encoded = wp_json_encode( [ 'wsUrl' => $vip_rtc_ws_url ] );
+		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.
+		if ( ! is_string( $vip_rtc_encoded ) || '' === $vip_rtc_encoded ) {
+			$vip_rtc_encoded = '{}';
+		}
+
+		wp_add_inline_script(
+			'vip-real-time-collaboration',
+			"var VIP_RTC = $vip_rtc_encoded;",
+			'before'
+		);
 	}
 }

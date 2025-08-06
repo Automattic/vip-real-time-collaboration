@@ -1,36 +1,31 @@
 import { addFilter } from '@wordpress/hooks';
 
+import { SyncProviderWithAwareness } from './provider';
 import { getWebSocketUrl } from './utils';
+import { createWebSocketConnection } from './websocket-client';
 
-addFilter(
-	'core.getSyncProviderRemoteConnection',
-	'vip-realtime-collaboration',
-	( connection: ConnectDoc | null, connectionCreators: RemoteConnectionCreators ) => {
-		if ( connection ) {
-			// If a connection already exists, return it.
-			return connection;
-		}
+import type { SyncProvider } from '@wordpress/sync';
 
-		// We already error check for the WebSocket URL in the main plugin file,
-		// so this is here for safety.
-		const serverUrl = getWebSocketUrl();
-		// ToDo: Remove this before we go into production.
-		// eslint-disable-next-line no-console
-		console.log( 'WebSocket URL:', serverUrl );
-
-		if ( ! serverUrl ) {
-			// ToDo: Replace this with a proper UI notice.
-			// eslint-disable-next-line no-console
-			console.error(
-				'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
-			);
-			return null;
-		}
-
-		return connectionCreators.createWebSocketConnection( {
-			serverUrl,
-		} );
+addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) => {
+	if ( provider ) {
+		// If a provider already exists, return it.
+		return provider;
 	}
-);
 
-addFilter( 'core.useSyncUndoManager', 'vip-realtime-collaboration', () => true );
+	const serverUrl = getWebSocketUrl();
+
+	// We already error check for the WebSocket URL in the main plugin file,
+	// so this is here for safety.
+	if ( ! serverUrl ) {
+		console.error(
+			'VIP Real-Time Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
+		);
+		return null;
+	}
+
+	const remoteConnection = createWebSocketConnection( {
+		serverUrl,
+	} );
+
+	return new SyncProviderWithAwareness( null, remoteConnection );
+} );
