@@ -17,7 +17,7 @@ const DEFAULT_HOST = 'localhost';
 const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
 if ( ! jwtSecret ) {
 	// eslint-disable-next-line no-console
-	console.error( 'JWT_SECRET environment variable is not set' );
+	console.error( 'VIP_RTC_WS_AUTH_SECRET environment variable is not set' );
 	process.exit( 1 );
 }
 
