@@ -37,7 +37,7 @@ interface SyncTokenPayload extends jwt.JwtPayload {
 	entity_id: string;
 }
 
-const isSyncTokenPayload = ( payload: unknown ): payload is SyncTokenPayload => {
+function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 	return (
 		typeof payload === 'object' &&
 		payload !== null &&
@@ -46,15 +46,21 @@ const isSyncTokenPayload = ( payload: unknown ): payload is SyncTokenPayload => 
 		'entity_type' in payload &&
 		'entity_id' in payload
 	);
-};
+}
 
-const verifyToken = ( token: string ): SyncTokenPayload => {
+function verifyToken( token: string ): SyncTokenPayload {
+	if ( ! jwtSecret ) {
+		/**
+		 * Just to appease the type checker. Won't happen due to null check above.
+		 */
+		throw new Error( 'JWT secret not configured' );
+	}
 	const jwtPayload = jwt.verify( token, jwtSecret );
 	if ( ! isSyncTokenPayload( jwtPayload ) ) {
 		throw new Error( 'Invalid JWT payload' );
 	}
 	return jwtPayload;
-};
+}
 
 /**
  * Verify that the entity_type and entity_id in the JWT payload matches with the request URL
@@ -62,7 +68,7 @@ const verifyToken = ( token: string ): SyncTokenPayload => {
  *
  * TODO: Add additonal check for user_id
  */
-const validateTokenPayload = ( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) => {
+function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
 	const { entity_type: entityType, entity_id: entityId } = jwtPayload;
 	const urlPath = request.url?.split( '?' )[ 0 ];
 
@@ -81,9 +87,9 @@ const validateTokenPayload = ( request: http.IncomingMessage, jwtPayload: SyncTo
 		return false;
 	}
 	return true;
-};
+}
 
-const handleAuthentication = ( request: http.IncomingMessage, socket: Duplex ): boolean => {
+function handleAuthentication( request: http.IncomingMessage, socket: Duplex ): boolean {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 
@@ -107,7 +113,7 @@ const handleAuthentication = ( request: http.IncomingMessage, socket: Duplex ): 
 		socket.destroy();
 		return false;
 	}
-};
+}
 
 const server = http.createServer( ( _request, response ) => {
 	response.writeHead( 200, { 'Content-Type': 'text/plain' } );
