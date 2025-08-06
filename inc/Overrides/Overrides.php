@@ -51,7 +51,7 @@ final class Overrides {
 
 	private function non_collaborative_mode(): void {
 		// Remove the Sync Collaboration experiment script when in non-collaborative mode.
-		remove_action( 'admin_init', '\\VIPRealtimeCollaboration\\Assets\\enqueue_gutenberg_experiment' );
+		remove_action( 'admin_init', '\\VIPRealTimeCollaboration\\Assets\\enqueue_gutenberg_experiment' );
 	}
 
 	private function collaborative_editing_mode(): void {
@@ -100,7 +100,7 @@ final class Overrides {
 						admin_url( 'post.php' )
 					)
 				),
-				__( 'Private Edit', 'vip-realtime-collaboration' )
+				__( 'Private Edit', 'vip-real-time-collaboration' )
 			);
 		}
 
