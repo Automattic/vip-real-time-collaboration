@@ -21,7 +21,7 @@ final class WebSocketAuth {
 	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
 	public static function generate_token( string $entity_type, string $entity_id ): string|WP_Error {
-		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
+		$permission_check = EntityPermissions::check_permissions( $entity_type, $entity_id );
 		if ( true !== $permission_check ) {
 			if ( is_wp_error( $permission_check ) ) {
 				return $permission_check;

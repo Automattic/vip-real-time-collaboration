@@ -168,7 +168,7 @@ final class RestAPI extends WP_REST_Controller {
 			);
 		}
 
-		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
+		$permission_check = EntityPermissions::check_permissions( $entity_type, $entity_id );
 		if ( true !== $permission_check ) {
 			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-real-time-collaboration' );
 			return new WP_Error(
