@@ -41,7 +41,7 @@ final class EntityPermissions {
 		if ( count( $parts ) !== 2 ) {
 			return new WP_Error(
 				'invalid_entity',
-				__( 'Invalid entity type format', 'vip-realtime-collaboration' )
+				__( 'Invalid entity type format', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -101,7 +101,7 @@ final class EntityPermissions {
 		if ( ! is_numeric( $entity_id ) ) {
 			return new WP_Error(
 				'invalid_post_id',
-				__( 'Post ID must be numeric', 'vip-realtime-collaboration' )
+				__( 'Post ID must be numeric', 'vip-real-time-collaboration' )
 			);
 		}
 
@@ -112,7 +112,7 @@ final class EntityPermissions {
 		if ( ! current_user_can( 'sync_post', $post_id ) ) {
 			return new WP_Error(
 				'insufficient_sync_permissions',
-				__( 'You do not have permission to sync this content', 'vip-realtime-collaboration' )
+				__( 'You do not have permission to sync this content', 'vip-real-time-collaboration' )
 			);
 		}
 
