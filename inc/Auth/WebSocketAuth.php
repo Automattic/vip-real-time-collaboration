@@ -24,11 +24,17 @@ final class WebSocketAuth {
 		$permission_check = SyncPermissions::can_sync( $entity_type, $entity_id );
 		if ( true !== $permission_check ) {
 			if ( is_wp_error( $permission_check ) ) {
-				return $permission_check;
+				return new WP_Error(
+					'permission_denied',
+					$permission_check->get_error_message()
+				);
 			}
+			/**
+			 * Unlikely to happen, as can_sync() should return a WP_Error or true.
+			 */
 			return new WP_Error(
 				'permission_denied',
-				__( 'User does not have permission to access this entity.', 'vip-real-time-collaboration' )
+				__( 'User does not have sufficient permissions.', 'vip-real-time-collaboration' )
 			);
 		}
 

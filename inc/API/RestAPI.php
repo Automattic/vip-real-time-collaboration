@@ -4,7 +4,6 @@ namespace VIPRealTimeCollaboration\API;
 
 defined( 'ABSPATH' ) || exit();
 
-use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Auth\WebSocketAuth;
 use WP_REST_Controller;
 use WP_REST_Request;
@@ -117,10 +116,20 @@ final class RestAPI extends WP_REST_Controller {
 				error_log( 'VIP RTC: WebSocket auth token generation failed: ' . $token->get_error_message() );
 			}
 
-			return new WP_Error(
-				'token_generation_failed',
-				__( 'Failed to generate authentication token.', 'vip-real-time-collaboration' ),
-				[ 'status' => 500 ]
+			// Map error codes to appropriate HTTP status codes
+			$error_code = $token->get_error_code();
+			
+			$status = match ( $error_code ) {
+				'permission_denied' => 403,
+				default => 500,
+			};
+
+			return new WP_REST_Response(
+				[
+					'code' => $token->get_error_code(),
+					'message' => $token->get_error_message(),
+				],
+				$status
 			);
 		}
 
@@ -142,38 +151,13 @@ final class RestAPI extends WP_REST_Controller {
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
+		/**
+		 * Basic check. Additional permissions checks are handled in the generate_token method.
+		 */
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
 				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' ),
-				[ 'status' => 401 ]
-			);
-		}
-
-		// Check entity permissions
-		$entity_type = $request->get_param( 'syncObjectType' );
-		$entity_id = $request->get_param( 'syncObjectId' );
-
-		// Validate required parameters
-		if (
-			! is_string( $entity_type )
-			|| ! is_string( $entity_id )
-			|| empty( $entity_type )
-			|| empty( $entity_id )
-		) {
-			return new WP_Error(
-				'missing_parameters',
-				__( 'syncObjectType and syncObjectId are required.', 'vip-real-time-collaboration' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$permission_check = SyncPermissions::can_sync( $entity_type, $entity_id );
-		if ( true !== $permission_check ) {
-			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-real-time-collaboration' );
-			return new WP_Error(
-				'rest_forbidden',
-				$error_message,
 				[ 'status' => 401 ]
 			);
 		}
