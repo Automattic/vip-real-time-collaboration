@@ -32,8 +32,7 @@ const connectionTimeout =
 interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
 	username: string;
-	entity_type: string;
-	entity_id: string;
+	room_name: string;
 }
 
 function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
@@ -42,8 +41,7 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 		payload !== null &&
 		'user_id' in payload &&
 		'username' in payload &&
-		'entity_type' in payload &&
-		'entity_id' in payload
+		'room_name' in payload
 	);
 }
 
@@ -62,16 +60,15 @@ function verifyToken( token: string ): SyncTokenPayload {
 }
 
 /**
- * Verify that the entity_type and entity_id in the JWT payload matches with the request URL
- * to guard against a token being used for the different entity's session that it was issued for.
+ * Verify that the room_name in the JWT payload matches with the request URL
+ * to guard against a token being used for the different sync object that it was issued for.
  *
  * TODO: Add additonal check for user_id
  */
 function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
-	const { entity_type: entityType, entity_id: entityId } = jwtPayload;
+	const { room_name: roomNameFromToken } = jwtPayload;
 	const urlPath = request.url?.split( '?' )[ 0 ];
 
-	const roomNameFromToken = `${ entityType }-${ entityId }`;
 	const roomNameFromUrl = urlPath?.replace( /^\//, '' );
 
 	const isValid = roomNameFromToken === roomNameFromUrl;
