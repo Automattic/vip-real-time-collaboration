@@ -15,6 +15,7 @@ namespace VIPRealTimeCollaboration;
 
 use VIPRealTimeCollaboration\API\RestAPI;
 use VIPRealTimeCollaboration\Assets\Assets;
+use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use VIPRealTimeCollaboration\Overrides\Overrides;
 
@@ -43,6 +44,9 @@ add_action( 'plugins_loaded', static function (): void {
 	new Compatibility();
 	new Overrides();
 	new RestAPI();
+	
+	// Initialize permission system
+	SyncPermissions::init();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );

@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * Handles permission checking for sync objects using custom sync capabilities
  */
-final class EntityPermissions {
+final class SyncPermissions {
 	/**
 	 * Initialize custom sync capabilities.
 	 * Sets up meta capability mapping and role capabilities.
@@ -20,12 +20,12 @@ final class EntityPermissions {
 	}
 
 	/**
-	 * Check if the current user has permissions for a sync object.
+	 * Check if the current user can sync the specified object.
 	 *
 	 * @param string $sync_object_type The sync object type in format 'entity_kind/entity_name' (e.g., 'postType/Posts').
 	 * @param string $sync_object_id   The sync object ID (e.g., post ID).
 	 */
-	public static function check_permissions(
+	public static function can_sync(
 		string $sync_object_type,
 		string $sync_object_id,
 	): WP_Error|bool {
