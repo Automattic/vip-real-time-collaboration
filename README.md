@@ -65,5 +65,5 @@ If you want to develop against a custom build of Gutenberg, copy `.wp-env.overri
 
 ### Environment Variables
 
-`VIP_RTC_WS_URL`: This is the websockets url that'll be used as the sync provider by Yjs. By default, it's null. On local dev environments, it's set to `ws://localhost:1234`.
-`VIP_RTC_WS_AUTH_SECRET`: This is the auth token used by the websockets server to ensure that, only authorized parties can connect to it. By default, it's null. On local dev environments, it's set to `vip_rtc_ws_auth_secret`.
+- `VIP_RTC_WS_URL`: This is the websockets url that'll be used as the sync provider by Yjs. By default, it's null. On local dev environments, it's set to `ws://localhost:1234`.
+- `VIP_RTC_WS_AUTH_SECRET`: This is the auth token used by the websockets server to ensure that, only authorized parties can connect to it. By default, it's null. On local dev environments, it's set to `vip_rtc_ws_auth_secret`.
