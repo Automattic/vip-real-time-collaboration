@@ -18,7 +18,8 @@
     "testwp": "@php ./vendor/bin/phpunit --no-coverage --order-by=random -c phpunit-integration.xml"
   },
   "require": {
-    "php": ">=8.1"
+    "php": ">=8.1",
+    "adhocore/jwt": "^1.1"
   },
   "require-dev": {
     "automattic/vipwpcs": "^3.0",

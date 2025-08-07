@@ -58,3 +58,5 @@ declare module '@wordpress/sync' {
 		): void;
 	}
 }
+
+export {};
