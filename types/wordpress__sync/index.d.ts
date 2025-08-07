@@ -19,7 +19,7 @@ declare module '@wordpress/sync' {
 		removed: AwarenessClientID[];
 	} ) => void;
 
-	type AwarenessStates = Map< AwarenessClientID, Record< string, any > >;
+	type AwarenessStates = Record< string, any >;
 
 	type CRDTDoc = Y.Doc;
 
@@ -35,7 +35,7 @@ declare module '@wordpress/sync' {
 		fromCRDTDoc: ( ydoc: Y.Doc ) => ObjectData;
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
-		supportsAwareness: boolean;
+		supportsAwareness?: boolean;
 	};
 
 	class SyncProvider {
