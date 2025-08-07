@@ -40,13 +40,13 @@ add_action( 'plugins_loaded', static function (): void {
 		return;
 	}
 
+	// Initialize permission system
+	SyncPermissions::init();
+
 	new Assets();
 	new Compatibility();
 	new Overrides();
 	new RestAPI();
-	
-	// Initialize permission system
-	SyncPermissions::init();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );
