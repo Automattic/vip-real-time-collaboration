@@ -9,55 +9,87 @@ import { WebSocketServer } from 'ws';
  * hot-reloaded, so you will need to re-run `npm run dev` if you change the code.
  */
 
-const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours
+const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
 const DEFAULT_PORT = 1234;
 const DEFAULT_HOST = 'localhost';
-const DEFAULT_JWT_SECRET = 'rtc_websocket_auth_secret';
+
+const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
+if ( ! jwtSecret ) {
+	// eslint-disable-next-line no-console
+	console.error( 'VIP_RTC_WS_AUTH_SECRET environment variable is not set' );
+	process.exit( 1 );
+}
 
 const wss = new WebSocketServer( { noServer: true } );
-const host = process.env.HOST ?? DEFAULT_HOST;
-const port = parseInt( process.env.PORT ?? DEFAULT_PORT.toString(), 10 );
-const jwtSecret = process.env.JWT_SECRET ?? DEFAULT_JWT_SECRET;
-const connectionTimeout = parseInt(
-	process.env.CONNECTION_TIMEOUT ?? DEFAULT_CONNECTION_TIMEOUT.toString(),
-	10
-);
+const host = process.env.HOST || DEFAULT_HOST;
+/**
+ * Fallback '' (empty string) to avoid parseInt( undefined ) type error
+ */
+const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
+const connectionTimeout =
+	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
 
 interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
 	username: string;
-	email: string;
-	display_name: string;
-	entity_type: string;
-	entity_id: string;
 	room_name: string;
 }
 
-const verifyToken = ( token: string ): SyncTokenPayload => {
+function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
+	return (
+		typeof payload === 'object' &&
+		payload !== null &&
+		'user_id' in payload &&
+		'username' in payload &&
+		'room_name' in payload
+	);
+}
+
+function verifyToken( token: string ): SyncTokenPayload {
+	if ( ! jwtSecret ) {
+		/**
+		 * Just to appease the type checker. Won't happen due to null check above.
+		 */
+		throw new Error( 'JWT secret not configured' );
+	}
 	const jwtPayload = jwt.verify( token, jwtSecret );
-	return jwtPayload as SyncTokenPayload;
-};
+	if ( ! isSyncTokenPayload( jwtPayload ) ) {
+		throw new Error( 'Invalid JWT payload' );
+	}
+	return jwtPayload;
+}
 
 /**
- * Verify that the roomName in the JWT payload matches with the request URL
+ * Verify that the room_name in the JWT payload matches with the request URL
+ * to guard against a token being used for the different sync object that it was issued for.
+ *
+ * TODO: Add additonal check for user_id
  */
-const validateTokenPayload = ( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) => {
-	const { room_name: roomName } = jwtPayload;
+function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
+	const { room_name: roomNameFromToken } = jwtPayload;
 	const urlPath = request.url?.split( '?' )[ 0 ];
 
-	return urlPath === `/${ roomName }`;
-};
+	const roomNameFromUrl = urlPath?.replace( /^\//, '' );
 
-const handleAuthentication = (
-	request: http.IncomingMessage,
-	socket: import('stream').Duplex
-): boolean => {
+	const isValid = roomNameFromToken === roomNameFromUrl;
+	if ( ! isValid ) {
+		// eslint-disable-next-line no-console
+		console.error(
+			`JWT decoded successfully but token payload is invalid: ${ JSON.stringify( {
+				roomNameFromToken,
+				roomNameFromUrl,
+			} ) }`
+		);
+		return false;
+	}
+	return true;
+}
+
+function isRequestAuthenticated( request: http.IncomingMessage ): boolean {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 
 	if ( ! authToken ) {
-		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
-		socket.destroy();
 		return false;
 	}
 
@@ -65,17 +97,13 @@ const handleAuthentication = (
 		const jwtPayload = verifyToken( authToken );
 		const isValid = validateTokenPayload( request, jwtPayload );
 		if ( ! isValid ) {
-			socket.write( 'HTTP/1.1 403 Forbidden\r\n\r\n' );
-			socket.destroy();
 			return false;
 		}
 		return true;
 	} catch ( error ) {
-		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
-		socket.destroy();
 		return false;
 	}
-};
+}
 
 const server = http.createServer( ( _request, response ) => {
 	response.writeHead( 200, { 'Content-Type': 'text/plain' } );
@@ -108,10 +136,9 @@ server.on( 'upgrade', ( request, socket, head ) => {
 	/**
 	 * Verify authentication before establishing WebSocket connection
 	 */
-	if ( ! handleAuthentication( request, socket ) ) {
-		/**
-		 * Authentication failed, connection already rejected in handleAuthentication
-		 */
+	if ( ! isRequestAuthenticated( request ) ) {
+		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
+		socket.destroy();
 		return;
 	}
 

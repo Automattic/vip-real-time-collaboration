@@ -62,7 +62,7 @@ configure_wordpress() {
 
 start_websocket_server() {
     echo "🔼 Starting WebSocket server with hot-reload..."
-    npm run -s dev:websocket-server &
+    VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secretnpm run -s dev:websocket-server &
 }
 
 start_wordpress() {

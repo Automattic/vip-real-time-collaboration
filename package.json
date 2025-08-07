@@ -1,12 +1,12 @@
 {
-  "name": "vip-realtime-collaboration",
+  "name": "vip-real-time-collaboration",
   "version": "0.1.0",
   "description": "Real-time collaboration plugin for WordPress VIP",
   "main": "build/index.js",
   "keywords": [
     "wordpress",
     "plugin",
-    "realtime",
+    "real-time",
     "collaboration",
     "vip"
   ],
@@ -14,7 +14,7 @@
     "build/",
     "inc/",
     "vendor/",
-    "vip-realtime-collaboration.php"
+    "vip-real-time-collaboration.php"
   ],
   "author": "Automattic",
   "license": "GPL-2.0-or-later",
@@ -60,13 +60,19 @@
     "@wordpress/hooks": "4.25.0",
     "@wordpress/i18n": "6.0.0",
     "@wordpress/scripts": "30.1.0",
+    "@wordpress/sync": "1.27.0",
     "eslint": "8.57.1",
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
+    "jsonwebtoken": "9.0.2",
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3",
     "yjs": "13.6.27"
+  },
+  "dependencies": {
+    "y-protocols": "1.0.6",
+    "y-websocket": "3.0.0"
   }
 }

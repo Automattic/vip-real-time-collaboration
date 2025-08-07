@@ -1,11 +1,10 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\API;
+namespace VIPRealTimeCollaboration\API;
 
 defined( 'ABSPATH' ) || exit();
 
-use VIPRealtimeCollaboration\Auth\EntityPermissions;
-use VIPRealtimeCollaboration\Auth\WebSocketAuth;
+use VIPRealTimeCollaboration\Auth\WebSocketAuth;
 use WP_REST_Controller;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -20,6 +19,8 @@ final class RestAPI extends WP_REST_Controller {
 		$this->namespace = 'vip-rtc/v1';
 		$this->rest_base = 'websocket';
 		$this->schema = [];
+
+		add_action( 'rest_api_init', [ $this, 'register_routes' ], 10, 0 );
 	}
 
 	/**
@@ -37,18 +38,17 @@ final class RestAPI extends WP_REST_Controller {
 				'args' => [
 					'syncObjectType' => [
 						'description' => __(
-							'The entity type for synchronization (e.g., postType/post, root/base)',
-							'vip-realtime-collaboration'
+							'The sync object type for synchronization (e.g., postType/post, root/base)',
+							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ $this, 'validate_entity_type' ],
 					],
 					'syncObjectId' => [
 						'description' => __(
-							'The entity ID for synchronization',
-							'vip-realtime-collaboration'
+							'The sync object ID for synchronization',
+							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
 						'required' => true,
@@ -60,56 +60,51 @@ final class RestAPI extends WP_REST_Controller {
 	}
 
 	/**
-	 * Validate entity type format.
-	 *
-	 * @param mixed           $value   The value to validate.
-	 * @param WP_REST_Request $_request The request object.
-	 * @param string          $_param   The parameter name.
-	 * @return bool True if valid, false otherwise.
-	 * @psalm-suppress PossiblyUnusedMethod
-	 */
-	public function validate_entity_type(
-		mixed $value,
-		WP_REST_Request $_request,
-		string $_param
-	): bool {
-		if ( ! is_string( $value ) ) {
-			return false;
-		}
-
-		// Entity type should be in format: kind/name
-		$parts = explode( '/', $value );
-		return 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1];
-	}
-
-	/**
 	 * Get a WebSocket authentication token.
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
+	 * 
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$entity_type = $request->get_param( 'syncObjectType' );
-		$entity_id = $request->get_param( 'syncObjectId' );
+		$sync_object_type = $request->get_param( 'syncObjectType' );
+		$sync_object_id = $request->get_param( 'syncObjectId' );
 
 		// Validate parameter types
-		if ( ! is_string( $entity_type ) || ! is_string( $entity_id ) ) {
+		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
-				__( 'syncObjectType and syncObjectId must be strings.', 'vip-realtime-collaboration' ),
+				__( 'syncObjectType and syncObjectId must be strings.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
 		}
 
-		// Generate a short-lived token with entity information
-		$token = WebSocketAuth::generate_token( $entity_type, $entity_id );
+		// Generate a short-lived token with sync object information
+		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id );
 
-		if ( null === $token ) {
-			return new WP_Error(
-				'token_generation_failed',
-				__( 'Failed to generate authentication token.', 'vip-realtime-collaboration' ),
-				[ 'status' => 500 ]
+		if ( is_wp_error( $token ) ) {
+			// Log error for debugging
+			/** @psalm-suppress TypeDoesNotContainType */
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'VIP RTC: WebSocket auth token generation failed: ' . $token->get_error_message() );
+			}
+
+			// Map error codes to appropriate HTTP status codes
+			$error_code = $token->get_error_code();
+			
+			$status = match ( $error_code ) {
+				'permission_denied' => 403,
+				default => 500,
+			};
+
+			return new WP_REST_Response(
+				[
+					'code' => $token->get_error_code(),
+					'message' => $token->get_error_message(),
+				],
+				$status
 			);
 		}
 
@@ -117,7 +112,6 @@ final class RestAPI extends WP_REST_Controller {
 			[
 				'token' => $token,
 				'expires_in' => 30, // seconds
-				'room_name' => sprintf( '%s-%s', $entity_type, $entity_id ),
 			]
 		);
 	}
@@ -125,44 +119,19 @@ final class RestAPI extends WP_REST_Controller {
 	/**
 	 * Check if the current user has permission to get an auth token.
 	 *
-	 * @param WP_REST_Request $request Full details about the request.
+	 * @param WP_REST_Request $_request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
+	 * 
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
-	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
+	public function get_auth_token_permissions_check( WP_REST_Request $_request ): bool|WP_Error {
+		/**
+		 * Basic check. Additional permissions checks are handled in the generate_token method.
+		 */
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
-				__( 'You must be logged in to access this endpoint.', 'vip-realtime-collaboration' ),
-				[ 'status' => 401 ]
-			);
-		}
-
-		// Check entity permissions
-		$entity_type = $request->get_param( 'syncObjectType' );
-		$entity_id = $request->get_param( 'syncObjectId' );
-
-		// Validate required parameters
-		if (
-			! is_string( $entity_type )
-			|| ! is_string( $entity_id )
-			|| empty( $entity_type )
-			|| empty( $entity_id )
-		) {
-			return new WP_Error(
-				'missing_parameters',
-				__( 'syncObjectType and syncObjectId are required.', 'vip-realtime-collaboration' ),
-				[ 'status' => 400 ]
-			);
-		}
-
-		$permission_check = EntityPermissions::check_permission( $entity_type, $entity_id );
-		if ( true !== $permission_check ) {
-			$error_message = is_wp_error( $permission_check ) ? $permission_check->get_error_message() : __( 'Permission denied', 'vip-realtime-collaboration' );
-			return new WP_Error(
-				'rest_forbidden',
-				$error_message,
-				[ 'status' => 401 ]
+				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' )
 			);
 		}
 

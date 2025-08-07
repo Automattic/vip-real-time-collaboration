@@ -1,8 +1,10 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealtimeCollaboration\Auth;
+namespace VIPRealTimeCollaboration\Auth;
 
 use Ahc\Jwt\JWT;
+use VIPRealTimeCollaboration\Auth\SyncPermissions;
+use WP_Error;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -11,37 +13,48 @@ defined( 'ABSPATH' ) || exit();
  */
 final class WebSocketAuth {
 	/**
-	 * Generate a JWT token for the current user with entity permissions.
+	 * Generate a JWT token for the current user with sync room name.
 	 *
-	 * @param string $entity_type Optional entity type to include in token.
-	 * @param string $entity_id Optional entity ID to include in token.
+	 * @param string $sync_object_type Optional sync object type to include in token.
+	 * @param string $sync_object_id Optional sync object ID to include in token.
 	 *
-	 * @return string|null The JWT token or null if user is not logged in or lacks permission.
+	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
-	public static function generate_token( string $entity_type, string $entity_id ): ?string {
-		// Check if user is logged in
-		if ( ! is_user_logged_in() ) {
-			return null;
+	public static function generate_token( string $sync_object_type, string $sync_object_id ): string|WP_Error {
+		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
+		if ( true !== $permission_check ) {
+			if ( is_wp_error( $permission_check ) ) {
+				return new WP_Error(
+					'permission_denied',
+					$permission_check->get_error_message()
+				);
+			}
+			/**
+			 * Unlikely to happen, as can_sync() should return a WP_Error or true.
+			 */
+			return new WP_Error(
+				'permission_denied',
+				__( 'User does not have sufficient permissions.', 'vip-real-time-collaboration' )
+			);
 		}
 
 		$current_user = wp_get_current_user();
 
-		// Get the JWT secret from constant with fallback
-		if ( defined( 'RTC_WEBSOCKET_AUTH_SECRET' ) ) {
-			$jwt_secret = (string) constant( 'RTC_WEBSOCKET_AUTH_SECRET' );
+		// Get the JWT secret from constant
+		if ( defined( 'VIP_RTC_WS_AUTH_SECRET' ) ) {
+			$jwt_secret = (string) constant( 'VIP_RTC_WS_AUTH_SECRET' );
 		} else {
-			$jwt_secret = 'rtc_websocket_auth_secret';
+			return new WP_Error(
+				'missing_jwt_secret',
+				__( 'VIP_RTC_WS_AUTH_SECRET is not defined.', 'vip-real-time-collaboration' )
+			);
 		}
 
 		// Prepare the payload
 		$payload = [
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
-			'email' => $current_user->user_email,
-			'display_name' => $current_user->display_name,
-			'entity_type' => $entity_type,
-			'entity_id' => $entity_id,
-			'room_name' => sprintf( '%s-%s', $entity_type, $entity_id ),
+			'room_name' => sprintf( '%s-%s', $sync_object_type, $sync_object_id ),
 			'iat' => time(), // Issued at
 			'exp' => time() + 30, // Expires in 30 seconds
 		];
@@ -51,12 +64,14 @@ final class WebSocketAuth {
 			$jwt = new JWT( $jwt_secret, 'HS256' );
 			return $jwt->encode( $payload );
 		} catch ( \Exception $e ) {
-			// Log error for debugging
-			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
-				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-				error_log( 'VIP RTC: Failed to generate JWT token: ' . esc_html( $e->getMessage() ) );
-			}
-			return null;
+			return new WP_Error(
+				'jwt_generation_failed',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Failed to generate JWT token: %s', 'vip-real-time-collaboration' ),
+					$e->getMessage()
+				)
+			);
 		}
 	}
 }
