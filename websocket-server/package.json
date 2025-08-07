@@ -1,9 +1,9 @@
 {
-  "name": "vip-websocket-server",
+  "name": "vip-rtc-websocket-server",
   "version": "0.1.0",
   "type": "module",
   "private": true,
-  "description": "WebSocket server for VIP realtime collaboration",
+  "description": "WebSocket server for VIP Real-Time Collaboration",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
