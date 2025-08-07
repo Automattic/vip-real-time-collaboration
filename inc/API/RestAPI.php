@@ -38,17 +38,16 @@ final class RestAPI extends WP_REST_Controller {
 				'args' => [
 					'syncObjectType' => [
 						'description' => __(
-							'The entity type for synchronization (e.g., postType/post, root/base)',
+							'The sync object type for synchronization (e.g., postType/post, root/base)',
 							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
-						'validate_callback' => [ $this, 'validate_entity_type' ],
 					],
 					'syncObjectId' => [
 						'description' => __(
-							'The entity ID for synchronization',
+							'The sync object ID for synchronization',
 							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
@@ -61,30 +60,6 @@ final class RestAPI extends WP_REST_Controller {
 	}
 
 	/**
-	 * Validate entity type format.
-	 *
-	 * @param mixed           $value   The value to validate.
-	 * @param WP_REST_Request $_request The request object.
-	 * @param string          $_param   The parameter name.
-	 * @return bool True if valid, false otherwise.
-	 * 
-	 * @psalm-suppress PossiblyUnusedMethod
-	 */
-	public function validate_entity_type(
-		mixed $value,
-		WP_REST_Request $_request,
-		string $_param
-	): bool {
-		if ( ! is_string( $value ) ) {
-			return false;
-		}
-
-		// Entity type should be in format: kind/name
-		$parts = explode( '/', $value );
-		return 2 === count( $parts ) && '' !== $parts[0] && '' !== $parts[1];
-	}
-
-	/**
 	 * Get a WebSocket authentication token.
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
@@ -93,11 +68,11 @@ final class RestAPI extends WP_REST_Controller {
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
-		$entity_type = $request->get_param( 'syncObjectType' );
-		$entity_id = $request->get_param( 'syncObjectId' );
+		$sync_object_type = $request->get_param( 'syncObjectType' );
+		$sync_object_id = $request->get_param( 'syncObjectId' );
 
 		// Validate parameter types
-		if ( ! is_string( $entity_type ) || ! is_string( $entity_id ) ) {
+		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
 				__( 'syncObjectType and syncObjectId must be strings.', 'vip-real-time-collaboration' ),
@@ -105,8 +80,8 @@ final class RestAPI extends WP_REST_Controller {
 			);
 		}
 
-		// Generate a short-lived token with entity information
-		$token = WebSocketAuth::generate_token( $entity_type, $entity_id );
+		// Generate a short-lived token with sync object information
+		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id );
 
 		if ( is_wp_error( $token ) ) {
 			// Log error for debugging
@@ -137,7 +112,6 @@ final class RestAPI extends WP_REST_Controller {
 			[
 				'token' => $token,
 				'expires_in' => 30, // seconds
-				'room_name' => sprintf( '%s-%s', $entity_type, $entity_id ),
 			]
 		);
 	}

@@ -13,15 +13,15 @@ defined( 'ABSPATH' ) || exit();
  */
 final class WebSocketAuth {
 	/**
-	 * Generate a JWT token for the current user with entity permissions.
+	 * Generate a JWT token for the current user with sync room name.
 	 *
-	 * @param string $entity_type Optional entity type to include in token.
-	 * @param string $entity_id Optional entity ID to include in token.
+	 * @param string $sync_object_type Optional sync object type to include in token.
+	 * @param string $sync_object_id Optional sync object ID to include in token.
 	 *
 	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
-	public static function generate_token( string $entity_type, string $entity_id ): string|WP_Error {
-		$permission_check = SyncPermissions::can_sync( $entity_type, $entity_id );
+	public static function generate_token( string $sync_object_type, string $sync_object_id ): string|WP_Error {
+		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
 		if ( true !== $permission_check ) {
 			if ( is_wp_error( $permission_check ) ) {
 				return new WP_Error(
@@ -54,8 +54,7 @@ final class WebSocketAuth {
 		$payload = [
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
-			'entity_type' => $entity_type,
-			'entity_id' => $entity_id,
+			'room_name' => sprintf( '%s-%s', $sync_object_type, $sync_object_id ),
 			'iat' => time(), // Issued at
 			'exp' => time() + 30, // Expires in 30 seconds
 		];
