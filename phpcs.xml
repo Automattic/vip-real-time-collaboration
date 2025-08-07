@@ -132,6 +132,7 @@
 		<properties>
 			<property name="custom_capabilities" type="array">
 				<element value="view_query_monitor" />
+				<element value="sync_post" />
 			</property>
 		</properties>
 	</rule>
