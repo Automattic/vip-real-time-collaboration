@@ -26,12 +26,10 @@ final class EntityPermissions {
 	 *
 	 * @param string      $entity_type The entity type (e.g., 'postType/post').
 	 * @param string      $entity_id   The entity ID.
-	 * @param string|null $action      The action being performed (unused, kept for compatibility).
 	 */
 	public static function check_permission(
 		string $entity_type,
 		string $entity_id,
-		?string $action = null
 	): WP_Error|bool {
 		$user_check_result = self::check_current_user();
 		if ( is_wp_error( $user_check_result ) ) {
@@ -124,13 +122,12 @@ final class EntityPermissions {
 		 * @param bool|WP_Error $result The result of the permission check.
 		 * @param int          $post_id The post ID.
 		 */
-		$result = apply_filters(
+		/** @var bool|WP_Error */
+		return apply_filters(
 			'vip_rtc_post_sync_check_permission',
 			true,
 			$post_id
 		);
-
-		return $result;
 	}
 
 	/**
@@ -153,15 +150,14 @@ final class EntityPermissions {
 		 * @param string       $entity_name The entity name.
 		 * @param string       $entity_id The entity ID.
 		 */
-		$result = apply_filters(
+		/** @var bool|WP_Error */
+		return apply_filters(
 			'vip_rtc_entity_sync_check_permission',
 			true,
 			$entity_kind,
 			$entity_name,
 			$entity_id
 		);
-
-		return $result;
 	}
 
 	/**
