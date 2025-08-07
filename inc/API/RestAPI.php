@@ -119,20 +119,19 @@ final class RestAPI extends WP_REST_Controller {
 	/**
 	 * Check if the current user has permission to get an auth token.
 	 *
-	 * @param WP_REST_Request $request Full details about the request.
+	 * @param WP_REST_Request $_request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
 	 * 
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
-	public function get_auth_token_permissions_check( WP_REST_Request $request ): bool|WP_Error {
+	public function get_auth_token_permissions_check( WP_REST_Request $_request ): bool|WP_Error {
 		/**
 		 * Basic check. Additional permissions checks are handled in the generate_token method.
 		 */
 		if ( ! is_user_logged_in() ) {
 			return new WP_Error(
 				'rest_forbidden',
-				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' ),
-				[ 'status' => 401 ]
+				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' )
 			);
 		}
 
