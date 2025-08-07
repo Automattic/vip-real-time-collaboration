@@ -7,7 +7,13 @@
  */
 import { AwarenessManager } from './awareness-manager';
 
-import type { AwarenessStates, ObjectData, SyncConfig } from '@wordpress/sync';
+import type {
+	AwarenessStates,
+	ObjectData,
+	ObjectID,
+	ObjectType,
+	SyncConfig,
+} from '@wordpress/sync';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	private awarenessManager = new AwarenessManager();
@@ -24,23 +30,38 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const entityId = this.getEntityId( objectType, objectId );
 
 		Array.from( this.connections.values() ).forEach( connection => {
-			if ( connection.awareness ) {
+			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}
 		} );
 	}
 
-	/**
-	 * Get the states of all awareness documents.
-	 */
-	public getAllLocalAwarenessStates(): AwarenessStates {
-		return this.awarenessManager.getAllLocalState();
+	public getAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
+		return this.awarenessManager.getAllStates( this.getEntityId( objectType, objectId ) );
 	}
 
-	/**
-	 * Removes the states of all awareness documents.
-	 */
-	public removeAllLocalAwarenessStates(): void {
-		return this.awarenessManager.removeAllLocalState();
+	public getLocalAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
+		return this.awarenessManager.getLocalStates( this.getEntityId( objectType, objectId ) );
+	}
+
+	public getLocalAwarenessState(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		field: string
+	): unknown {
+		return this.awarenessManager.getLocalState( this.getEntityId( objectType, objectId ), field );
+	}
+
+	public removeAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): void {
+		return this.awarenessManager.removeAllStates( this.getEntityId( objectType, objectId ) );
+	}
+
+	public setLocalAwarenessState(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		field: string,
+		value: unknown
+	): void {
+		this.awarenessManager.setLocalState( this.getEntityId( objectType, objectId ), field, value );
 	}
 }
