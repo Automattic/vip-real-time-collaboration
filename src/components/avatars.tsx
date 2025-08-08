@@ -20,13 +20,13 @@ export function AwarenessAvatars() {
 	const remainingUsersText = remainingUsers.map( userState => userState.name ).join( ', ' );
 
 	return (
-		<div className="vip-realtime-collaboration-avatars">
+		<div className="vip-real-time-collaboration-avatars">
 			{ visibleUsers.map( userState => (
 				<Avatar key={ userState.id } userState={ userState } showUserColorBorder={ true } />
 			) ) }
 
 			{ remainingUsers.length > 0 && (
-				<div className="vip-realtime-collaboration-avatar-remaining" title={ remainingUsersText }>
+				<div className="vip-real-time-collaboration-avatar-remaining" title={ remainingUsersText }>
 					+{ remainingUsers.length }
 				</div>
 			) }

@@ -8,6 +8,7 @@
 import { AwarenessManager } from './awareness-manager';
 
 import type {
+	AwarenessEventListener,
 	AwarenessStates,
 	ObjectData,
 	ObjectID,
@@ -25,11 +26,17 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	): Promise< void > {
 		await super.bootstrap( syncConfig, initialData, handleChanges );
 
-		const objectId = syncConfig.getObjectId( initialData );
 		const objectType = syncConfig.objectType;
+		const objectId = syncConfig.getObjectId( initialData );
 		const entityId = this.getEntityId( objectType, objectId );
 
-		Array.from( this.connections.values() ).forEach( connection => {
+		const connections = Array.from( this.connections.values() ).flat();
+
+		connections.forEach( connection => {
+			console.log( '--- connection:', connection, {
+				awareness: connection.awareness,
+				supportsAwareness: syncConfig.supportsAwareness,
+			} );
 			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}
@@ -47,7 +54,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public getLocalAwarenessState(
 		objectType: ObjectType,
 		objectId: ObjectID,
-		field: string
+		field?: string
 	): unknown {
 		return this.awarenessManager.getLocalState( this.getEntityId( objectType, objectId ), field );
 	}
@@ -63,5 +70,18 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		value: unknown
 	): void {
 		this.awarenessManager.setLocalState( this.getEntityId( objectType, objectId ), field, value );
+	}
+
+	public addAwarenessListener(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		eventType: 'ready' | 'change' | 'update',
+		listener: AwarenessEventListener
+	): void {
+		this.awarenessManager.addListener(
+			this.getEntityId( objectType, objectId ),
+			eventType,
+			listener
+		);
 	}
 }

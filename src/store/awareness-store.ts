@@ -3,7 +3,7 @@ import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
 import { type SelectionState } from '@/hooks/use-render-cursors';
 
-const STORE_NAME = 'vip-realtime-collaboration/awareness';
+const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
 export interface UserState extends User {
 	color: string;

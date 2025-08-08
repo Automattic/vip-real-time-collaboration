@@ -29,6 +29,8 @@ export class AwarenessManager {
 				awareness.setLocalStateField( field, value );
 			}
 		);
+
+		awareness.emit( 'ready', [] );
 	}
 
 	/**
@@ -36,7 +38,7 @@ export class AwarenessManager {
 	 */
 	public addListener(
 		entityId: EntityID,
-		eventType: 'change' | 'update',
+		eventType: 'ready' | 'change' | 'update',
 		listener: AwarenessEventListener
 	): void {
 		if ( ! this.instances.has( entityId ) ) {
@@ -75,8 +77,13 @@ export class AwarenessManager {
 	/**
 	 * Get a local state field from all awareness documents.
 	 */
-	public getLocalState( entityId: EntityID, field: string ): unknown {
+	public getLocalState( entityId: EntityID, field?: string ): unknown {
 		const state = this.instances.get( entityId )?.getLocalState() ?? {};
+
+		if ( field === undefined ) {
+			return state;
+		}
+
 		return state[ field ] ?? null; // eslint-disable-line security/detect-object-injection
 	}
 

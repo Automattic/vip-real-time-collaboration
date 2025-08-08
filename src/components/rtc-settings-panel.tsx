@@ -42,9 +42,9 @@ export function RTCSettingsPanel() {
 
 	return (
 		<PluginDocumentSettingPanel
-			name="vip-realtime-collaboration"
-			title="Realtime Collaboration"
-			className="vip-realtime-collaboration-settings"
+			name="vip-real-time-collaboration"
+			title="Real-Time Collaboration"
+			className="vip-real-time-collaboration-settings"
 		>
 			<div>
 				<ToggleControl
@@ -73,16 +73,16 @@ export function RTCSettingsPanel() {
 			</div>
 
 			<Text style={ { marginTop: '16px', display: 'block' } }>
-				{ __( 'Collaborators', 'vip-realtime-collaboration' ) }
+				{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
 			</Text>
 
-			<Flex direction="column" className="vip-realtime-collaboration-sidebar-users" gap={ 0 }>
+			<Flex direction="column" className="vip-real-time-collaboration-sidebar-users" gap={ 0 }>
 				{ activeUsers.map( userState => (
 					<FlexItem key={ userState.id }>
 						<Flex
 							direction="row"
 							justify="flex-start"
-							className="vip-realtime-collaboration-sidebar-user-row"
+							className="vip-real-time-collaboration-sidebar-user-row"
 						>
 							<Avatar userState={ userState } showUserColorBorder={ true } />
 							<Text>{ userState.name }</Text>

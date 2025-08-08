@@ -1,4 +1,4 @@
-.vip-realtime-collaboration-avatars {
+.vip-real-time-collaboration-avatars {
 	background-color: #fff;
 	border-radius: 16px;
 	border: 1px solid #ddd;
@@ -11,7 +11,7 @@
 	display: flex;
 	align-items: center;
 
-	.vip-realtime-collaboration-avatar {
+	.vip-real-time-collaboration-avatar {
 		margin-left: -10px;
 
 		&:nth-child(1) {
@@ -28,12 +28,12 @@
 		}
 	}
 
-	.vip-realtime-collaboration-avatar-remaining {
+	.vip-real-time-collaboration-avatar-remaining {
 		margin: 0 6px 0 4px;
 	}
 }
 
-.vip-realtime-collaboration-avatar {
+.vip-real-time-collaboration-avatar {
 	width: 28px;
 	height: 28px;
 
@@ -49,7 +49,7 @@
 	}
 }
 
-.vip-realtime-collaboration-sidebar-users {
+.vip-real-time-collaboration-sidebar-users {
 	margin: 8px 0 0 10px;
 
 	.components-flex-item {
@@ -61,7 +61,7 @@
 	}
 }
 
-.vip-realtime-collaboration-overlay {
+.vip-real-time-collaboration-overlay {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -70,7 +70,7 @@
 	pointer-events: none;
 	z-index: 20000;
 
-	.vip-realtime-collaboration-overlay-full {
+	.vip-real-time-collaboration-overlay-full {
 		position: absolute;
 		top: 0;
 		left: 0;
@@ -78,24 +78,24 @@
 		height: 100%;
 	}
 
-	.vip-realtime-collaboration-overlay-fixed {
+	.vip-real-time-collaboration-overlay-fixed {
 		position: fixed;
 		width: 100%;
 		height: 100%;
 	}
 }
 
-.vip-realtime-collaboration-user {
+.vip-real-time-collaboration-user {
 	position: absolute;
 }
 
-.vip-realtime-collaboration-user-cursor {
+.vip-real-time-collaboration-user-cursor {
 	position: absolute;
 	width: 2px;
-	animation: vip-realtime-collaboration-cursor-blink 1s infinite;
+	animation: vip-real-time-collaboration-cursor-blink 1s infinite;
 }
 
-.vip-realtime-collaboration-user-label {
+.vip-real-time-collaboration-user-label {
 	position: absolute;
 	font-size: 11px;
 	padding: 2px 6px;
@@ -107,7 +107,7 @@
 	white-space: nowrap;
 }
 
-@keyframes vip-realtime-collaboration-cursor-blink {
+@keyframes vip-real-time-collaboration-cursor-blink {
 	0%, 100% { opacity: 1; }
 	50% { opacity: 0.5; }
 }

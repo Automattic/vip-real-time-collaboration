@@ -8,12 +8,13 @@ import { debounce } from '@wordpress/compose';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
-import { type SyncProvider } from '@wordpress/sync';
 
+import { getCurrentEntity } from './use-editor-entity';
 import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import { throttleByAnimationFrame } from '../utilities/throttle';
+import { SyncProviderWithAwareness } from '@/provider';
 import { UserState } from '@/store/awareness-store';
 
 import type { MutableRefObject } from 'react';
@@ -68,7 +69,7 @@ export type SelectionState =
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null,
-	awareness: SyncProvider[ 'awareness' ]
+	syncProvider: SyncProviderWithAwareness
 ) {
 	const { selectionStart, selectionEnd, isBlockValid } = useSelect<
 		BlockEditorStoreSelectors,
@@ -129,8 +130,8 @@ export function useRenderCursors(
 
 	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
-		debouncedUpdateSelection( selectionStart, selectionEnd, awareness );
-	}, [ selectionStart, selectionEnd, awareness, debouncedUpdateSelection ] );
+		debouncedUpdateSelection( selectionStart, selectionEnd, syncProvider );
+	}, [ selectionStart, selectionEnd, syncProvider, debouncedUpdateSelection ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
@@ -182,19 +183,23 @@ export function useRenderCursors(
  *
  * @param start - The start position of the selection
  * @param end - The end position of the selection
- * @param awarenessInstance - The awareness instance to update
+ * @param syncProvider - A syncProvider providing awareness functions
  */
 const updateSelection = (
 	start: WPBlockSelection,
 	end: WPBlockSelection,
-	awarenessInstance: SyncProvider[ 'awareness' ]
+	syncProvider: SyncProviderWithAwareness
 ) => {
+	const { objectType, objectId } = getCurrentEntity();
 	const selectionState = getSelectionState( start, end );
-	const localState = awarenessInstance.getLocalState();
-	const userState = localState?.userState as UserState | undefined;
+	const userState = syncProvider.getLocalAwarenessState(
+		objectType,
+		objectId,
+		'userState'
+	) as UserState;
 
 	if ( userState ) {
-		awarenessInstance.setLocalStateField( 'userState', {
+		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', {
 			...userState,
 			editorState: {
 				...userState.editorState,
@@ -268,7 +273,7 @@ const drawUserSelections = (
 	isEnabled: boolean
 ) => {
 	// Clear up previous state
-	const userContainers = overlay.querySelectorAll( '.vip-realtime-collaboration-user' );
+	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
 	userContainers.forEach( container => {
 		container.remove();
 	} );
@@ -309,19 +314,19 @@ const drawUserSelections = (
 			// Create parent container
 			// Use `document` instead of `editorDocument` because the overlay is in the parent document.
 			const userContainer = document.createElement( 'div' );
-			userContainer.className = 'vip-realtime-collaboration-user';
+			userContainer.className = 'vip-real-time-collaboration-user';
 			userContainer.style.left = `${ coords.x }px`;
 			userContainer.style.top = `${ coords.y }px`;
 
 			// Create cursor element
 			const cursor = document.createElement( 'div' );
-			cursor.className = 'vip-realtime-collaboration-user-cursor';
+			cursor.className = 'vip-real-time-collaboration-user-cursor';
 			cursor.style.backgroundColor = color;
 			cursor.style.height = `${ coords.height }px`;
 
 			// Create label
 			const label = document.createElement( 'div' );
-			label.className = 'vip-realtime-collaboration-user-label';
+			label.className = 'vip-real-time-collaboration-user-label';
 			label.textContent = userName;
 			label.style.backgroundColor = color;
 

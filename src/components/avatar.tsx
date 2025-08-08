@@ -18,7 +18,7 @@ export function Avatar( {
 	};
 
 	return (
-		<div className="vip-realtime-collaboration-avatar">
+		<div className="vip-real-time-collaboration-avatar">
 			<img
 				src={ avatarUrl }
 				alt={ userState.name }

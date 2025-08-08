@@ -2,7 +2,7 @@ import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
 import { loadFromLocalStorage, saveToLocalStorage } from '../utilities/local-storage';
 
-const STORE_NAME = 'vip-realtime-collaboration/settings';
+const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
 interface SettingsState {
