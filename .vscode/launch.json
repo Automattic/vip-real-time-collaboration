@@ -7,7 +7,7 @@
       "request": "launch",
       "port": 9003,
       "pathMappings": {
-        "/var/www/html/wp-content/plugins/vip-realtime-collaboration": "${workspaceFolder}/"
+        "/var/www/html/wp-content/plugins/vip-real-time-collaboration": "${workspaceFolder}/"
       }
     },
     {
