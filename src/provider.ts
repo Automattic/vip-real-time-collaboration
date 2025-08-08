@@ -10,6 +10,7 @@ import { AwarenessManager } from './awareness-manager';
 import type {
 	AwarenessEventListener,
 	AwarenessStates,
+	ConnectDocResult,
 	ObjectData,
 	ObjectID,
 	ObjectType,
@@ -30,13 +31,9 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const objectId = syncConfig.getObjectId( initialData );
 		const entityId = this.getEntityId( objectType, objectId );
 
-		const connections = Array.from( this.connections.values() ).flat();
+		const connections = this.connections.get( entityId ) ?? [];
 
-		connections.forEach( connection => {
-			console.log( '--- connection:', connection, {
-				awareness: connection.awareness,
-				supportsAwareness: syncConfig.supportsAwareness,
-			} );
+		connections.forEach( ( connection: ConnectDocResult ) => {
 			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}

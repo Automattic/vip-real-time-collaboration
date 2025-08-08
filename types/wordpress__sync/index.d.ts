@@ -39,7 +39,7 @@ declare module '@wordpress/sync' {
 	};
 
 	class SyncProvider {
-		protected connections: Map< EntityID, ConnectDocResult >;
+		protected connections: Map< EntityID, ConnectDocResult[] >;
 
 		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
 		public bootstrap(

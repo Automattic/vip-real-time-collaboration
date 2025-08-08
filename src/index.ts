@@ -38,7 +38,6 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 
 	const { objectType, objectId } = getCurrentEntity();
 	syncProvider.addAwarenessListener( objectType, objectId, 'ready', () => {
-		console.log( 'Received awareness ready' );
 		setupAwareness( syncProvider ).catch( error => {
 			console.error( 'Error setting up awareness:', error );
 		} );
