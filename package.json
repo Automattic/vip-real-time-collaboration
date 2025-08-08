@@ -1,12 +1,12 @@
 {
-  "name": "vip-realtime-collaboration",
+  "name": "vip-real-time-collaboration",
   "version": "0.1.0",
   "description": "Real-time collaboration plugin for WordPress VIP",
   "main": "build/index.js",
   "keywords": [
     "wordpress",
     "plugin",
-    "realtime",
+    "real-time",
     "collaboration",
     "vip"
   ],
@@ -14,7 +14,7 @@
     "build/",
     "inc/",
     "vendor/",
-    "vip-realtime-collaboration.php"
+    "vip-real-time-collaboration.php"
   ],
   "author": "Automattic",
   "license": "GPL-2.0-or-later",
@@ -45,34 +45,46 @@
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
     "start:websocket-server": "npx --yes tsx websocket-server",
+    "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
+    "test:e2e:debug": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts --ui",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
     "@automattic/eslint-plugin-wpvip": "0.13.1",
+    "@playwright/test": "^1.54.1",
+    "@types/jsonwebtoken": "9.0.10",
     "@types/wordpress__block-editor": "^11.5.17",
+    "@wordpress/api-fetch": "7.27.0",
     "@wordpress/block-editor": "^14.21.0",
     "@wordpress/blocks": "^15.0.0",
     "@wordpress/components": "^29.12.0",
     "@wordpress/compose": "^7.26.0",
-    "@wordpress/core-data": "^7.26.0",
+    "@wordpress/core-data": "7.27.0",
     "@wordpress/data": "^10.26.0",
     "@wordpress/dom-ready": "^4.26.0",
+    "@wordpress/e2e-test-utils-playwright": "^1.26.0",
     "@wordpress/editor": "^14.26.0",
     "@wordpress/element": "^6.26.0",
     "@wordpress/env": "10.25.0",
     "@wordpress/hooks": "4.25.0",
-    "@wordpress/i18n": "^5.26.0",
+    "@wordpress/i18n": "6.0.0",
     "@wordpress/plugins": "^7.26.0",
     "@wordpress/scripts": "30.1.0",
-    "@wordpress/sync": "^1.26.0",
+    "@wordpress/sync": "1.27.0",
     "@y/websocket-server": "0.1.1",
     "eslint": "8.57.1",
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
+    "jsonwebtoken": "9.0.2",
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3",
-    "ws": "8.18.2"
+    "ws": "8.18.2",
+    "yjs": "13.6.27"
+  },
+  "dependencies": {
+    "y-protocols": "1.0.6",
+    "y-websocket": "3.0.0"
   }
 }

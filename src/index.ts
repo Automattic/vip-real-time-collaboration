@@ -1,74 +1,66 @@
 import { store as coreStore, type User } from '@wordpress/core-data';
 import { select, dispatch } from '@wordpress/data';
-import domReady from '@wordpress/dom-ready';
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
-import {
-	getSyncProvider,
-	type SyncProvider,
-	type ConnectDoc,
-	type LocalConnectionCreators,
-	type RemoteConnectionCreators,
-} from '@wordpress/sync';
+import { type SyncProvider } from '@wordpress/sync';
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
+import { getCurrentEntity } from './hooks/use-editor-entity';
 import { SelectionType } from './hooks/use-render-cursors';
+import { SyncProviderWithAwareness } from './provider';
 import { store as awarenessStore, UserState } from './store/awareness-store';
 import { getNewUserColor } from './utilities/user-color';
-import { getWebSocketUrl } from './utils';
+import { createWebSocketConnection, getWebSocketConnectionConfig } from './websocket-client';
 
 type UserStates = Map< number, { userState: UserState } >;
 
-addFilter(
-	'core.getSyncProviderLocalConnection',
-	'vip-realtime-collaboration',
-	( connection: ConnectDoc | null, connectionCreators: LocalConnectionCreators ) => {
-		return connection ?? connectionCreators.createIndexedDBConnection();
+addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) => {
+	if ( provider ) {
+		// If a provider already exists, return it.
+		return provider;
 	}
-);
 
-addFilter(
-	'core.getSyncProviderRemoteConnection',
-	'vip-realtime-collaboration',
-	( connection: ConnectDoc | null, connectionCreators: RemoteConnectionCreators ) => {
-		if ( connection ) {
-			// If a connection already exists, return it.
-			return connection;
-		}
+	const webSocketConnectionConfig = getWebSocketConnectionConfig();
 
-		// We already error check for the WebSocket URL in the main plugin file,
-		// so this is here for safety.
-		const serverUrl = getWebSocketUrl();
-		// ToDo: Remove this before we go into production.
-		// eslint-disable-next-line no-console
-		console.log( 'WebSocket URL:', serverUrl );
+	// We already error check for the WebSocket URL in the main plugin file,
+	// so this is here for safety.
+	if ( ! webSocketConnectionConfig.serverUrl ) {
+		console.error(
+			'VIP Real-Time Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
+		);
+		return null;
+	}
 
-		if ( ! serverUrl ) {
-			// ToDo: Replace this with a proper UI notice.
-			// eslint-disable-next-line no-console
-			console.error(
-				'VIP Realtime Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
-			);
-			return null;
-		}
+	const remoteConnection = createWebSocketConnection( webSocketConnectionConfig );
 
-		return connectionCreators.createWebSocketConnection( {
-			serverUrl,
+	const syncProvider = new SyncProviderWithAwareness( null, remoteConnection );
+
+	const { objectType, objectId } = getCurrentEntity();
+	syncProvider.addAwarenessListener( objectType, objectId, 'ready', () => {
+		console.log( 'Received awareness ready' );
+		setupAwareness( syncProvider ).catch( error => {
+			console.error( 'Error setting up awareness:', error );
 		} );
-	}
-);
+	} );
 
-registerPlugin( 'vip-realtime-collaboration', {
+	return syncProvider;
+} );
+
+registerPlugin( 'vip-real-time-collaboration', {
 	render: RTCSettingsPanel,
 } );
 
-async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
+async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 	const { updateUser, removeStateId } = dispatch( awarenessStore );
 
-	awareness.addListener(
+	const { objectType, objectId } = getCurrentEntity();
+
+	syncProvider.addAwarenessListener(
+		objectType,
+		objectId,
 		'change',
-		async ( {
+		( {
 			added,
 			updated,
 			removed,
@@ -77,7 +69,10 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 			updated: Array< number >;
 			removed: Array< number >;
 		} ) => {
-			const userStates: UserStates = awareness.getStates() as UserStates;
+			const userStates: UserStates = syncProvider.getAllAwarenessStates(
+				objectType,
+				objectId
+			) as UserStates;
 
 			const modifiedUsers = [ ...added, ...updated ];
 
@@ -87,15 +82,17 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 				if ( userState ) {
 					return updateUser( id, userState );
 				}
-
-				return Promise.resolve();
 			} );
 
 			const removePromises = removed.map( id => {
 				return removeStateId( id );
 			} );
 
-			await Promise.all( [ ...updatePromises, ...removePromises ] );
+			( async () => {
+				await Promise.all( [ ...updatePromises, ...removePromises ] );
+			} )().catch( error => {
+				console.error( 'Error updating user states from awareness:', error );
+			} );
 		}
 	);
 
@@ -115,14 +112,14 @@ async function setupAwareness( awareness: SyncProvider[ 'awareness' ] ) {
 		},
 	};
 
-	awareness.setLocalStateField( 'userState', userState );
+	syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', userState );
 
 	window.addEventListener( 'beforeunload', () => {
-		awareness.setLocalStateField( 'userState', null );
-		awareness.removeAwarenessStates();
+		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', null );
+		syncProvider.removeAllAwarenessStates( objectType, objectId );
 	} );
 
-	createRTCOverlay( awareness );
+	createRTCOverlay( syncProvider );
 }
 
 async function getCurrentUserInfo(): Promise< User > {
@@ -138,10 +135,10 @@ async function getCurrentUserInfo(): Promise< User > {
 	return currentUser;
 }
 
-domReady( function () {
-	const syncProvider: SyncProvider = getSyncProvider();
+// domReady( function () {
+// 	const syncProvider: SyncProviderWithAwareness = getSyncProvider();
 
-	syncProvider.awareness.addListener( 'ready', async () => {
-		await setupAwareness( syncProvider.awareness );
-	} );
-} );
+// 	syncProvider.addAwarenessListener( 'ready', async () => {
+// 		await setupAwareness( syncProvider );
+// 	} );
+// } );

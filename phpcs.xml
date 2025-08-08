@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
-<ruleset name="vip-realtime-collaboration">
-	<description>Custom ruleset for VIP Realtime Collaboration</description>
+<ruleset name="vip-real-time-collaboration">
+	<description>Custom ruleset for VIP Real-Time Collaboration</description>
 
 	<!-- For help in understanding this file: https://github.com/squizlabs/PHP_CodeSniffer/wiki/Annotated-ruleset.xml -->
 	<!-- For help in using PHPCS: https://github.com/squizlabs/PHP_CodeSniffer/wiki/Usage -->
@@ -115,7 +115,7 @@
 
 	<!-- Exclude PSR12.Files.FileHeader.IncorrectOrder for specific files -->
 	<rule ref="PSR12.Files.FileHeader.IncorrectOrder">
-		<exclude-pattern>vip-realtime-collaboration.php</exclude-pattern>
+		<exclude-pattern>vip-real-time-collaboration.php</exclude-pattern>
 	</rule>
 
 	<!-- These functions are new via the Interactivity API and are auto-escaped -->
@@ -132,6 +132,7 @@
 		<properties>
 			<property name="custom_capabilities" type="array">
 				<element value="view_query_monitor" />
+				<element value="sync_post" />
 			</property>
 		</properties>
 	</rule>

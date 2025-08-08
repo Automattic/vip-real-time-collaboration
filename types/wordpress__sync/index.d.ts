@@ -1,43 +1,62 @@
-declare module '@wordpress/sync' {
-	interface LocalConnectionCreators {
-		createIndexedDBConnection: () => ConnectDoc;
-	}
+/**
+ * External dependencies
+ */
+import type { Awareness } from 'y-protocols/awareness';
+import type * as Y from 'yjs';
 
-	interface RemoteConnectionCreators {
-		createWebSocketConnection: ( options: { serverUrl: string } ) => ConnectDoc;
-	}
+declare module '@wordpress/sync' {
+	type EntityID = string;
+	type ObjectID = string;
+	type ObjectType = string;
+	type ObjectData = object;
+	type UndoManager = Y.UndoManager;
+
+	type AwarenessClientID = number;
+
+	type AwarenessEventListener = ( params: {
+		added: AwarenessClientID[];
+		updated: AwarenessClientID[];
+		removed: AwarenessClientID[];
+	} ) => void;
+
+	type AwarenessStates = Record< string, any >;
+
+	type CRDTDoc = Y.Doc;
+
+	type ConnectDocResult = {
+		awareness?: Awareness;
+		destroy: () => void;
+	};
 
 	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
 
-	type ConnectDocResult = {
-		destroy: () => void;
-		awareness: Awareness;
+	type SyncConfig = {
+		applyChangesToDoc: ( ydoc: Y.Doc, data: Partial< ObjectData > ) => void;
+		fromCRDTDoc: ( ydoc: Y.Doc ) => ObjectData;
+		getObjectId: ( data: ObjectData ) => ObjectID;
+		objectType: ObjectType;
+		supportsAwareness?: boolean;
 	};
 
-	type SyncProvider = {
-		register: ( type: ObjectType, config: ObjectConfig ) => void;
-		bootstrap: (
+	class SyncProvider {
+		protected connections: Map< EntityID, ConnectDocResult >;
+
+		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
+		public bootstrap(
+			syncConfig: SyncConfig,
+			initialData: ObjectData,
+			handleChanges: ( data: Partial< ObjectData > ) => void
+		): Promise< void >;
+		public configs: Map< ObjectType, SyncConfig >;
+		public discard( type: ObjectType, id: ObjectID ): void;
+		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
+		public update(
 			type: ObjectType,
-			id: ObjectID,
-			handleChanges: ( data: any ) => void
-		) => Promise< Y.Doc >;
-		encodeState: ( type: ObjectType, id: ObjectID ) => Uint8Array | null;
-		update: ( type: ObjectType, id: ObjectID, data: any, origin: any ) => void;
-		discard: ( type: ObjectType, id: ObjectID ) => Promise< void >;
-		postTypeConfigs: { [ postType: string ]: ObjectConfig };
-
-		awareness: {
-			addListener: (
-				eventType: 'ready' | 'update' | 'change',
-				listener: AwarenessEventListener
-			) => void;
-			getClientId: () => number | null;
-			getLocalState: () => Record< string, any > | null;
-			getStates: () => Map< number, Record< string, any > > | null;
-			setLocalStateField: ( field: string, value: any ) => void;
-			removeAwarenessStates: () => void;
-		};
-	};
-
-	function getSyncProvider(): SyncProvider;
+			record: ObjectData,
+			changes: Partial< ObjectData >,
+			origin: string
+		): void;
+	}
 }
+
+export {};
