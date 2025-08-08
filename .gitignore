@@ -12,10 +12,12 @@ coverage
 
 # Build output (only at root)
 /build/
+/websocket-server/dist/
 
 # Dependency directories
 /node_modules/
 /vendor/
+/websocket-server/node_modules/
 
 # Optional npm cache directory
 .npm
