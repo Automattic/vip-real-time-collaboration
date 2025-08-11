@@ -1,15 +1,15 @@
 import { store as coreStore, type User } from '@wordpress/core-data';
-import { select, dispatch } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 import { type SyncProvider } from '@wordpress/sync';
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
-import { getCurrentEntity } from './hooks/use-editor-entity';
 import { SelectionType } from './hooks/use-render-cursors';
 import { SyncProviderWithAwareness } from './provider';
-import { store as awarenessStore, UserState } from './store/awareness-store';
+import { UserState, store as awarenessStore } from './store/awareness-store';
+import { getCurrentEntity } from './utilities/entity';
 import { getNewUserColor } from './utilities/user-color';
 import { createWebSocketConnection, getWebSocketConnectionConfig } from './websocket-client';
 
@@ -36,12 +36,11 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 
 	const syncProvider = new SyncProviderWithAwareness( null, remoteConnection );
 
-	const { objectType, objectId } = getCurrentEntity();
-	syncProvider.addAwarenessListener( objectType, objectId, 'ready', () => {
+	setTimeout( () => {
 		setupAwareness( syncProvider ).catch( error => {
 			console.error( 'Error setting up awareness:', error );
 		} );
-	} );
+	}, 0 );
 
 	return syncProvider;
 } );
@@ -51,9 +50,9 @@ registerPlugin( 'vip-real-time-collaboration', {
 } );
 
 async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
+	const userInfo = await getCurrentUserInfo();
+	const { objectType, objectId } = await getCurrentEntity();
 	const { updateUser, removeStateId } = dispatch( awarenessStore );
-
-	const { objectType, objectId } = getCurrentEntity();
 
 	syncProvider.addAwarenessListener(
 		objectType,
@@ -81,6 +80,8 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 				if ( userState ) {
 					return updateUser( id, userState );
 				}
+
+				return Promise.resolve();
 			} );
 
 			const removePromises = removed.map( id => {
@@ -95,30 +96,31 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 		}
 	);
 
-	const userInfo = await getCurrentUserInfo();
-	const otherUserColors = select( awarenessStore )
-		.getActiveUsers()
-		.map( user => user.color );
-	const color = getNewUserColor( otherUserColors );
+	syncProvider.addAwarenessListener( objectType, objectId, 'ready', () => {
+		const otherUserColors = select( awarenessStore )
+			.getActiveUsers()
+			.map( user => user.color );
+		const color = getNewUserColor( otherUserColors );
 
-	const userState: UserState = {
-		...userInfo,
-		color,
-		editorState: {
-			selection: {
-				type: SelectionType.None,
+		const userState: UserState = {
+			...userInfo,
+			color,
+			editorState: {
+				selection: {
+					type: SelectionType.None,
+				},
 			},
-		},
-	};
+		};
 
-	syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', userState );
+		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', userState );
 
-	window.addEventListener( 'beforeunload', () => {
-		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', null );
-		syncProvider.removeAllAwarenessStates( objectType, objectId );
+		window.addEventListener( 'beforeunload', () => {
+			syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', null );
+			syncProvider.removeAllAwarenessStates( objectType, objectId );
+		} );
+
+		createRTCOverlay( syncProvider );
 	} );
-
-	createRTCOverlay( syncProvider );
 }
 
 async function getCurrentUserInfo(): Promise< User > {
@@ -133,11 +135,3 @@ async function getCurrentUserInfo(): Promise< User > {
 
 	return currentUser;
 }
-
-// domReady( function () {
-// 	const syncProvider: SyncProviderWithAwareness = getSyncProvider();
-
-// 	syncProvider.addAwarenessListener( 'ready', async () => {
-// 		await setupAwareness( syncProvider );
-// 	} );
-// } );

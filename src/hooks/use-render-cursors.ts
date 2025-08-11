@@ -9,10 +9,10 @@ import { useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
-import { getCurrentEntity } from './use-editor-entity';
 import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
+import { getCurrentEntity } from '../utilities/entity';
 import { throttleByAnimationFrame } from '../utilities/throttle';
 import { SyncProviderWithAwareness } from '@/provider';
 import { UserState } from '@/store/awareness-store';
@@ -185,12 +185,12 @@ export function useRenderCursors(
  * @param end - The end position of the selection
  * @param syncProvider - A syncProvider providing awareness functions
  */
-const updateSelection = (
+const updateSelection = async (
 	start: WPBlockSelection,
 	end: WPBlockSelection,
 	syncProvider: SyncProviderWithAwareness
 ) => {
-	const { objectType, objectId } = getCurrentEntity();
+	const { objectType, objectId } = await getCurrentEntity();
 	const selectionState = getSelectionState( start, end );
 	const userState = syncProvider.getLocalAwarenessState(
 		objectType,

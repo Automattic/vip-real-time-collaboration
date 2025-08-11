@@ -41,13 +41,19 @@ export class AwarenessManager {
 		eventType: 'ready' | 'change' | 'update',
 		listener: AwarenessEventListener
 	): void {
-		if ( ! this.instances.has( entityId ) ) {
+		const awarenessInstance = this.instances.get( entityId );
+
+		if ( awarenessInstance !== undefined ) {
+			awarenessInstance.on( eventType, listener );
+		} else {
+			// If we don't have an awareness instance yet, store the listener for later.
 			this.getPendingActions( entityId ).listeners.push( [ eventType, listener ] );
-			return;
 		}
 
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		this.instances.get( entityId )!.on( eventType, listener );
+		if ( eventType === 'ready' ) {
+			// If we already have an awareness instance and it's a ready event, call the listener immediately.
+			( listener as () => void )();
+		}
 	}
 
 	/**
