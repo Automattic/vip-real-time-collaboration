@@ -96,7 +96,7 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 		}
 	);
 
-	syncProvider.addAwarenessListener( objectType, objectId, 'ready', () => {
+	syncProvider.onAwarenessReady( objectType, objectId, () => {
 		const otherUserColors = select( awarenessStore )
 			.getActiveUsers()
 			.map( user => user.color );

@@ -12,10 +12,8 @@ import type {
 import type { Awareness } from 'y-protocols/awareness';
 
 interface AwarenessPendingActions {
-	listeners: (
-		| [ 'ready', AwarenessReadyCallback ]
-		| [ 'change' | 'update', AwarenessStateChangeCallback ]
-	 )[];
+	readyListeners: AwarenessReadyCallback[];
+	stateChangeListeners: [ 'change' | 'update', AwarenessStateChangeCallback ][];
 	localState: Map< string, unknown >;
 }
 
@@ -26,11 +24,18 @@ export class AwarenessManager {
 	public bootstrap( entityId: EntityID, awareness: Awareness ): void {
 		this.instances.set( entityId, awareness );
 
-		this.pendingActions.get( entityId )?.listeners.forEach( ( [ eventType, callback ] ) => {
+		const pendingActions = this.pendingActions.get( entityId );
+
+		pendingActions?.readyListeners.forEach( callback => {
+			awareness.on( 'ready', callback );
+		} );
+
+		// Add pending state change listeners
+		pendingActions?.stateChangeListeners.forEach( ( [ eventType, callback ] ) => {
 			awareness.on( eventType, callback );
 		} );
 
-		Array.from( this.pendingActions.get( entityId )?.localState?.entries() ?? [] ).forEach(
+		Array.from( pendingActions?.localState?.entries() ?? [] ).forEach(
 			( [ field, value ]: [ string, unknown ] ) => {
 				awareness.setLocalStateField( field, value );
 			}
@@ -40,44 +45,36 @@ export class AwarenessManager {
 	}
 
 	/**
-	 * Add a listener for awareness events on all awareness documents.
+	 * Add a listener for update and change awareness state change events.
 	 */
-	public addListener(
-		entityId: EntityID,
-		eventType: 'ready',
-		listener: AwarenessReadyCallback
-	): void;
 	public addListener(
 		entityId: EntityID,
 		eventType: 'change' | 'update',
 		listener: AwarenessStateChangeCallback
-	): void;
-
-	public addListener(
-		entityId: EntityID,
-		eventType: 'ready' | 'change' | 'update',
-		listener: AwarenessReadyCallback | AwarenessStateChangeCallback
 	): void {
 		const awarenessInstance = this.instances.get( entityId );
 
 		if ( awarenessInstance !== undefined ) {
 			awarenessInstance.on( eventType, listener );
-		} else if ( eventType === 'ready' ) {
-			// If we don't have an awareness instance yet, store the listener for later.
-			this.getPendingActions( entityId ).listeners.push( [
-				eventType,
-				listener as AwarenessReadyCallback,
-			] );
 		} else {
-			this.getPendingActions( entityId ).listeners.push( [
-				eventType,
-				listener as AwarenessStateChangeCallback,
-			] );
+			// If we don't have an awareness instance yet, store the listener for later.
+			this.getPendingActions( entityId ).stateChangeListeners.push( [ eventType, listener ] );
 		}
+	}
 
-		if ( eventType === 'ready' ) {
+	/**
+	 * Add a listener for awareness ready events.
+	 */
+	public addOnReadyListener( entityId: EntityID, listener: AwarenessReadyCallback ): void {
+		const awarenessInstance = this.instances.get( entityId );
+
+		if ( awarenessInstance !== undefined ) {
+			awarenessInstance.on( 'ready', listener );
 			// If we already have an awareness instance and it's a ready event, call the listener immediately.
-			( listener as AwarenessReadyCallback )();
+			listener();
+		} else {
+			// If we don't have an awareness instance yet, store the listener for later.
+			this.getPendingActions( entityId ).readyListeners.push( listener );
 		}
 	}
 
@@ -134,7 +131,8 @@ export class AwarenessManager {
 	private getPendingActions( entityId: EntityID ): AwarenessPendingActions {
 		if ( ! this.pendingActions.has( entityId ) ) {
 			this.pendingActions.set( entityId, {
-				listeners: [],
+				readyListeners: [],
+				stateChangeListeners: [],
 				localState: new Map(),
 			} );
 		}

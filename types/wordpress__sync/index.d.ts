@@ -19,7 +19,6 @@ declare module '@wordpress/sync' {
 		removed: AwarenessClientID[];
 	} ) => void;
 	type AwarenessReadyCallback = () => void;
-	type AwarenessEventListener = AwarenessStateChangeCallback | AwarenessReadyCallback;
 
 	type AwarenessStates = Record< string, any >;
 

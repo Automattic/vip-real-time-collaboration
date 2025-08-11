@@ -8,8 +8,9 @@
 import { AwarenessManager } from './awareness-manager';
 
 import type {
-	AwarenessEventListener,
 	AwarenessStates,
+	AwarenessStateChangeCallback,
+	AwarenessReadyCallback,
 	ConnectDocResult,
 	ObjectData,
 	ObjectID,
@@ -72,13 +73,21 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public addAwarenessListener(
 		objectType: ObjectType,
 		objectId: ObjectID,
-		eventType: 'ready' | 'change' | 'update',
-		listener: AwarenessEventListener
+		eventType: 'change' | 'update',
+		listener: AwarenessStateChangeCallback
 	): void {
 		this.awarenessManager.addListener(
 			this.getEntityId( objectType, objectId ),
 			eventType,
 			listener
 		);
+	}
+
+	public onAwarenessReady(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		listener: AwarenessReadyCallback
+	): void {
+		this.awarenessManager.addOnReadyListener( this.getEntityId( objectType, objectId ), listener );
 	}
 }
