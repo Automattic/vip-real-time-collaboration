@@ -26,21 +26,23 @@ export class AwarenessManager {
 
 		const pendingActions = this.pendingActions.get( entityId );
 
+		// Register pending actions
 		pendingActions?.readyListeners.forEach( callback => {
 			awareness.on( 'ready', callback );
 		} );
 
-		// Add pending state change listeners
 		pendingActions?.stateChangeListeners.forEach( ( [ eventType, callback ] ) => {
 			awareness.on( eventType, callback );
 		} );
 
+		// Set pending local state
 		Array.from( pendingActions?.localState?.entries() ?? [] ).forEach(
 			( [ field, value ]: [ string, unknown ] ) => {
 				awareness.setLocalStateField( field, value );
 			}
 		);
 
+		// Send a ready event
 		awareness.emit( 'ready', [] );
 	}
 
