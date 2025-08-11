@@ -3,11 +3,19 @@
  */
 import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
-import type { AwarenessEventListener, AwarenessStates, EntityID } from '@wordpress/sync';
+import type {
+	AwarenessStates,
+	EntityID,
+	AwarenessStateChangeCallback,
+	AwarenessReadyCallback,
+} from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
 
 interface AwarenessPendingActions {
-	listeners: [ string, AwarenessEventListener ][];
+	listeners: (
+		| [ 'ready', AwarenessReadyCallback ]
+		| [ 'change' | 'update', AwarenessStateChangeCallback ]
+	 )[];
 	localState: Map< string, unknown >;
 }
 
@@ -18,11 +26,9 @@ export class AwarenessManager {
 	public bootstrap( entityId: EntityID, awareness: Awareness ): void {
 		this.instances.set( entityId, awareness );
 
-		this.pendingActions
-			.get( entityId )
-			?.listeners.forEach( ( [ eventType, listener ]: [ string, AwarenessEventListener ] ) => {
-				awareness.on( eventType, listener );
-			} );
+		this.pendingActions.get( entityId )?.listeners.forEach( ( [ eventType, callback ] ) => {
+			awareness.on( eventType, callback );
+		} );
 
 		Array.from( this.pendingActions.get( entityId )?.localState?.entries() ?? [] ).forEach(
 			( [ field, value ]: [ string, unknown ] ) => {
@@ -38,21 +44,40 @@ export class AwarenessManager {
 	 */
 	public addListener(
 		entityId: EntityID,
+		eventType: 'ready',
+		listener: AwarenessReadyCallback
+	): void;
+	public addListener(
+		entityId: EntityID,
+		eventType: 'change' | 'update',
+		listener: AwarenessStateChangeCallback
+	): void;
+
+	public addListener(
+		entityId: EntityID,
 		eventType: 'ready' | 'change' | 'update',
-		listener: AwarenessEventListener
+		listener: AwarenessReadyCallback | AwarenessStateChangeCallback
 	): void {
 		const awarenessInstance = this.instances.get( entityId );
 
 		if ( awarenessInstance !== undefined ) {
 			awarenessInstance.on( eventType, listener );
-		} else {
+		} else if ( eventType === 'ready' ) {
 			// If we don't have an awareness instance yet, store the listener for later.
-			this.getPendingActions( entityId ).listeners.push( [ eventType, listener ] );
+			this.getPendingActions( entityId ).listeners.push( [
+				eventType,
+				listener as AwarenessReadyCallback,
+			] );
+		} else {
+			this.getPendingActions( entityId ).listeners.push( [
+				eventType,
+				listener as AwarenessStateChangeCallback,
+			] );
 		}
 
 		if ( eventType === 'ready' ) {
 			// If we already have an awareness instance and it's a ready event, call the listener immediately.
-			( listener as () => void )();
+			( listener as AwarenessReadyCallback )();
 		}
 	}
 
