@@ -52,7 +52,6 @@
   "devDependencies": {
     "@automattic/eslint-plugin-wpvip": "0.13.1",
     "@playwright/test": "^1.54.1",
-    "@types/jsonwebtoken": "9.0.10",
     "@types/wordpress__block-editor": "^11.5.17",
     "@wordpress/api-fetch": "7.27.0",
     "@wordpress/block-editor": "^14.21.0",
