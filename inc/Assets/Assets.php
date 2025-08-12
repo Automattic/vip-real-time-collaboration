@@ -68,6 +68,6 @@ final class Assets {
 	}
 
 	public function enqueue_block_assets(): void {
-		wp_enqueue_style( 'vip-real-time-collaboration', plugins_url( 'build/index.css', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ) );
+		wp_enqueue_style( 'vip-real-time-collaboration', plugins_url( 'build/index.css', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ), [], VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION );
 	}
 }
