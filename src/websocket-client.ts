@@ -3,12 +3,14 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
-import { WebsocketProvider, WebsocketProviderOptions } from 'y-websocket';
+import { WebsocketProvider } from './y-websocket';
+import { WebsocketProviderOptions } from 'y-websocket';
 
 import { getErrorMessage, getWebSocketUrl } from './utils';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
+import { websocket } from 'lib0';
 
 interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
@@ -88,6 +90,7 @@ async function configureProvider(
 		};
 
 		provider.connect();
+
 	} catch ( error ) {
 		const errorMessage = getErrorMessage( error );
 		// eslint-disable-next-line no-console
