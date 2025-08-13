@@ -88,6 +88,18 @@ async function configureProvider(
 		};
 
 		provider.connect();
+
+		// Log a link to inspect the Yjs provider using Yjs inspector.
+		const connectionConfig = {
+			createNewDoc: false,
+			room: `${ syncObjectType }-${ syncObjectId }?auth=${ authToken }`,
+			provider: 'y-websocket',
+			url: getWebSocketUrl(),
+		};
+		const inspectUrl = `http://localhost:5173/#/connection=${ encodeURIComponent(
+			JSON.stringify( connectionConfig )
+		) }`;
+		console.debug( `Inspect Yjs provider: ${ inspectUrl }` );
 	} catch ( error ) {
 		const errorMessage = getErrorMessage( error );
 		// eslint-disable-next-line no-console
