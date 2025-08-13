@@ -13,11 +13,12 @@ declare module '@wordpress/sync' {
 
 	type AwarenessClientID = number;
 
-	type AwarenessEventListener = ( params: {
+	type AwarenessStateChangeCallback = ( params: {
 		added: AwarenessClientID[];
 		updated: AwarenessClientID[];
 		removed: AwarenessClientID[];
 	} ) => void;
+	type AwarenessReadyCallback = () => void;
 
 	type AwarenessStates = Record< string, any >;
 
@@ -39,7 +40,7 @@ declare module '@wordpress/sync' {
 	};
 
 	class SyncProvider {
-		protected connections: Map< EntityID, ConnectDocResult >;
+		protected connections: Map< EntityID, ConnectDocResult[] >;
 
 		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
 		public bootstrap(

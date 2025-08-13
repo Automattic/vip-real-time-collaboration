@@ -3,11 +3,17 @@
  */
 import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
-import type { AwarenessEventListener, AwarenessStates, EntityID } from '@wordpress/sync';
+import type {
+	AwarenessStates,
+	EntityID,
+	AwarenessStateChangeCallback,
+	AwarenessReadyCallback,
+} from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
 
 interface AwarenessPendingActions {
-	listeners: [ string, AwarenessEventListener ][];
+	readyListeners: AwarenessReadyCallback[];
+	stateChangeListeners: [ 'change' | 'update', AwarenessStateChangeCallback ][];
 	localState: Map< string, unknown >;
 }
 
@@ -18,34 +24,60 @@ export class AwarenessManager {
 	public bootstrap( entityId: EntityID, awareness: Awareness ): void {
 		this.instances.set( entityId, awareness );
 
-		this.pendingActions
-			.get( entityId )
-			?.listeners.forEach( ( [ eventType, listener ]: [ string, AwarenessEventListener ] ) => {
-				awareness.on( eventType, listener );
-			} );
+		const pendingActions = this.pendingActions.get( entityId );
 
-		Array.from( this.pendingActions.get( entityId )?.localState?.entries() ?? [] ).forEach(
+		// Register pending actions
+		pendingActions?.readyListeners.forEach( callback => {
+			awareness.on( 'ready', callback );
+		} );
+
+		pendingActions?.stateChangeListeners.forEach( ( [ eventType, callback ] ) => {
+			awareness.on( eventType, callback );
+		} );
+
+		// Set pending local state
+		Array.from( pendingActions?.localState?.entries() ?? [] ).forEach(
 			( [ field, value ]: [ string, unknown ] ) => {
 				awareness.setLocalStateField( field, value );
 			}
 		);
+
+		// Send a ready event
+		awareness.emit( 'ready', [] );
 	}
 
 	/**
-	 * Add a listener for awareness events on all awareness documents.
+	 * Add a listener for update and change awareness state change events.
 	 */
 	public addListener(
 		entityId: EntityID,
 		eventType: 'change' | 'update',
-		listener: AwarenessEventListener
+		listener: AwarenessStateChangeCallback
 	): void {
-		if ( ! this.instances.has( entityId ) ) {
-			this.getPendingActions( entityId ).listeners.push( [ eventType, listener ] );
-			return;
-		}
+		const awarenessInstance = this.instances.get( entityId );
 
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		this.instances.get( entityId )!.on( eventType, listener );
+		if ( awarenessInstance !== undefined ) {
+			awarenessInstance.on( eventType, listener );
+		} else {
+			// If we don't have an awareness instance yet, store the listener for later.
+			this.getPendingActions( entityId ).stateChangeListeners.push( [ eventType, listener ] );
+		}
+	}
+
+	/**
+	 * Add a listener for awareness ready events.
+	 */
+	public addOnReadyListener( entityId: EntityID, listener: AwarenessReadyCallback ): void {
+		const awarenessInstance = this.instances.get( entityId );
+
+		if ( awarenessInstance !== undefined ) {
+			awarenessInstance.on( 'ready', listener );
+			// If we already have an awareness instance and it's a ready event, call the listener immediately.
+			listener();
+		} else {
+			// If we don't have an awareness instance yet, store the listener for later.
+			this.getPendingActions( entityId ).readyListeners.push( listener );
+		}
 	}
 
 	/**
@@ -75,8 +107,13 @@ export class AwarenessManager {
 	/**
 	 * Get a local state field from all awareness documents.
 	 */
-	public getLocalState( entityId: EntityID, field: string ): unknown {
+	public getLocalState( entityId: EntityID, field?: string ): unknown {
 		const state = this.instances.get( entityId )?.getLocalState() ?? {};
+
+		if ( field === undefined ) {
+			return state;
+		}
+
 		return state[ field ] ?? null; // eslint-disable-line security/detect-object-injection
 	}
 
@@ -96,7 +133,8 @@ export class AwarenessManager {
 	private getPendingActions( entityId: EntityID ): AwarenessPendingActions {
 		if ( ! this.pendingActions.has( entityId ) ) {
 			this.pendingActions.set( entityId, {
-				listeners: [],
+				readyListeners: [],
+				stateChangeListeners: [],
 				localState: new Map(),
 			} );
 		}

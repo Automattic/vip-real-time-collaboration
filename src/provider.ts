@@ -9,6 +9,9 @@ import { AwarenessManager } from './awareness-manager';
 
 import type {
 	AwarenessStates,
+	AwarenessStateChangeCallback,
+	AwarenessReadyCallback,
+	ConnectDocResult,
 	ObjectData,
 	ObjectID,
 	ObjectType,
@@ -25,11 +28,13 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	): Promise< void > {
 		await super.bootstrap( syncConfig, initialData, handleChanges );
 
-		const objectId = syncConfig.getObjectId( initialData );
 		const objectType = syncConfig.objectType;
+		const objectId = syncConfig.getObjectId( initialData );
 		const entityId = this.getEntityId( objectType, objectId );
 
-		Array.from( this.connections.values() ).forEach( connection => {
+		const connections = this.connections.get( entityId ) ?? [];
+
+		connections.forEach( ( connection: ConnectDocResult ) => {
 			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}
@@ -47,7 +52,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public getLocalAwarenessState(
 		objectType: ObjectType,
 		objectId: ObjectID,
-		field: string
+		field?: string
 	): unknown {
 		return this.awarenessManager.getLocalState( this.getEntityId( objectType, objectId ), field );
 	}
@@ -63,5 +68,26 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		value: unknown
 	): void {
 		this.awarenessManager.setLocalState( this.getEntityId( objectType, objectId ), field, value );
+	}
+
+	public addAwarenessListener(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		eventType: 'change' | 'update',
+		listener: AwarenessStateChangeCallback
+	): void {
+		this.awarenessManager.addListener(
+			this.getEntityId( objectType, objectId ),
+			eventType,
+			listener
+		);
+	}
+
+	public onAwarenessReady(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		listener: AwarenessReadyCallback
+	): void {
+		this.awarenessManager.addOnReadyListener( this.getEntityId( objectType, objectId ), listener );
 	}
 }

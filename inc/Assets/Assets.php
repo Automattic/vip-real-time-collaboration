@@ -16,6 +16,7 @@ use function wp_enqueue_script;
 final class Assets {
 	public function __construct() {
 		add_action( 'admin_init', [ $this, 'load_assets' ], 10, 0 );
+		add_action( 'enqueue_block_assets', [ $this, 'enqueue_block_assets' ], 10, 0 );
 	}
 
 	public function load_assets(): void {
@@ -64,5 +65,9 @@ final class Assets {
 			"var VIP_RTC = $vip_rtc_encoded;",
 			'before'
 		);
+	}
+
+	public function enqueue_block_assets(): void {
+		wp_enqueue_style( 'vip-real-time-collaboration', plugins_url( 'build/index.css', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ), [], VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION );
 	}
 }
