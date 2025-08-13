@@ -24,3 +24,7 @@ export const applyUpdate = window.wp.sync.Y.applyUpdate;
 export const encodeStateVector = window.wp.sync.Y.encodeStateVector;
 export const encodeStateAsUpdate = window.wp.sync.Y.encodeStateAsUpdate;
 export const Doc = window.wp.sync.Y.Doc;
+
+// Additions
+export const decodeUpdate = window.wp.sync.Y.decodeUpdate;
+export const decodeStateVector = window.wp.sync.Y.decodeStateVector;
