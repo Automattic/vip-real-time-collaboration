@@ -12,7 +12,7 @@ cleanup() {
     echo ""
     echo "✊ Caught SIG signal. Stopping..."
 
-    printf "Stop WordPress and WebSocket server? (y/n) "
+    printf "Stop WordPress, WebSocket server, and YJS Inspector? (y/n) "
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ]; then
         npm run -s dev:stop
@@ -65,6 +65,11 @@ start_websocket_server() {
     VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret npm run -s dev:websocket-server &
 }
 
+start_yjs_inspector() {
+    echo "🔼 Starting YJS Inspector with hot-reload..."
+    npm run -s dev:yjs-inspector &
+}
+
 start_wordpress() {
     # Enable Xdebug when starting the server in "start" mode.
     FLAGS=""
@@ -78,11 +83,14 @@ start_wordpress() {
 
 open_browser() {
     WP_ADMIN="http://localhost:$PORT/wp-admin/"
+    YJS_INSPECTOR="http://localhost:5173/"
 
     echo ""
-    echo "> 🌐 $WP_ADMIN"
+    echo "> 🌐 WordPress Admin: $WP_ADMIN"
     echo "> 🔑 Username: admin"
     echo "> 🔑 Password: password"
+    echo ""
+    echo "> 🔍 YJS Inspector: $YJS_INSPECTOR"
     echo ""
 
     # Opening the browser is disruptive, make users opt-in.
@@ -103,6 +111,7 @@ open_browser() {
 trap 'cleanup' INT TERM
 
 start_websocket_server
+start_yjs_inspector
 start_wordpress
 configure_wordpress
 
