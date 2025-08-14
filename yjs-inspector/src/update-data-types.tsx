@@ -9,26 +9,26 @@ import { isYItem } from "./y-shape";
 import { TypeLabel } from "./data-types";
 
 const simplifyYItem = (value: Y.Item) => {
-	const valueAsObject = {
-		id: value.id,
-		length: value.length,
-		origin: value.origin,
-		left: value.left,
-		right: value.right,
-		rightOrigin: value.rightOrigin,
-		parent: value.parent,
-		parentSub: value.parentSub,
-		redone: value.redone,
-		content: value.content,
-		info: value.info,
-	};
+  const valueAsObject = {
+    id: value.id,
+    length: value.length,
+    origin: value.origin,
+    left: value.left,
+    right: value.right,
+    rightOrigin: value.rightOrigin,
+    parent: value.parent,
+    parentSub: value.parentSub,
+    redone: value.redone,
+    content: value.content,
+    info: value.info,
+  };
 
-	// Remove null entries from update struct
-	const simplifiedValue = Object.fromEntries(
-		Object.entries(valueAsObject).filter(([_, value]) => value !== null)
-	);
+  // Remove null entries from update struct
+  const simplifiedValue = Object.fromEntries(
+    Object.entries(valueAsObject).filter(([_, value]) => value !== null)
+  );
 
-	return simplifiedValue;
+  return simplifiedValue;
 }
 
 const YItemComponent: ComponentType<DataItemProps<Y.Item>> = ({
@@ -52,10 +52,10 @@ const PreComponentWrapper = ({
   prevValue,
   ...props
 }: DataItemProps<unknown>) => {
-	// Use a PreComponent wrapper to match other Yjs data types to avoid layout issues
+  // Use a PreComponent wrapper to match other Yjs data types to avoid layout issues
   const ObjPreComponent = objectType.PreComponent!;
 
-	const simplifiedValue = simplifyYItem(value as Y.Item);
+  const simplifiedValue = simplifyYItem(value as Y.Item);
 
   return (
     <span>
@@ -74,10 +74,10 @@ const PostComponentWrapper = ({
   prevValue,
   ...props
 }: DataItemProps<object>) => {
-	// Use a PostComponent wrapper to match other Yjs data types to avoid layout issues
+  // Use a PostComponent wrapper to match other Yjs data types to avoid layout issues
   const ObjPostComponent = objectType.PostComponent!;
 
-	const simplifiedValue = simplifyYItem(value as Y.Item);
+  const simplifiedValue = simplifyYItem(value as Y.Item);
 
   return (
     <ObjPostComponent

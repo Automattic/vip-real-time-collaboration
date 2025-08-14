@@ -57,7 +57,7 @@ export function PreviewPanel() {
   const stateAsUpdate = Y.encodeStateAsUpdate(yDoc);
   const decodedUpdate = Y.decodeUpdate(stateAsUpdate);
 
-	const dataTypesForUpdates = config.parseUpdates ? [yDataType, ...updateDataTypes] : [yDataType];
+  const dataTypesForUpdates = config.parseUpdates ? [yDataType, ...updateDataTypes] : [yDataType];
 
   useYDocUpdates(yDoc);
 
