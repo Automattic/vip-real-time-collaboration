@@ -64,7 +64,7 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $request Full details about the request.
 	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
-	 * 
+	 *
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
@@ -93,7 +93,7 @@ final class RestAPI extends WP_REST_Controller {
 
 			// Map error codes to appropriate HTTP status codes
 			$error_code = $token->get_error_code();
-			
+
 			$status = match ( $error_code ) {
 				'permission_denied' => 403,
 				default => 500,
@@ -111,7 +111,7 @@ final class RestAPI extends WP_REST_Controller {
 		return rest_ensure_response(
 			[
 				'token' => $token,
-				'expires_in' => 30, // seconds
+				'expires_in' => WebSocketAuth::get_token_expire_seconds(),
 			]
 		);
 	}
@@ -121,7 +121,7 @@ final class RestAPI extends WP_REST_Controller {
 	 *
 	 * @param WP_REST_Request $_request Full details about the request.
 	 * @return bool|WP_Error True if the request has access, WP_Error object otherwise.
-	 * 
+	 *
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function get_auth_token_permissions_check( WP_REST_Request $_request ): bool|WP_Error {

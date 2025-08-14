@@ -6,6 +6,8 @@ import { ConnectDialog } from "./connect-dialog";
 import { StatusIndicator } from "./status-indicator";
 import { Button } from "./ui/button";
 import { Dialog } from "./ui/dialog";
+import { getInjectedConnection } from "@/lib/injected-connection";
+import { WebSocketConnectProvider } from "@/providers/websocket";
 
 export function ConnectButton() {
   const [yDoc] = useYDoc();
@@ -63,6 +65,42 @@ export function ConnectButton() {
     disconnect();
     return;
   };
+
+  const {
+    createNewDoc: initialCreateNewDoc,
+    provider: initialProvider,
+    room: initialRoom,
+    url: initialUrl,
+  } = getInjectedConnection();
+  const [triedAutoConnect, setTriedAutoConnect] = useState(false);
+
+  useEffect(() => {
+    if (
+      connectState === 'disconnected' &&
+      triedAutoConnect === false &&
+      initialCreateNewDoc !== undefined &&
+      initialProvider === 'y-websocket' &&
+      initialRoom &&
+      initialUrl
+    ) {
+      console.log('Autoconnecting from URL parameters:', {
+        initialCreateNewDoc,
+        initialProvider,
+        initialRoom,
+        initialUrl,
+      });
+
+      setTriedAutoConnect(true);
+
+      const connectProvider = new WebSocketConnectProvider(
+        initialUrl,
+        initialRoom,
+        yDoc,
+      );
+
+      onConnect(connectProvider);
+    }
+  }, [initialCreateNewDoc, initialProvider, initialRoom, initialUrl, yDoc, connectState, onConnect, triedAutoConnect]);
 
   if (connectState === "connecting") {
     return (

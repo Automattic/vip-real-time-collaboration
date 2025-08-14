@@ -50,13 +50,15 @@ final class WebSocketAuth {
 			);
 		}
 
+		$expires = time() + self::get_token_expire_seconds();
+
 		// Prepare the payload
 		$payload = [
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
 			'room_name' => sprintf( '%s-%s', $sync_object_type, $sync_object_id ),
 			'iat' => time(), // Issued at
-			'exp' => time() + 30, // Expires in 30 seconds
+			'exp' => $expires,
 		];
 
 		// Generate JWT token
@@ -73,5 +75,20 @@ final class WebSocketAuth {
 				)
 			);
 		}
+	}
+
+	public static function get_token_expire_seconds(): int {
+		$is_expiration_defined = defined( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0;
+		/**
+		 * @psalm-suppress TypeDoesNotContainType
+		 */
+		$is_debug = defined( 'WP_DEBUG' ) && true === constant( 'WP_DEBUG' );
+		$is_vip_production = defined( 'VIP_GO_APP_ENVIRONMENT' ) && 'production' === constant( 'VIP_GO_APP_ENVIRONMENT' );
+
+		if ( $is_expiration_defined && $is_debug && !$is_vip_production ) {
+			return intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) );
+		}
+
+		return 30;
 	}
 }
