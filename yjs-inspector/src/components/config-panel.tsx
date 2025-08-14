@@ -38,7 +38,7 @@ export function ConfigPanel() {
         <Label htmlFor="parse-y-doc-switch">Parse YDoc</Label>
       </div>
 
-			<div className="flex items-center space-x-2">
+      <div className="flex items-center space-x-2">
         <Switch
           id="parse-y-doc-switch"
           checked={config.parseUpdates}
