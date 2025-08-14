@@ -78,9 +78,11 @@ final class WebSocketAuth {
 	}
 
 	public static function get_token_expire_seconds(): int {
-		$is_production = constant( 'VIP_GO_APP_ENVIRONMENT' ) && constant( 'VIP_GO_APP_ENVIRONMENT' ) === 'production';
+		$is_expiration_defined = defined( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0;
+		$is_debug = defined( 'WP_DEBUG' ) && true === constant( 'WP_DEBUG' );
+		$is_vip_production = defined( 'VIP_GO_APP_ENVIRONMENT' ) && 'production' === constant( 'VIP_GO_APP_ENVIRONMENT' );
 
-		if ( false === $is_production && true === constant( 'WP_DEBUG' ) && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0 ) {
+		if ( $is_expiration_defined && $is_debug && !$is_vip_production ) {
 			return intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) );
 		}
 
