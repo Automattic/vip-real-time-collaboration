@@ -80,7 +80,7 @@ final class WebSocketAuth {
 	public static function get_token_expire_seconds(): int {
 		$is_production = constant( 'VIP_GO_APP_ENVIRONMENT' ) && constant( 'VIP_GO_APP_ENVIRONMENT' ) === 'production';
 
-		if ( $is_production === false && constant( 'WP_DEBUG' ) === true && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0 ) {
+		if ( false === $is_production && true === constant( 'WP_DEBUG' ) && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0 ) {
 			return intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) );
 		}
 
