@@ -3,6 +3,7 @@ import { WebSocketConnectProvider } from "@/providers/websocket";
 import { RocketIcon, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import * as Y from "yjs";
+import { getInjectedConnection } from "../lib/injected-connection";
 import { ConnectProvider } from "../providers/types";
 import { useYDoc } from "../state/index";
 import { Alert, AlertDescription, AlertTitle } from "./ui/alert";
@@ -84,11 +85,21 @@ export function ConnectDialog({
 }: {
   onConnect: (provider: ConnectProvider) => void;
 }) {
+  const {
+    createNewDoc: initialCreateNewDoc,
+    provider: initialProvider,
+    room: initialRoom,
+    url: initialUrl,
+  } = getInjectedConnection();
+  console.log(getInjectedConnection());
+
   const [yDoc, setYDoc] = useYDoc();
-  const [url, setUrl] = useState("wss://demos.yjs.dev/ws");
-  const [room, setRoom] = useState("quill-demo-2024/06");
-  const [provider, setProvider] = useState("Quill");
-  const [needCreateNewDoc, setNeedCreateNewDoc] = useState(true);
+  const [url, setUrl] = useState(initialUrl ?? "wss://demos.yjs.dev/ws");
+  const [room, setRoom] = useState(initialRoom ?? "quill-demo-2024/06");
+  const [provider, setProvider] = useState(initialProvider ?? "Quill");
+  const [needCreateNewDoc, setNeedCreateNewDoc] = useState(
+    initialCreateNewDoc ?? true,
+  );
   const officialDemo = officialDemos.find((demo) => demo.name === provider);
 
   return (
