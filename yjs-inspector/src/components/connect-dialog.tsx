@@ -91,7 +91,6 @@ export function ConnectDialog({
     room: initialRoom,
     url: initialUrl,
   } = getInjectedConnection();
-  console.log(getInjectedConnection());
 
   const [yDoc, setYDoc] = useYDoc();
   const [url, setUrl] = useState(initialUrl ?? "wss://demos.yjs.dev/ws");
