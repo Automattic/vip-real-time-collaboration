@@ -8,6 +8,29 @@ import * as Y from "yjs";
 import { isYItem } from "./y-shape";
 import { TypeLabel } from "./data-types";
 
+const simplifyYItem = (value: Y.Item) => {
+	const valueAsObject = {
+		id: value.id,
+		length: value.length,
+		origin: value.origin,
+		left: value.left,
+		right: value.right,
+		rightOrigin: value.rightOrigin,
+		parent: value.parent,
+		parentSub: value.parentSub,
+		redone: value.redone,
+		content: value.content,
+		info: value.info,
+	};
+
+	// Remove null entries from update struct
+	const simplifiedValue = Object.fromEntries(
+		Object.entries(valueAsObject).filter(([_, value]) => value !== null)
+	);
+
+	return simplifiedValue;
+}
+
 const YItemComponent: ComponentType<DataItemProps<Y.Item>> = ({
   value,
   prevValue,
@@ -15,24 +38,7 @@ const YItemComponent: ComponentType<DataItemProps<Y.Item>> = ({
 }: DataItemProps<Y.Item>) => {
   const ObjComponent = objectType.Component!;
 
-    const valueAsObject = {
-      id: value.id,
-      length: value.length,
-      origin: value.origin,
-      left: value.left,
-      right: value.right,
-      rightOrigin: value.rightOrigin,
-      parent: value.parent,
-      parentSub: value.parentSub,
-      redone: value.redone,
-      content: value.content,
-      info: value.info,
-    };
-
-    // Remove null entries from update struct
-    const simplifiedValue = Object.fromEntries(
-      Object.entries(valueAsObject).filter(([_, value]) => value !== null)
-    );
+    const simplifiedValue = simplifyYItem(value);
 
     return <ObjComponent
       value={simplifiedValue}
@@ -49,11 +55,13 @@ const PreComponentWrapper = ({
 	// Use a PreComponent wrapper to match other Yjs data types to avoid layout issues
   const ObjPreComponent = objectType.PreComponent!;
 
+	const simplifiedValue = simplifyYItem(value as Y.Item);
+
   return (
     <span>
       <TypeLabel value={value} />
       <ObjPreComponent
-        value={value as object}
+        value={simplifiedValue}
         prevValue={prevValue as object}
         {...props}
       ></ObjPreComponent>
@@ -69,9 +77,11 @@ const PostComponentWrapper = ({
 	// Use a PostComponent wrapper to match other Yjs data types to avoid layout issues
   const ObjPostComponent = objectType.PostComponent!;
 
+	const simplifiedValue = simplifyYItem(value as Y.Item);
+
   return (
     <ObjPostComponent
-      value={value}
+      value={simplifiedValue}
       prevValue={prevValue as object}
       {...props}
     ></ObjPostComponent>
