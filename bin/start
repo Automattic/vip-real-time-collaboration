@@ -7,12 +7,14 @@ SCRIPT_MODE=${2:-start} # "build" or "start". Default is "start".
 # Set WordPress port and home URL.
 PORT="${WP_ENV_PORT-8888}"
 WP_HOME="${WP_ENV_HOME_URL-http://localhost:$PORT}"
+WS_PORT="${WS_PORT-1234}"
+YJS_INSPECTOR_PORT="${YJS_INSPECTOR_PORT-5173}"
 
 cleanup() {
     echo ""
     echo "✊ Caught SIG signal. Stopping..."
 
-    printf "Stop WordPress, WebSocket server, and YJS Inspector? (y/n) "
+    printf "Stop WordPress and WebSocket server? (y/n) "
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ]; then
         npm run -s dev:stop
@@ -60,14 +62,38 @@ configure_wordpress() {
     npm run -s wp-cli config set WP_HOME "$WP_HOME"
 }
 
+install_dependencies() {
+    if [ ! -d "vendor" ]; then
+        echo "🏗️ Installing PHP dependencies..."
+        composer install --no-interaction --optimize-autoloader
+    fi
+
+    if [ ! -d "node_modules" ]; then
+        echo "🏗️ Installing Node.js dependencies..."
+        npm install --no-audit --no-fund
+    fi
+
+    if [ ! -d "websocket-server/node_modules" ]; then
+        echo "🏗️ Installing WebSocket server dependencies..."
+        cd websocket-server && npm install --no-audit --no-fund
+        cd -
+    fi
+
+    if [ ! -d "yjs-inspector/node_modules" ]; then
+        echo "🏗️ Installing Yjs inspector dependencies..."
+        cd yjs-inspector && npm install --legacy-peer-deps --no-audit --no-fund
+        cd -
+    fi
+}
+
 start_websocket_server() {
     echo "🔼 Starting WebSocket server with hot-reload..."
-    VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret npm run -s dev:websocket-server &
+    VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret PORT=$WS_PORT npm run -s dev:websocket-server &
 }
 
 start_yjs_inspector() {
-    echo "🔼 Starting YJS Inspector with hot-reload..."
-    npm run -s dev:yjs-inspector &
+    echo "🔼 Starting Yjs Inspector with hot-reload..."
+    VITE_PORT=$YJS_INSPECTOR_PORT npm run -s dev:yjs-inspector &
 }
 
 start_wordpress() {
@@ -82,15 +108,17 @@ start_wordpress() {
 }
 
 open_browser() {
-    WP_ADMIN="http://localhost:$PORT/wp-admin/"
-    YJS_INSPECTOR="http://localhost:5173/"
+    WP_ADMIN_URL="http://localhost:$PORT/wp-admin/"
+    WS_SERVER_URL="ws://localhost:$WS_PORT/"
+    YJS_INSPECTOR_URL="http://localhost:$YJS_INSPECTOR_PORT/"
 
     echo ""
-    echo "> 🌐 WordPress Admin: $WP_ADMIN"
+    echo "> 🌐 WordPress Admin: $WP_ADMIN_URL"
     echo "> 🔑 Username: admin"
     echo "> 🔑 Password: password"
     echo ""
-    echo "> 🔍 YJS Inspector: $YJS_INSPECTOR"
+    echo "> 🔍 WebSocket server: $WS_SERVER_URL"
+    echo "> 🔍 Yjs Inspector: $YJS_INSPECTOR_URL"
     echo ""
 
     # Opening the browser is disruptive, make users opt-in.
@@ -101,15 +129,16 @@ open_browser() {
     UNAME="$(uname -s)"
 
     if [ "Darwin" = "$UNAME" ]; then
-        open "$WP_ADMIN"
+        open "$WP_ADMIN_URL"
     elif [ "Linux" = "$UNAME" ]; then
-        xdg-open "$WP_ADMIN"
+        xdg-open "$WP_ADMIN_URL"
     fi
 }
 
 # Cleanup after error or trapping SIGINT (Ctrl+C) and SIGTERM signals
 trap 'cleanup' INT TERM
 
+install_dependencies
 start_websocket_server
 start_yjs_inspector
 start_wordpress

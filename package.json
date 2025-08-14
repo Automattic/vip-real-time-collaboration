@@ -45,7 +45,7 @@
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
     "dev:websocket-server": "cd websocket-server && npm run dev",
-    "dev:yjs-inspector": "cd yjs-inspector && npm install && npm run dev",
+    "dev:yjs-inspector": "cd yjs-inspector && npm run dev",
     "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
     "test:e2e:debug": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts --ui",
     "wp-cli": "wp-env run cli -- wp"
