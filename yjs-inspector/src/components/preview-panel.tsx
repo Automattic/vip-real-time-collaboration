@@ -10,6 +10,7 @@ import {
   useYDoc,
 } from "../state/index";
 import { getYTypeFromPath, isYArray, isYDoc, isYMap } from "../y-shape";
+import { updateDataTypes } from "../update-data-types";
 import { AddDataDialog } from "./add-data-dialog";
 import { DeleteDialog } from "./delete-dialog";
 import { useTheme } from "./theme-provider";
@@ -76,6 +77,8 @@ export function PreviewPanel() {
       </div>
 
       <div className="flex-1 overflow-auto rounded-md">
+        <h2 className="mb-4 flex-1 text-xl mt-8">Document</h2>
+
         {/* See https://viewer.textea.io/apis */}
         <JsonViewer
           className="p-2"
@@ -124,7 +127,7 @@ export function PreviewPanel() {
           displaySize={config.showSize}
           theme={resolvedTheme}
           defaultInspectDepth={10}
-          valueTypes={[yDataType]}
+          valueTypes={[yDataType, ...updateDataTypes]}
         />
       </div>
       <AddDataDialog
