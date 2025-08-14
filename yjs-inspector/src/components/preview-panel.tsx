@@ -53,6 +53,9 @@ export function PreviewPanel() {
   const inspectDepth = filterEnable ? 1 : 3;
   const jsonViewerValue = filterEnable ? filterMap : yDoc;
 
+  const stateAsUpdate = Y.encodeStateAsUpdate(yDoc);
+  const decodedUpdate = Y.decodeUpdate(stateAsUpdate);
+
   useYDocUpdates(yDoc);
 
   return (
@@ -111,6 +114,16 @@ export function PreviewPanel() {
           displaySize={config.showSize}
           theme={resolvedTheme}
           defaultInspectDepth={inspectDepth}
+          valueTypes={[yDataType]}
+        />
+        <h2 className="mb-4 flex-1 text-xl mt-8">Updates</h2>
+
+        <JsonViewer
+          className="p-2"
+          value={decodedUpdate}
+          displaySize={config.showSize}
+          theme={resolvedTheme}
+          defaultInspectDepth={10}
           valueTypes={[yDataType]}
         />
       </div>
