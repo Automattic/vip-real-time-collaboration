@@ -45,6 +45,12 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 	);
 }
 
+function getRequestPathname( request: http.IncomingMessage ): string {
+	const pathname = request.url?.split( '?' )[ 0 ] || '/';
+	// Remove trailing slashes (except for root path)
+	return pathname === '/' ? pathname : pathname.replace( /\/+$/, '' );
+}
+
 function verifyToken( token: string ): SyncTokenPayload {
 	if ( ! jwtSecret ) {
 		/**
@@ -67,9 +73,8 @@ function verifyToken( token: string ): SyncTokenPayload {
  */
 function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
 	const { room_name: roomNameFromToken } = jwtPayload;
-	const urlPath = request.url?.split( '?' )[ 0 ];
-
-	const roomNameFromUrl = urlPath?.replace( /^\//, '' );
+	const pathname = getRequestPathname( request );
+	const roomNameFromUrl = pathname.replace( /^\//, '' );
 
 	const isValid = roomNameFromToken === roomNameFromUrl;
 	if ( ! isValid ) {
@@ -105,9 +110,23 @@ function isRequestAuthenticated( request: http.IncomingMessage ): boolean {
 	}
 }
 
-const server = http.createServer( ( _request, response ) => {
-	response.writeHead( 200, { 'Content-Type': 'text/plain' } );
-	response.end( 'okay' );
+const server = http.createServer( ( request, response ) => {
+	const pathname = getRequestPathname( request );
+
+	if ( pathname === '/health' || pathname === '/ready' ) {
+		/**
+		 * Used by k8s for LivenessProbe and ReadinessProbe
+		 */
+		response.writeHead( 200, { 'Content-Type': 'text/plain' } );
+		response.end( 'OK' );
+		return;
+	}
+
+	/**
+	 * Return 404 for unknown paths
+	 */
+	response.writeHead( 404, { 'Content-Type': 'text/plain' } );
+	response.end( 'Not Found' );
 } );
 
 wss.on( 'connection', ( ws, request ) => {
