@@ -57,6 +57,8 @@ export function PreviewPanel() {
   const stateAsUpdate = Y.encodeStateAsUpdate(yDoc);
   const decodedUpdate = Y.decodeUpdate(stateAsUpdate);
 
+	const dataTypesForUpdates = config.parseUpdates ? [yDataType, ...updateDataTypes] : [yDataType];
+
   useYDocUpdates(yDoc);
 
   return (
@@ -127,7 +129,7 @@ export function PreviewPanel() {
           displaySize={config.showSize}
           theme={resolvedTheme}
           defaultInspectDepth={10}
-          valueTypes={[yDataType, ...updateDataTypes]}
+          valueTypes={dataTypesForUpdates}
         />
       </div>
       <AddDataDialog

@@ -38,6 +38,20 @@ export function ConfigPanel() {
         <Label htmlFor="parse-y-doc-switch">Parse YDoc</Label>
       </div>
 
+			<div className="flex items-center space-x-2">
+        <Switch
+          id="parse-y-doc-switch"
+          checked={config.parseUpdates}
+          onCheckedChange={(checked) =>
+            setConfig({
+              ...config,
+              parseUpdates: checked,
+            })
+          }
+        />
+        <Label htmlFor="parse-y-doc-switch">Parse Updates</Label>
+      </div>
+
       <div className="flex items-center space-x-2">
         <Switch
           id="show-delta"

@@ -3,12 +3,14 @@ import { atomWithStorage } from "jotai/utils";
 
 export type Config = {
   parseYDoc: boolean;
+	parseUpdates: boolean;
   showDelta: boolean;
   showSize: boolean;
   editable: boolean;
 };
 const defaultConfig = {
   parseYDoc: true,
+	parseUpdates: true,
   showDelta: true,
   showSize: true,
   editable: false,
