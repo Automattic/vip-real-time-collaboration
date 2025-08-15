@@ -41,14 +41,15 @@ const WEBSOCKET_CLOSE_CODES = new Map< number, string >( [
 	[ 4001, 'Connection timed out. Reconnect.' ],
 ] );
 
-// const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
-const DEFAULT_CONNECTION_TIMEOUT = 60 * 1000; // 10 seconds in ms
+const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
 const DEFAULT_PORT = 1234;
 const DEFAULT_HOST = 'localhost';
+const DEFAULT_METRICS_PORT = 9090;
 
 const wss = new WebSocketServer( { noServer: true } );
 const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
+const metricsPort = parseInt( process.env.METRICS_PORT || '', 10 ) || DEFAULT_METRICS_PORT;
 const connectionTimeout =
 	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
 const metricsReconcileInterval = parseInt( process.env.METRICS_RECONCILE_INTERVAL || '', 10 ) || 60;
@@ -212,6 +213,16 @@ const server = http.createServer( async ( request, response ) => {
 		return;
 	}
 
+	/**
+	 * Return 404 for unknown paths
+	 */
+	response.writeHead( 404, { 'Content-Type': 'text/plain' } );
+	response.end( 'Not Found' );
+} );
+
+const metricsServer = http.createServer( async ( request, response ) => {
+	const pathname = getRequestPathname( request );
+
 	if ( pathname === '/metrics' ) {
 		/**
 		 * Prometheus metrics endpoint
@@ -301,7 +312,7 @@ server.on( 'upgrade', ( request, socket, head ) => {
  */
 server.listen( port, host, () => {
 	// eslint-disable-next-line no-console
-	console.log( `WebSocketServer running at ws://${ host }:${ port }` );
+	console.log( `WebSocket Server running at ws://${ host }:${ port }` );
 
 	// Start metrics reconciliation interval
 	setInterval( () => {
@@ -311,4 +322,9 @@ server.listen( port, host, () => {
 		 */
 		connectedClientsGauge.set( wss.clients.size );
 	}, metricsReconcileInterval * 1000 );
+} );
+
+metricsServer.listen( metricsPort, host, () => {
+	// eslint-disable-next-line no-console
+	console.log( `WebSocket Metrics Server running at http://${ host }:${ metricsPort }` );
 } );
