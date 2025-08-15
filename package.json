@@ -48,6 +48,7 @@
     "dev:yjs-inspector": "cd yjs-inspector && npm run dev",
     "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
     "test:e2e:debug": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts --ui",
+    "test:integration": "wp-env run tests-cli --env-cwd=wp-content/plugins/vip-real-time-collaboration ./vendor/bin/phpunit -c ./phpunit-integration.xml",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
