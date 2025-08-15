@@ -11,7 +11,7 @@ import { toast } from "./components/ui/use-toast";
 import { useConfig } from "./state/index";
 import { getYTypeName, isYShape, parseYShape } from "./y-shape";
 
-const TypeLabel = ({ value }: { value: unknown }) => {
+export const TypeLabel = ({ value }: { value: unknown }) => {
   const typeName = getYTypeName(value as Y.AbstractType<unknown>);
   return (
     <Badge
