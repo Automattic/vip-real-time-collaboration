@@ -19,6 +19,7 @@ final class AuthApiController extends WP_REST_Controller {
 	/**
 	 * Register REST API routes.
 	 */
+	#[\Override]
 	public function register_routes(): void {
 		register_rest_route(
 			RestApi::NAMESPACE,
