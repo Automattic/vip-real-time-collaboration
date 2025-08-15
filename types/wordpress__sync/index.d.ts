@@ -45,12 +45,13 @@ declare module '@wordpress/sync' {
 		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
 		public bootstrap(
 			syncConfig: SyncConfig,
-			initialData: ObjectData,
+			record: ObjectData,
 			handleChanges: ( data: Partial< ObjectData > ) => void
 		): Promise< void >;
 		public configs: Map< ObjectType, SyncConfig >;
 		public discard( type: ObjectType, id: ObjectID ): void;
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
+		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
 		public update(
 			type: ObjectType,
 			record: ObjectData,

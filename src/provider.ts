@@ -5,6 +5,7 @@
 /**
  * Internal dependencies
  */
+import { getCrdtDoc, updateCrdtDoc } from './api/crdt';
 import { AwarenessManager } from './awareness-manager';
 
 import type {
@@ -12,6 +13,7 @@ import type {
 	AwarenessStateChangeCallback,
 	AwarenessReadyCallback,
 	ConnectDocResult,
+	CRDTDoc,
 	ObjectData,
 	ObjectID,
 	ObjectType,
@@ -19,17 +21,19 @@ import type {
 } from '@wordpress/sync';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
+	protected CRDT_DOC_VERSION = 1;
+
 	private awarenessManager = new AwarenessManager();
 
 	public async bootstrap(
 		syncConfig: SyncConfig,
-		initialData: ObjectData,
+		record: ObjectData,
 		handleChanges: ( data: Partial< ObjectData > ) => void
 	): Promise< void > {
-		await super.bootstrap( syncConfig, initialData, handleChanges );
+		await super.bootstrap( syncConfig, record, handleChanges );
 
 		const objectType = syncConfig.objectType;
-		const objectId = syncConfig.getObjectId( initialData );
+		const objectId = syncConfig.getObjectId( record );
 		const entityId = this.getEntityId( objectType, objectId );
 
 		const connections = this.connections.get( entityId ) ?? [];
@@ -39,6 +43,33 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 				this.awarenessManager.bootstrap( entityId, connection.awareness );
 			}
 		} );
+	}
+
+	protected async getInitialCRDTDoc(
+		syncConfig: SyncConfig,
+		record: ObjectData
+	): Promise< CRDTDoc > {
+		const objectId = syncConfig.getObjectId( record );
+
+		// Attempt to load the initial CRDT document from post meta.
+		const existingDoc = await getCrdtDoc( syncConfig.objectType, objectId, this.CRDT_DOC_VERSION );
+		if ( existingDoc ) {
+			return existingDoc;
+		}
+
+		// Otherwise, defer to the parent class method, which will create a new
+		// document based on the persisted post content.
+		const newDoc = await super.getInitialCRDTDoc( syncConfig, record );
+
+		// Return the result from updateCrdtDoc. There is a chance that our doc
+		// has been updated by the server!
+		return await updateCrdtDoc(
+			syncConfig.objectType,
+			objectId,
+			newDoc,
+			this.CRDT_DOC_VERSION,
+			true
+		);
 	}
 
 	public getAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
