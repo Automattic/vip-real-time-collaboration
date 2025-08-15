@@ -82,6 +82,7 @@
     "yjs": "13.6.27"
   },
   "dependencies": {
+    "lib0": "0.2.42",
     "y-protocols": "1.0.6",
     "y-websocket": "3.0.0"
   }
