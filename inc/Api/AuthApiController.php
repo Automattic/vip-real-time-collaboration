@@ -14,7 +14,11 @@ use WP_Error;
  * REST API controller for WebSocket authentication.
  */
 final class AuthApiController extends WP_REST_Controller {
-	const REST_BASE = '/websocket/auth';
+	public function __construct() {
+		$this->namespace = RestApi::NAMESPACE;
+		$this->rest_base = '/websocket/auth';
+		$this->schema = [];
+	}
 
 	/**
 	 * Register REST API routes.
@@ -22,8 +26,8 @@ final class AuthApiController extends WP_REST_Controller {
 	#[\Override]
 	public function register_routes(): void {
 		register_rest_route(
-			RestApi::NAMESPACE,
-			self::REST_BASE,
+			$this->namespace,
+			$this->rest_base,
 			[
 				'methods' => 'POST',
 				'callback' => [ $this, 'get_auth_token' ],
