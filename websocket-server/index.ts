@@ -30,6 +30,7 @@ interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
 	username: string;
 	room_name: string;
+	connection_id?: string;
 }
 
 /**
@@ -40,19 +41,35 @@ interface SyncTokenPayload extends jwt.JwtPayload {
 const WEBSOCKET_CLOSE_CODES = new Map< number, string >( [
 	[ 4001, 'Connection timed out. Reconnect.' ],
 ] );
+const METRICS_MAINTENANCE_INTERVAL = 60 * 1000; // 60 seconds
 
+/**
+ * Default values
+ */
 const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
 const DEFAULT_PORT = 1234;
 const DEFAULT_HOST = 'localhost';
 const DEFAULT_METRICS_PORT = 9090;
 
+/**
+ * Constants with overrides from environment variables
+ */
 const wss = new WebSocketServer( { noServer: true } );
 const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
 const metricsPort = parseInt( process.env.METRICS_PORT || '', 10 ) || DEFAULT_METRICS_PORT;
 const connectionTimeout =
 	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
-const metricsReconcileInterval = parseInt( process.env.METRICS_RECONCILE_INTERVAL || '', 10 ) || 60;
+const metricsTrackReconnectsWindow =
+	parseInt( process.env.METRICS_TRACK_RECONNECTS_WINDOW || '', 10 ) || 60;
+
+/**
+ * ------------------------------------------------------------
+ * In Memory State
+ * ------------------------------------------------------------
+ */
+// Track recent disconnections for reconnection time measurement
+const recentDisconnects = new Map< string, number >(); // connection_id -> disconnect_timestamp
 
 /**
  * ------------------------------------------------------------
@@ -89,8 +106,63 @@ const connectionCloseCounter = new Counter( {
 const connectionDurationHistogram = new Histogram( {
 	name: 'websocket_connection_duration_seconds',
 	help: 'Duration of WebSocket connections in seconds',
-	buckets: [ 1, 5, 15, 30, 60, 300, 900, 1800, 3600, 14400 ], // 1s to 4hShoul
+	buckets: [ 1, 5, 15, 30, 60, 300, 900, 1800, 3600, 14400 ], // 1s to 4h
 } );
+
+const reconnectionTimeHistogram = new Histogram( {
+	name: 'websocket_reconnection_time_seconds',
+	help: 'Time between WebSocket disconnection and reconnection in seconds',
+	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60 ], // 100ms to 60s
+} );
+
+function reconcileConnectedClients(): void {
+	connectedClientsGauge.set( wss.clients.size );
+}
+
+/**
+ * Store a disconnect event (cleanup handled by global interval)
+ */
+function trackDisconnection( connectionId: string | null, timestamp: number ): void {
+	if ( ! connectionId ) {
+		return;
+	}
+
+	recentDisconnects.set( connectionId, timestamp );
+}
+
+/**
+ * Global cleanup process - removes old disconnect entries
+ */
+function cleanupOldDisconnects(): void {
+	const now = Date.now();
+	const cleanupThreshold = ( metricsTrackReconnectsWindow + 10 ) * 1000;
+
+	for ( const [ connectionId, disconnectTime ] of recentDisconnects ) {
+		if ( now - disconnectTime > cleanupThreshold ) {
+			recentDisconnects.delete( connectionId );
+		}
+	}
+}
+
+/**
+ * Check for reconnection and record metric if found
+ */
+function checkReconnection( connectionId: string | null ): void {
+	if ( ! connectionId ) {
+		return;
+	}
+
+	const disconnectTime = recentDisconnects.get( connectionId );
+	const now = Date.now();
+
+	if ( disconnectTime && now - disconnectTime <= metricsTrackReconnectsWindow * 1000 ) {
+		const reconnectionTimeSeconds = ( now - disconnectTime ) / 1000;
+		reconnectionTimeHistogram.observe( reconnectionTimeSeconds );
+
+		// Remove from map since we found the reconnection
+		recentDisconnects.delete( connectionId );
+	}
+}
 
 /**
  * ------------------------------------------------------------
@@ -123,6 +195,17 @@ function verifyToken( token: string ): SyncTokenPayload {
 		throw new Error( 'Invalid JWT payload' );
 	}
 	return jwtPayload;
+}
+
+function getConnectionId( request: http.IncomingMessage ): string | null {
+	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
+	const authToken = searchParams.get( 'auth' );
+	if ( ! authToken ) {
+		return null;
+	}
+
+	const jwtPayload = verifyToken( authToken );
+	return jwtPayload.connection_id ?? null;
 }
 
 /**
@@ -246,9 +329,13 @@ const metricsServer = http.createServer( async ( request, response ) => {
  */
 wss.on( 'connection', ( ws, request ) => {
 	const connectionStartTime = Date.now();
+	const connectionId = getConnectionId( request );
 
 	// Increment connected clients
 	connectedClientsGauge.inc();
+
+	// Check for reconnection
+	checkReconnection( connectionId );
 
 	/**
 	 * Set up the connection
@@ -285,6 +372,9 @@ wss.on( 'connection', ( ws, request ) => {
 		// Record connection duration
 		const durationSeconds = ( Date.now() - connectionStartTime ) / 1000;
 		connectionDurationHistogram.observe( durationSeconds );
+
+		// Track disconnection for potential reconnection measurement
+		trackDisconnection( connectionId, Date.now() );
 	} );
 } );
 
@@ -307,24 +397,35 @@ server.on( 'upgrade', ( request, socket, head ) => {
 
 /**
  * ------------------------------------------------------------
+ * Periodic cleanup & reconciliation
+ * ------------------------------------------------------------
+ */
+
+/**
+ * Perform maintenance operations for metrics in a loop:
+ * - Cleanup old disconnect entries
+ * - Reconcile connected clients
+ */
+function startMetricsMaintenanceLoop(): void {
+	setInterval( () => {
+		cleanupOldDisconnects();
+		reconcileConnectedClients();
+	}, METRICS_MAINTENANCE_INTERVAL );
+}
+
+/**
+ * ------------------------------------------------------------
  * Server start
  * ------------------------------------------------------------
  */
 server.listen( port, host, () => {
 	// eslint-disable-next-line no-console
 	console.log( `WebSocket Server running at ws://${ host }:${ port }` );
-
-	// Start metrics reconciliation interval
-	setInterval( () => {
-		/**
-		 * Reconcile metrics with the actual number of connected clients
-		 * in case the event handler is not called for some reason
-		 */
-		connectedClientsGauge.set( wss.clients.size );
-	}, metricsReconcileInterval * 1000 );
 } );
 
 metricsServer.listen( metricsPort, host, () => {
 	// eslint-disable-next-line no-console
 	console.log( `WebSocket Metrics Server running at http://${ host }:${ metricsPort }` );
+
+	startMetricsMaintenanceLoop();
 } );

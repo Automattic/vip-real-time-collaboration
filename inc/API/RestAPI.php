@@ -54,6 +54,15 @@ final class RestAPI extends WP_REST_Controller {
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
 					],
+					'connectionId' => [
+						'description' => __(
+							'The connection ID to track reconnections',
+							'vip-real-time-collaboration'
+						),
+						'type' => 'string',
+						'required' => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
 				],
 			]
 		);
@@ -70,6 +79,8 @@ final class RestAPI extends WP_REST_Controller {
 	public function get_auth_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$sync_object_type = $request->get_param( 'syncObjectType' );
 		$sync_object_id = $request->get_param( 'syncObjectId' );
+		/** @psalm-suppress MixedAssignment */
+		$connection_id = $request->get_param( 'connectionId' );
 
 		// Validate parameter types
 		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) ) {
@@ -80,8 +91,13 @@ final class RestAPI extends WP_REST_Controller {
 			);
 		}
 
+		// connectionId is optional, default to empty string
+		if ( ! is_string( $connection_id ) ) {
+			$connection_id = '';
+		}
+
 		// Generate a short-lived token with sync object information
-		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id );
+		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id, $connection_id );
 
 		if ( is_wp_error( $token ) ) {
 			// Log error for debugging

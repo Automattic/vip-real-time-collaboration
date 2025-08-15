@@ -17,10 +17,15 @@ final class WebSocketAuth {
 	 *
 	 * @param string $sync_object_type Optional sync object type to include in token.
 	 * @param string $sync_object_id Optional sync object ID to include in token.
+	 * @param string $connection_id Optional connection ID to track reconnections.
 	 *
 	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
-	public static function generate_token( string $sync_object_type, string $sync_object_id ): string|WP_Error {
+	public static function generate_token(
+		string $sync_object_type,
+		string $sync_object_id,
+		string $connection_id = '',
+	): string|WP_Error {
 		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
 		if ( true !== $permission_check ) {
 			if ( is_wp_error( $permission_check ) ) {
@@ -60,6 +65,11 @@ final class WebSocketAuth {
 			'iat' => time(), // Issued at
 			'exp' => $expires,
 		];
+
+		// Add connection_id if provided
+		if ( ! empty( $connection_id ) ) {
+			$payload['connection_id'] = $connection_id;
+		}
 
 		// Generate JWT token
 		try {
