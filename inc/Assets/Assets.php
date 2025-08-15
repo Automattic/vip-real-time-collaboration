@@ -4,6 +4,7 @@ namespace VIPRealTimeCollaboration\Assets;
 
 defined( 'ABSPATH' ) || exit();
 
+use VIPRealTimeCollaboration\Editor\CrdtPersistence;
 use function add_action;
 use function plugins_url;
 use function wp_add_inline_script;
@@ -54,15 +55,19 @@ final class Assets {
 			[ 'in_footer' => false ]
 		);
 
-		$vip_rtc_encoded = wp_json_encode( [ 'wsUrl' => $vip_rtc_ws_url ] );
+		$script_data = wp_json_encode( [
+			'crdtDocVersion' => CrdtPersistence::CRDT_DOC_VERSION,
+			'wsUrl' => $vip_rtc_ws_url,
+		] );
+
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.
-		if ( ! is_string( $vip_rtc_encoded ) || '' === $vip_rtc_encoded ) {
-			$vip_rtc_encoded = '{}';
+		if ( ! is_string( $script_data ) || '' === $script_data ) {
+			$script_data = '{}';
 		}
 
 		wp_add_inline_script(
 			'vip-real-time-collaboration',
-			"var VIP_RTC = $vip_rtc_encoded;",
+			"var VIP_RTC = $script_data;",
 			'before'
 		);
 	}
