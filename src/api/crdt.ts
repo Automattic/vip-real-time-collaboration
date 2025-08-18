@@ -32,6 +32,8 @@ function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc | null {
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
+	ydoc.clientID = Math.floor( Math.random() * 1000000000 );
+
 	return ydoc;
 }
 
