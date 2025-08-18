@@ -10,7 +10,7 @@ import {
 	startMetricsMaintenanceLoop,
 	getRequestPathname,
 	recordConnectionOpen,
-} from './metrics.js';
+} from './metrics';
 
 const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
 if ( ! jwtSecret ) {
