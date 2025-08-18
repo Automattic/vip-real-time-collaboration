@@ -32,6 +32,8 @@ function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc | null {
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
+	ydoc.clientID = Math.floor( Math.random() * 1000000000 );
+
 	return ydoc;
 }
 
@@ -52,8 +54,12 @@ export async function getCrdtDoc(
 			path,
 		} );
 
-		if ( true !== data.success || ! data.crdtDoc ) {
-			throw new Error( __( 'Unexpected response format', 'vip-real-time-collaboration' ) );
+		if ( ! data.crdtDoc ) {
+			if ( true !== data.success ) {
+				throw new Error( __( 'Unexpected response format', 'vip-real-time-collaboration' ) );
+			}
+
+			return null;
 		}
 
 		return deserializeCrdtDoc( data.crdtDoc );
