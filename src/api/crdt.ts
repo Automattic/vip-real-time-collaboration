@@ -54,8 +54,12 @@ export async function getCrdtDoc(
 			path,
 		} );
 
-		if ( true !== data.success || ! data.crdtDoc ) {
-			throw new Error( __( 'Unexpected response format', 'vip-real-time-collaboration' ) );
+		if ( ! data.crdtDoc ) {
+			if ( true !== data.success ) {
+				throw new Error( __( 'Unexpected response format', 'vip-real-time-collaboration' ) );
+			}
+
+			return null;
 		}
 
 		return deserializeCrdtDoc( data.crdtDoc );
