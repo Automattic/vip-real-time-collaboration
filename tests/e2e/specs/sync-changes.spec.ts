@@ -19,12 +19,19 @@ test.describe( 'The plugin should sync changes between multiple browser sesssion
 	/**
 	 * Verifies that the plugin sync changes between browser sessions
 	 */
-	test( 'A user makes changes in the same browser, but different sessions', async ( { admin, editor, page } ) => {
+	test( 'A user makes changes in the same browser, but different sessions', async ( {
+		admin,
+		editor,
+		page,
+	} ) => {
 		// Enter a title
 		await page.keyboard.type( 'Post 1' );
 
 		// Insert a starting paragraph
-		await editor.insertBlock( { name:'core/paragraph', attributes: { content: 'This is a paragraph.' } } );
+		await editor.insertBlock( {
+			name: 'core/paragraph',
+			attributes: { content: 'This is a paragraph.' },
+		} );
 
 		// Save this draft
 		await editor.saveDraft();
@@ -47,13 +54,21 @@ test.describe( 'The plugin should sync changes between multiple browser sesssion
 		// Wait for it to finish loading
 		await existingPostPage.waitForLoadState();
 
+		await existingPostPage.keyboard.press( 'End' );
+
+		await existingPostPage.keyboard.type(
+			' This was modified from another another browser context.'
+		);
+
 		// Get the title and content of the edited post, from the old context
 		const pageHTML = await editor.getEditedPostContent();
 
 		expect( oldContext === newContext ).toBeFalsy();
 
 		// Ensure the pageHTML for the original post containts the new changes we put in place
-		expect( pageHTML ).toEqual( '<!-- wp:paragraph -->\n<p>This is from another browser context, but it is a paragraph.</p>\n<!-- /wp:paragraph -->' );
+		expect( pageHTML ).toEqual(
+			'<!-- wp:paragraph -->\n<p>This is a paragraph. This was modified from another another browser context.</p>\n<!-- /wp:paragraph -->'
+		);
 
 		await existingPostPage.close();
 		await newContext.close();
