@@ -13,7 +13,7 @@
 
 namespace VIPRealTimeCollaboration;
 
-use VIPRealTimeCollaboration\API\RestAPI;
+use VIPRealTimeCollaboration\Api\RestApi;
 use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
@@ -46,7 +46,7 @@ add_action( 'plugins_loaded', static function (): void {
 	new Assets();
 	new Compatibility();
 	new Overrides();
-	new RestAPI();
+	new RestApi();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );

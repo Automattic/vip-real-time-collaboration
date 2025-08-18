@@ -1,6 +1,6 @@
 <?php declare(strict_types = 1);
 
-namespace VIPRealTimeCollaboration\API;
+namespace VIPRealTimeCollaboration\Api;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -13,14 +13,11 @@ use WP_Error;
 /**
  * REST API controller for WebSocket authentication.
  */
-final class RestAPI extends WP_REST_Controller {
-
+final class AuthApiController extends WP_REST_Controller {
 	public function __construct() {
-		$this->namespace = 'vip-rtc/v1';
-		$this->rest_base = 'websocket';
+		$this->namespace = RestApi::NAMESPACE;
+		$this->rest_base = '/websocket/auth';
 		$this->schema = [];
-
-		add_action( 'rest_api_init', [ $this, 'register_routes' ], 10, 0 );
 	}
 
 	/**
@@ -30,7 +27,7 @@ final class RestAPI extends WP_REST_Controller {
 	public function register_routes(): void {
 		register_rest_route(
 			$this->namespace,
-			'/' . $this->rest_base . '/auth',
+			$this->rest_base,
 			[
 				'methods' => 'POST',
 				'callback' => [ $this, 'get_auth_token' ],
