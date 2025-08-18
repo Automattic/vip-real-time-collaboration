@@ -21,6 +21,8 @@ import '@wordpress/core-data';
 // To avoid issues with default exports, you must individually export the
 // properties you need, including those used by dependencies.
 export const applyUpdate = window.wp.sync.Y.applyUpdate;
+export const applyUpdateV2 = window.wp.sync.Y.applyUpdateV2;
 export const encodeStateVector = window.wp.sync.Y.encodeStateVector;
 export const encodeStateAsUpdate = window.wp.sync.Y.encodeStateAsUpdate;
+export const encodeStateAsUpdateV2 = window.wp.sync.Y.encodeStateAsUpdateV2;
 export const Doc = window.wp.sync.Y.Doc;

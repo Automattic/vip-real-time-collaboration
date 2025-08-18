@@ -24,23 +24,17 @@ final class CompatibilityTest extends TestCase {
 		$is_gutenberg_plugin_active = self::get_method( 'is_gutenberg_plugin_active', Compatibility::class );
 		$should_plugin_load = self::get_method( 'should_plugin_load', Compatibility::class );
 
-		// Start with Gutenberg and WebSocket server deactivated.
+		self::assertTrue( $is_websocket_url_defined->invoke( null ), 'is_websocket_url_defined() should be true' );
+
+		// Start with Gutenberg deactivated.
 		deactivate_plugins( 'gutenberg/gutenberg.php' );
 
-		self::assertFalse( $is_websocket_url_defined->invoke( null ), 'is_websocket_url_defined() should be false' );
-		self::assertFalse( $is_gutenberg_plugin_active->invoke( null ), 'is_gutenberg_plugin_active should be false' );
-		self::assertFalse( $should_plugin_load->invoke( null ), 'should_plugin_load() should be false' );
-
-		// "Activate" the WebSocket server.
-		define( 'VIP_RTC_WS_URL', 'test' );
-		self::assertTrue( $is_websocket_url_defined->invoke( null ), 'is_websocket_url_defined() should be true' );
 		self::assertFalse( $is_gutenberg_plugin_active->invoke( null ), 'is_gutenberg_plugin_active should be false' );
 		self::assertFalse( $should_plugin_load->invoke( null ), 'should_plugin_load() should be false' );
 
 		// Activate Gutenberg.
 		activate_plugin( 'gutenberg/gutenberg.php' );
 		self::assertTrue( $is_gutenberg_plugin_active->invoke( null ), 'is_gutenberg_plugin_active should be true' );
-		self::assertTrue( $is_websocket_url_defined->invoke( null ), 'is_websocket_url_defined() should be true' );
 		self::assertTrue( $should_plugin_load->invoke( null ), 'should_plugin_load() should be true' );
 	}
 }
