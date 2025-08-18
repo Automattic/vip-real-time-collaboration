@@ -119,7 +119,7 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 			syncProvider.removeAllAwarenessStates( objectType, objectId );
 		} );
 
-		createRTCOverlay( syncProvider );
+		createRTCOverlay( { objectId, objectType, syncProvider } );
 	} );
 }
 

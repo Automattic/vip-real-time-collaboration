@@ -1,6 +1,6 @@
 declare global {
 	interface Window {
-		VIP_RTC: VIPRTCConfig | undefined;
+		VIP_RTC: VIPRTCConfig;
 
 		wp: {
 			sync: {

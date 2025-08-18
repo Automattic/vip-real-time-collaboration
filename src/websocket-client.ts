@@ -5,7 +5,8 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, WebsocketProviderOptions } from 'y-websocket';
 
-import { getErrorMessage, getWebSocketUrl } from './utils';
+import { getWebSocketUrl } from './utilities/config';
+import { getErrorMessage } from './utilities/error';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';

@@ -6,22 +6,29 @@ import { AwarenessAvatars } from './avatars';
 import { useWaitForSelector } from '../hooks/use-wait-for-selector';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
+import { useCrdtPersistence } from '@/hooks/use-crdt-persistence';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
 import { SyncProviderWithAwareness } from '@/provider';
 
-export function createRTCOverlay( awareness: SyncProviderWithAwareness ) {
+interface RTCOverlayInitialProps {
+	objectId: string;
+	objectType: string;
+	syncProvider: SyncProviderWithAwareness;
+}
+
+export function createRTCOverlay( props: RTCOverlayInitialProps ) {
 	const div = document.createElement( 'div' );
 	document.body.appendChild( div );
 
 	const overlayRoot = createRoot( div );
-	overlayRoot.render( <RTCOverlayManager awareness={ awareness } /> );
+	overlayRoot.render( <RTCOverlayManager { ...props } /> );
 }
 
 /**
  * This component is responsible for creating the overlay in the editor iframe, and
  * cleaning up the overlay when the component is unmounted.
  */
-function RTCOverlayManager( { awareness }: { awareness: SyncProviderWithAwareness } ) {
+function RTCOverlayManager( props: RTCOverlayInitialProps ) {
 	const iframeElement = useWaitForSelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
 	const iframeOverlayRootRef = useRef< ReturnType< typeof createRoot > | null >( null );
 
@@ -43,7 +50,7 @@ function RTCOverlayManager( { awareness }: { awareness: SyncProviderWithAwarenes
 					// Create React root for the iframe overlay and render components inside it
 					const root = createRoot( overlayDiv );
 					iframeOverlayRootRef.current = root;
-					root.render( <RTCOverlay awareness={ awareness } iframeDocument={ editorDocument } /> );
+					root.render( <RTCOverlay { ...props } iframeDocument={ editorDocument } /> );
 				}
 			} );
 		}
@@ -55,23 +62,21 @@ function RTCOverlayManager( { awareness }: { awareness: SyncProviderWithAwarenes
 				iframeOverlayRootRef.current = null;
 			}
 		};
-	}, [ iframeElement, awareness ] );
+	}, [ iframeElement, props.syncProvider ] );
 
 	// This component doesn't render anything visible in the main document
 	// All rendering happens inside the iframe
 	return null;
 }
 
+interface RTCOverlayProps extends RTCOverlayInitialProps {
+	iframeDocument: Document;
+}
+
 /**
  * This component is responsible for rendering awareness components within the editor iframe.
  */
-function RTCOverlay( {
-	awareness,
-	iframeDocument,
-}: {
-	awareness: SyncProviderWithAwareness;
-	iframeDocument: Document;
-} ) {
+function RTCOverlay( { iframeDocument, objectId, objectType, syncProvider }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement | null >( null );
 
 	const isAvatarsEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
@@ -79,7 +84,8 @@ function RTCOverlay( {
 	} );
 
 	useBlockHighlighting( iframeDocument );
-	useRenderCursors( overlayRef, iframeDocument, awareness );
+	useCrdtPersistence( { objectId, objectType, syncProvider } );
+	useRenderCursors( overlayRef, iframeDocument, syncProvider );
 
 	return (
 		<>
