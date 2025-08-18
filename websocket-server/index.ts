@@ -24,14 +24,16 @@ if ( ! jwtSecret ) {
  * Types
  * ------------------------------------------------------------
  */
-type AuthResult =
-	| {
-			authenticated: true;
-	  }
-	| {
-			authenticated: false;
-			reason: 'missing_token' | 'invalid_token' | 'invalid_payload';
-	  };
+interface AuthSuccessResult {
+	authenticated: true;
+}
+
+interface AuthFailureResult {
+	authenticated: false;
+	reason: 'missing_token' | 'invalid_token' | 'invalid_payload';
+}
+
+type AuthResult = AuthSuccessResult | AuthFailureResult;
 
 interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
