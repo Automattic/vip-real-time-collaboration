@@ -6,6 +6,8 @@ import { __ } from '@wordpress/i18n';
 import * as buffer from 'lib0/buffer';
 import * as Y from 'yjs';
 
+import { getCrdtDocVersion } from '../utilities/config';
+
 import type { CRDTDoc } from '@wordpress/sync';
 
 interface GetCrdtResponse {
@@ -18,6 +20,7 @@ interface UpdateCrdtResponse {
 	success: boolean;
 }
 
+const CRDT_DOC_VERSION = getCrdtDocVersion();
 const CRDT_REST_API_BASE = '/vip-rtc/v1/crdt';
 
 function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
@@ -34,11 +37,10 @@ function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc | null {
 
 export async function getCrdtDoc(
 	syncObjectType: string,
-	syncObjectId: string,
-	crdtVersion: number
+	syncObjectId: string
 ): Promise< CRDTDoc | null > {
 	const queryParams = new URLSearchParams( {
-		crdtVersion: String( crdtVersion ),
+		crdtVersion: CRDT_DOC_VERSION.toString(),
 		syncObjectType,
 		syncObjectId,
 	} );
@@ -69,14 +71,13 @@ export async function updateCrdtDoc(
 	syncObjectType: string,
 	syncObjectId: string,
 	crdtDoc: CRDTDoc,
-	crdtVersion: number,
 	isInitialUpdate = false
 ): Promise< CRDTDoc > {
 	try {
 		const data = await apiFetch< UpdateCrdtResponse >( {
 			data: {
 				crdtDoc: serializeCrdtDoc( crdtDoc ),
-				crdtVersion,
+				crdtVersion: CRDT_DOC_VERSION,
 				isInitialUpdate,
 				syncObjectType,
 				syncObjectId,

@@ -7,7 +7,6 @@
  */
 import { getCrdtDoc, updateCrdtDoc } from './api/crdt';
 import { AwarenessManager } from './awareness-manager';
-import { getCrdtDocVersion } from './utilities/config';
 
 import type {
 	AwarenessStates,
@@ -48,11 +47,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		syncConfig: SyncConfig,
 		record: ObjectData
 	): Promise< CRDTDoc > {
-		const expectedVersion = getCrdtDocVersion();
 		const objectId = syncConfig.getObjectId( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const existingDoc = await getCrdtDoc( syncConfig.objectType, objectId, expectedVersion );
+		const existingDoc = await getCrdtDoc( syncConfig.objectType, objectId );
 		if ( existingDoc ) {
 			return existingDoc;
 		}
@@ -63,7 +61,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 		// Return the result from updateCrdtDoc. There is a chance that our doc
 		// has been updated by the server!
-		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, expectedVersion, true );
+		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, true );
 	}
 
 	public getAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
