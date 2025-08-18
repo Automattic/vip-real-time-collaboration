@@ -64,6 +64,16 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, true );
 	}
 
+	public async persistCrdtDoc( objectType: ObjectType, objectId: ObjectID ): Promise< void > {
+		const crdtDoc = this.getEntityState( objectType, objectId )?.ydoc;
+
+		if ( ! crdtDoc ) {
+			throw new Error( `CRDT document not found for ${ objectType } with ID ${ objectId }` );
+		}
+
+		await updateCrdtDoc( objectType, objectId, crdtDoc, false );
+	}
+
 	public getAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
 		return this.awarenessManager.getAllStates( this.getEntityId( objectType, objectId ) );
 	}
