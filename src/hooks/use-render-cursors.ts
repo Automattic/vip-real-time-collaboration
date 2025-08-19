@@ -192,21 +192,7 @@ const updateSelection = async (
 ) => {
 	const { objectType, objectId } = await getCurrentEntity();
 	const selectionState = getSelectionState( start, end );
-	const userState = syncProvider.getLocalAwarenessState(
-		objectType,
-		objectId,
-		'userState'
-	) as UserState;
-
-	if ( userState ) {
-		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', {
-			...userState,
-			editorState: {
-				...userState.editorState,
-				selection: selectionState,
-			},
-		} );
-	}
+	syncProvider.setUserSelection( objectType, objectId, selectionState );
 };
 
 /**

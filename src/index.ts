@@ -2,7 +2,6 @@ import { store as coreStore, type User } from '@wordpress/core-data';
 import { dispatch, select } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
-import { type SyncProvider } from '@wordpress/sync';
 
 import { createRTCOverlay } from './components/rtc-overlay';
 import { RTCSettingsPanel } from './components/rtc-settings-panel';
@@ -13,7 +12,7 @@ import { getCurrentEntity } from './utilities/entity';
 import { getNewUserColor } from './utilities/user-color';
 import { createWebSocketConnection, getWebSocketConnectionConfig } from './websocket-client';
 
-type UserStates = Map< number, { userState: UserState } >;
+import type { AwarenessStateChange, SyncProvider } from '@wordpress/sync';
 
 addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) => {
 	if ( provider ) {
@@ -52,46 +51,27 @@ registerPlugin( 'vip-real-time-collaboration', {
 async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 	const userInfo = await getCurrentUserInfo();
 	const { objectType, objectId } = await getCurrentEntity();
-	const { updateUser, removeStateId } = dispatch( awarenessStore );
+	const { removeUser, upsertUser } = dispatch( awarenessStore );
 
 	syncProvider.addAwarenessListener(
 		objectType,
 		objectId,
 		'change',
-		( {
-			added,
-			updated,
-			removed,
-		}: {
-			added: Array< number >;
-			updated: Array< number >;
-			removed: Array< number >;
-		} ) => {
-			const userStates: UserStates = syncProvider.getAllAwarenessStates(
-				objectType,
-				objectId
-			) as UserStates;
-
-			const modifiedUsers = [ ...added, ...updated ];
-
-			const updatePromises = modifiedUsers.map( id => {
-				const userState = userStates.get( id )?.userState ?? null;
+		( { added, removed, updated }: AwarenessStateChange ) => {
+			[ ...added, ...updated ].forEach( id => {
+				const userState = syncProvider.getUserStateById( objectType, objectId, id );
 
 				if ( userState ) {
-					return updateUser( id, userState );
+					void upsertUser( id, {
+						...userState,
+						isConnected: true,
+						isMe: userState.id === userInfo.id,
+					} );
 				}
-
-				return Promise.resolve();
 			} );
 
-			const removePromises = removed.map( id => {
-				return removeStateId( id );
-			} );
-
-			( async () => {
-				await Promise.all( [ ...updatePromises, ...removePromises ] );
-			} )().catch( error => {
-				console.error( 'Error updating user states from awareness:', error );
+			removed.forEach( id => {
+				void removeUser( id );
 			} );
 		}
 	);
@@ -110,28 +90,29 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 					type: SelectionType.None,
 				},
 			},
+			isConnected: false,
+			isMe: true,
 		};
 
-		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', userState );
+		syncProvider.setUserState( objectType, objectId, userState );
 
 		window.addEventListener( 'beforeunload', () => {
-			syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', null );
-			syncProvider.removeAllAwarenessStates( objectType, objectId );
+			syncProvider.resetAwareness( objectType, objectId );
 		} );
 
 		createRTCOverlay( { objectId, objectType, syncProvider } );
 	} );
 }
 
-async function getCurrentUserInfo(): Promise< User > {
-	const currentUser = select( coreStore ).getCurrentUser();
+async function getCurrentUserInfo(): Promise< Pick< User, 'avatar_urls' | 'id' | 'name' > > {
+	const { avatar_urls, id, name } = select( coreStore ).getCurrentUser() ?? {};
 
-	if ( ! currentUser?.id ) {
+	if ( ! id ) {
 		// getCurrentUser() returns an empty user object for a short time after load.
 		// In that case, wait and try again.
 		await new Promise( resolve => setTimeout( resolve, 100 ) );
 		return await getCurrentUserInfo();
 	}
 
-	return currentUser;
+	return { avatar_urls, id, name };
 }

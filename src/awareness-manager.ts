@@ -3,8 +3,8 @@
  */
 import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
+import type { UserState } from './store/awareness-store';
 import type {
-	AwarenessStates,
 	EntityID,
 	AwarenessStateChangeCallback,
 	AwarenessReadyCallback,
@@ -15,6 +15,10 @@ interface AwarenessPendingActions {
 	readyListeners: AwarenessReadyCallback[];
 	stateChangeListeners: [ 'change' | 'update', AwarenessStateChangeCallback ][];
 	localState: Map< string, unknown >;
+}
+
+interface LocalState {
+	userState: UserState;
 }
 
 export class AwarenessManager {
@@ -81,10 +85,12 @@ export class AwarenessManager {
 	}
 
 	/**
-	 * Get the states of an awareness document.
+	 * Get the states from an awareness document.
 	 */
-	public getAllStates( entityId: EntityID ): AwarenessStates {
-		return this.instances.get( entityId )?.getStates() ?? {};
+	public getAllStates( entityId: EntityID ): Map< number, LocalState > {
+		return (
+			( this.instances.get( entityId )?.getStates() as Map< number, LocalState > ) ?? new Map()
+		);
 	}
 
 	/**
@@ -98,29 +104,25 @@ export class AwarenessManager {
 	}
 
 	/**
-	 * Get the local state from an awareness document.
+	 * Get a local state field from an awareness document.
 	 */
-	public getLocalStates( entityId: EntityID ): AwarenessStates {
-		return this.instances.get( entityId )?.getLocalState() ?? {};
+	public getLocalState< FieldName extends keyof LocalState >(
+		entityId: EntityID,
+		field: FieldName
+	): LocalState[ FieldName ] | null {
+		const state = this.instances.get( entityId )?.getLocalState() as LocalState | undefined;
+
+		return state?.[ field ] ?? null; // eslint-disable-line security/detect-object-injection
 	}
 
 	/**
-	 * Get a local state field from all awareness documents.
+	 * Set a local state field on an awareness document.
 	 */
-	public getLocalState( entityId: EntityID, field?: string ): unknown {
-		const state = this.instances.get( entityId )?.getLocalState() ?? {};
-
-		if ( field === undefined ) {
-			return state;
-		}
-
-		return state[ field ] ?? null; // eslint-disable-line security/detect-object-injection
-	}
-
-	/**
-	 * Set a local state field on an awareness documents.
-	 */
-	public setLocalState( entityId: EntityID, field: string, value: unknown ): void {
+	public setLocalState< FieldName extends keyof LocalState >(
+		entityId: EntityID,
+		field: FieldName,
+		value: LocalState[ FieldName ]
+	): void {
 		if ( ! this.instances.has( entityId ) ) {
 			this.getPendingActions( entityId ).localState.set( field, value );
 			return;

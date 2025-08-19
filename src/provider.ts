@@ -7,9 +7,10 @@
  */
 import { getCrdtDoc, updateCrdtDoc } from './api/crdt';
 import { AwarenessManager } from './awareness-manager';
+import { SelectionState } from './hooks/use-render-cursors';
+import { UserState } from './store/awareness-store';
 
 import type {
-	AwarenessStates,
 	AwarenessStateChangeCallback,
 	AwarenessReadyCallback,
 	ConnectDocResult,
@@ -74,33 +75,47 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		await updateCrdtDoc( objectType, objectId, crdtDoc, false );
 	}
 
-	public getAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
-		return this.awarenessManager.getAllStates( this.getEntityId( objectType, objectId ) );
-	}
-
-	public getLocalAwarenessStates( objectType: ObjectType, objectId: ObjectID ): AwarenessStates {
-		return this.awarenessManager.getLocalStates( this.getEntityId( objectType, objectId ) );
-	}
-
-	public getLocalAwarenessState(
+	public getUserStateById(
 		objectType: ObjectType,
 		objectId: ObjectID,
-		field?: string
-	): unknown {
-		return this.awarenessManager.getLocalState( this.getEntityId( objectType, objectId ), field );
+		awarenessClientId: number
+	): UserState | null {
+		return (
+			this.awarenessManager
+				.getAllStates( this.getEntityId( objectType, objectId ) )
+				.get( awarenessClientId )?.userState ?? null
+		);
 	}
 
-	public removeAllAwarenessStates( objectType: ObjectType, objectId: ObjectID ): void {
+	public resetAwareness( objectType: ObjectType, objectId: ObjectID ): void {
 		return this.awarenessManager.removeAllStates( this.getEntityId( objectType, objectId ) );
 	}
 
-	public setLocalAwarenessState(
+	public setUserSelection(
 		objectType: ObjectType,
 		objectId: ObjectID,
-		field: string,
-		value: unknown
+		selection: SelectionState
 	): void {
-		this.awarenessManager.setLocalState( this.getEntityId( objectType, objectId ), field, value );
+		const entityId = this.getEntityId( objectType, objectId );
+		const userState = this.awarenessManager.getLocalState< 'userState' >( entityId, 'userState' );
+
+		if ( userState ) {
+			this.awarenessManager.setLocalState< 'userState' >( entityId, 'userState', {
+				...userState,
+				editorState: {
+					...userState.editorState,
+					selection,
+				},
+			} );
+		}
+	}
+
+	public setUserState( objectType: ObjectType, objectId: ObjectID, userState: UserState ): void {
+		this.awarenessManager.setLocalState< 'userState' >(
+			this.getEntityId( objectType, objectId ),
+			'userState',
+			userState
+		);
 	}
 
 	public addAwarenessListener(
