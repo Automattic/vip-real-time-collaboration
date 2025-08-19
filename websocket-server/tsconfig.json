@@ -12,9 +12,7 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "paths": {
-      "@y/websocket-server/*": [
-        "./node_modules/@y/websocket-server/dist/src/*"
-      ]
+      "@y/websocket-server/*": [ "./node_modules/@y/websocket-server/dist/src/*" ]
     }
   },
   "include": [ "*.ts" ],
