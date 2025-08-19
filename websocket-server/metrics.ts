@@ -159,11 +159,11 @@ function cleanupOldDisconnects(): void {
 	const now = Date.now();
 	const cleanupThreshold = ( metricsTrackReconnectsWindow + 10 ) * 1000;
 
-	for ( const [ connectionId, disconnectTime ] of recentDisconnects ) {
+	recentDisconnects.forEach( ( disconnectTime, connectionId ) => {
 		if ( now - disconnectTime > cleanupThreshold ) {
 			recentDisconnects.delete( connectionId );
 		}
-	}
+	} );
 }
 
 /**
