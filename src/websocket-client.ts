@@ -11,6 +11,23 @@ import { getErrorMessage } from './utilities/error';
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
 
+/**
+ * Creates a connection ID generator with in-memory storage
+ */
+function createConnectionIdGenerator(): () => string {
+	let connectionId: string | null = null;
+
+	return function getConnectionId(): string {
+		if ( ! connectionId ) {
+			connectionId = crypto.randomUUID();
+		}
+		return connectionId;
+	};
+}
+
+// Create the connection ID getter
+const getConnectionId = createConnectionIdGenerator();
+
 interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	password?: string;
@@ -27,6 +44,7 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 		data: {
 			syncObjectType,
 			syncObjectId,
+			connectionId: getConnectionId(),
 		},
 	} );
 

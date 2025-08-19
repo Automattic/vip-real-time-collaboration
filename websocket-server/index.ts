@@ -2,16 +2,15 @@ import { setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
-
-/**
- * This is a simple WebSocket server intended for local development of this
- * plugin. It is not (yet) intended for production use. It is not currently
- * hot-reloaded, so you will need to re-run `npm run dev` if you change the code.
- */
-
-const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
-const DEFAULT_PORT = 1234;
-const DEFAULT_HOST = 'localhost';
+import {
+	recordMessage,
+	recordAuthFailure,
+	recordConnectionClose,
+	createMetricsServer,
+	startMetricsMaintenanceLoop,
+	getRequestPathname,
+	recordConnectionOpen,
+} from './metrics';
 
 const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
 if ( ! jwtSecret ) {
@@ -20,20 +19,65 @@ if ( ! jwtSecret ) {
 	process.exit( 1 );
 }
 
-const wss = new WebSocketServer( { noServer: true } );
-const host = process.env.HOST || DEFAULT_HOST;
 /**
- * Fallback '' (empty string) to avoid parseInt( undefined ) type error
+ * ------------------------------------------------------------
+ * Types
+ * ------------------------------------------------------------
  */
-const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
-const connectionTimeout =
-	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
+interface AuthSuccessResult {
+	authenticated: true;
+}
+
+interface AuthFailureResult {
+	authenticated: false;
+	reason: 'missing_token' | 'invalid_token' | 'invalid_payload';
+}
+
+type AuthResult = AuthSuccessResult | AuthFailureResult;
 
 interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
 	username: string;
 	room_name: string;
+	connection_id: string;
 }
+
+/**
+ * ------------------------------------------------------------
+ * Constants
+ * ------------------------------------------------------------
+ */
+const WEBSOCKET_CLOSE_CODES = new Map< number, string >( [
+	[ 4001, 'Connection timed out. Reconnect.' ],
+] );
+
+/**
+ * ------------------------------------------------------------
+ * Default values
+ * ------------------------------------------------------------
+ */
+const DEFAULT_CONNECTION_TIMEOUT = 4 * 60 * 60 * 1000; // 4 hours in ms
+const DEFAULT_PORT = 1234;
+const DEFAULT_HOST = 'localhost';
+const DEFAULT_METRICS_PORT = 9090;
+
+/**
+ * ------------------------------------------------------------
+ * Constants with overrides from environment variables
+ * ------------------------------------------------------------
+ */
+const wss = new WebSocketServer( { noServer: true } );
+const host = process.env.HOST || DEFAULT_HOST;
+const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
+const metricsPort = parseInt( process.env.METRICS_PORT || '', 10 ) || DEFAULT_METRICS_PORT;
+const connectionTimeout =
+	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
+
+/**
+ * ------------------------------------------------------------
+ * Helper functions
+ * ------------------------------------------------------------
+ */
 
 function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 	return (
@@ -41,15 +85,14 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 		payload !== null &&
 		'user_id' in payload &&
 		'username' in payload &&
-		'room_name' in payload
+		'room_name' in payload &&
+		'connection_id' in payload
 	);
 }
 
 function verifyToken( token: string ): SyncTokenPayload {
 	if ( ! jwtSecret ) {
-		/**
-		 * Just to appease the type checker. Won't happen due to null check above.
-		 */
+		// Just to appease the type checker. Won't happen due to null check above.
 		throw new Error( 'JWT secret not configured' );
 	}
 	const jwtPayload = jwt.verify( token, jwtSecret );
@@ -57,6 +100,21 @@ function verifyToken( token: string ): SyncTokenPayload {
 		throw new Error( 'Invalid JWT payload' );
 	}
 	return jwtPayload;
+}
+
+function getConnectionId( request: http.IncomingMessage ): string | null {
+	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
+	const authToken = searchParams.get( 'auth' );
+	if ( ! authToken ) {
+		return null;
+	}
+
+	try {
+		const jwtPayload = verifyToken( authToken );
+		return jwtPayload.connection_id;
+	} catch {
+		return null;
+	}
 }
 
 /**
@@ -67,9 +125,8 @@ function verifyToken( token: string ): SyncTokenPayload {
  */
 function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
 	const { room_name: roomNameFromToken } = jwtPayload;
-	const urlPath = request.url?.split( '?' )[ 0 ];
-
-	const roomNameFromUrl = urlPath?.replace( /^\//, '' );
+	const pathname = getRequestPathname( request );
+	const roomNameFromUrl = pathname.replace( /^\//, '' );
 
 	const isValid = roomNameFromToken === roomNameFromUrl;
 	if ( ! isValid ) {
@@ -85,50 +142,90 @@ function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTo
 	return true;
 }
 
-function isRequestAuthenticated( request: http.IncomingMessage ): boolean {
+function isRequestAuthenticated( request: http.IncomingMessage ): AuthResult {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 
 	if ( ! authToken ) {
-		return false;
+		return { authenticated: false, reason: 'missing_token' };
 	}
 
 	try {
 		const jwtPayload = verifyToken( authToken );
 		const isValid = validateTokenPayload( request, jwtPayload );
 		if ( ! isValid ) {
-			return false;
+			return { authenticated: false, reason: 'invalid_payload' };
 		}
-		return true;
+		return { authenticated: true };
 	} catch ( error ) {
-		return false;
+		return { authenticated: false, reason: 'invalid_token' };
 	}
 }
 
-const server = http.createServer( ( _request, response ) => {
-	response.writeHead( 200, { 'Content-Type': 'text/plain' } );
-	response.end( 'okay' );
+/**
+ * ------------------------------------------------------------
+ * Server Configuration
+ * ------------------------------------------------------------
+ */
+const server = http.createServer( async ( request, response ) => {
+	const pathname = getRequestPathname( request );
+
+	if ( pathname === '/health' || pathname === '/ready' ) {
+		/**
+		 * Used by k8s for LivenessProbe and ReadinessProbe
+		 */
+		response.writeHead( 200, { 'Content-Type': 'text/plain' } );
+		response.end( 'OK' );
+		return;
+	}
+
+	/**
+	 * Return 404 for unknown paths
+	 */
+	response.writeHead( 404, { 'Content-Type': 'text/plain' } );
+	response.end( 'Not Found' );
 } );
 
+const metricsServer = createMetricsServer();
+
+/**
+ * ------------------------------------------------------------
+ * WebSocket connection handling
+ * ------------------------------------------------------------
+ */
 wss.on( 'connection', ( ws, request ) => {
+	const connectionStartTime = Date.now();
+	const connectionId = getConnectionId( request );
+
 	/**
 	 * Set up the connection
 	 */
 	setupWSConnection( ws, request );
+
+	recordConnectionOpen( connectionId );
+
+	/**
+	 * Track message metrics
+	 */
+	ws.on( 'message', ( data, isBinary ) => {
+		recordMessage( data, isBinary );
+	} );
 
 	/**
 	 * Disconnect after some time to force a reconnect
 	 * with new auth token
 	 */
 	const timeout = setTimeout( () => {
-		ws.close( 1000, 'Connection timed out. Reconnect.' );
+		// 4001 - custom close code for connection timeout
+		ws.close( 4001, WEBSOCKET_CLOSE_CODES.get( 4001 ) );
 	}, connectionTimeout );
 
 	/**
-	 * Clear timeout if connection closes before timeout
+	 * Clear timeout and update metrics when connection closes
 	 */
-	ws.on( 'close', () => {
+	ws.on( 'close', code => {
 		clearTimeout( timeout );
+		recordConnectionClose( code, connectionStartTime, connectionId );
 	} );
 } );
 
@@ -136,7 +233,9 @@ server.on( 'upgrade', ( request, socket, head ) => {
 	/**
 	 * Verify authentication before establishing WebSocket connection
 	 */
-	if ( ! isRequestAuthenticated( request ) ) {
+	const authResult = isRequestAuthenticated( request );
+	if ( authResult.authenticated === false ) {
+		recordAuthFailure( authResult.reason );
 		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
 		socket.destroy();
 		return;
@@ -147,7 +246,19 @@ server.on( 'upgrade', ( request, socket, head ) => {
 	} );
 } );
 
+/**
+ * ------------------------------------------------------------
+ * Server start
+ * ------------------------------------------------------------
+ */
 server.listen( port, host, () => {
 	// eslint-disable-next-line no-console
-	console.log( `WebSocketServer running at ws://${ host }:${ port }` );
+	console.log( `WebSocket Server running at ws://${ host }:${ port }` );
+} );
+
+metricsServer.listen( metricsPort, host, () => {
+	// eslint-disable-next-line no-console
+	console.log( `WebSocket Metrics Server running at http://${ host }:${ metricsPort }` );
+
+	startMetricsMaintenanceLoop( wss );
 } );
