@@ -1,7 +1,6 @@
 /**
  * WordPress dependencies
  */
-import { InnerBlocks } from '@wordpress/block-editor';
 import { expect, test } from '@wordpress/e2e-test-utils-playwright';
 
 /**
@@ -19,11 +18,18 @@ test.describe( 'The plugin should sync changes between multiple browser sesssion
 	/**
 	 * Verifies that the plugin sync changes between browser sessions
 	 */
-	test( 'A user makes changes in the same browser, but different sessions', async ( {
+	test( 'A user has their changes propogated across different sessions in the same browser', async ( {
 		admin,
 		editor,
 		page,
 	} ) => {
+		// This ensures that the block editor has fully loaded before we do any action.
+		await page.waitForFunction( () => window?.wp?.data?.select( 'core/block-editor' ).getBlocks() );
+
+		// Sometimes Gutenberg will take a while to make the post editable. This is to account for that.
+		// ToDo: Find a better way
+		await page.waitForTimeout( 500 );
+
 		// Enter a title
 		await page.keyboard.type( 'Post 1' );
 
@@ -51,31 +57,34 @@ test.describe( 'The plugin should sync changes between multiple browser sesssion
 		// Go to the newly created post
 		await existingPostPage.goto( postUrl );
 
-		// Wait for it to finish loading
-		await existingPostPage.waitForLoadState();
-
-		// ToDo: Sometimes, the block editor doesn't get auto-focused so the tests fails. Re-running fixes it, but that's not right.
-
-		// Go to the end of the existing paragraph
-		await existingPostPage.keyboard.press( 'End' );
-
-		// Modify it from the new context
-		await existingPostPage.keyboard.type(
-			' This was modified from another another browser context.'
+		// This ensures that the block editor has fully loaded before we do any action.
+		await existingPostPage.waitForFunction( () =>
+			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
-		// Get the title and content of the edited post, from the old context
-		const pageHTML = await editor.getEditedPostContent();
+		// Insert another block in the original page
+		await editor.insertBlock( {
+			name: 'core/paragraph',
+			attributes: { content: 'This is another paragraph.' },
+		} );
+
+		// This ensures that the block editor has fully loaded before we do any action.
+		await existingPostPage.waitForFunction( () => window?.wp?.data );
+
+		// Get the updated HTML from the new page
+		const editedPostContent = await existingPostPage.evaluate( () =>
+			window.wp.data.select( 'core/editor' ).getEditedPostContent()
+		);
 
 		// Ensure the contexts are different
 		expect( oldContext === newContext ).toBeFalsy();
 
-		// Ensure the pageHTML for the original post containts the new changes we put in place
-		expect( pageHTML ).toEqual(
-			'<!-- wp:paragraph -->\n<p>This is a paragraph. This was modified from another another browser context.</p>\n<!-- /wp:paragraph -->'
+		// Ensure the new page contains the changes from the old page
+		expect( editedPostContent ).toEqual(
+			'<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another paragraph.</p>\n<!-- /wp:paragraph -->'
 		);
 
-		// Close the new context
+		// Close the new context and pages
 		await existingPostPage.close();
 		await newContext.close();
 	} );
