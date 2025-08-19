@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
-    "module": "es2022",
+    "target": "es2022",
+    "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "./dist",
     "esModuleInterop": true,
@@ -9,7 +10,12 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "paths": {
+      "@y/websocket-server/*": [
+        "./node_modules/@y/websocket-server/dist/src/*"
+      ]
+    }
   },
   "include": [ "*.ts" ],
   "exclude": [ "node_modules", "dist" ]
