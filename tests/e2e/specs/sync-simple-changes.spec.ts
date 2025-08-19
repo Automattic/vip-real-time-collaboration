@@ -19,6 +19,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 		await admin.createNewPost();
 
 		// This ensures that the block editor has fully loaded before we do any action.
+		// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 		await page.waitForFunction( () => window?.wp?.data?.select( 'core/block-editor' ).getBlocks() );
 
 		// Sometimes Gutenberg will take a while to make the post editable. This is to account for that.
@@ -54,6 +55,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 
 		// This ensures that the block editor has fully loaded before we do any action.
 		await existingPostPage.waitForFunction( () =>
+			// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
@@ -69,11 +71,13 @@ test.describe( 'The plugin should sync simple changes', () => {
 
 		// This ensures that the block editor has fully loaded before we do any action.
 		await existingPostPage.waitForFunction( () =>
+			// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
 		// Get the updated HTML from the new page
 		const editedPostContent = await existingPostPage.evaluate( () =>
+			// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 			window.wp.data.select( 'core/editor' ).getEditedPostContent()
 		);
 
@@ -97,6 +101,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 		await admin.createNewPost();
 
 		// This ensures that the block editor has fully loaded before we do any action.
+		// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 		await page.waitForFunction( () => window?.wp?.data?.select( 'core/block-editor' ).getBlocks() );
 
 		// Sometimes Gutenberg will take a while to make the post editable. This is to account for that.
@@ -139,6 +144,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 
 		// This ensures that the block editor has fully loaded before we do any action.
 		await firefoxPage.waitForFunction( () =>
+			// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
@@ -152,6 +158,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 
 		// Get the updated HTML from the new page
 		const editedPostContent = await firefoxPage.evaluate( () =>
+			// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
 			window.wp.data.select( 'core/editor' ).getEditedPostContent()
 		);
 
