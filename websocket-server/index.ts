@@ -39,7 +39,7 @@ interface SyncTokenPayload extends jwt.JwtPayload {
 	user_id: number;
 	username: string;
 	room_name: string;
-	connection_id?: string;
+	connection_id: string;
 }
 
 /**
@@ -85,7 +85,8 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 		payload !== null &&
 		'user_id' in payload &&
 		'username' in payload &&
-		'room_name' in payload
+		'room_name' in payload &&
+		'connection_id' in payload
 	);
 }
 
@@ -108,8 +109,12 @@ function getConnectionId( request: http.IncomingMessage ): string | null {
 		return null;
 	}
 
-	const jwtPayload = verifyToken( authToken );
-	return jwtPayload.connection_id ?? null;
+	try {
+		const jwtPayload = verifyToken( authToken );
+		return jwtPayload.connection_id;
+	} catch {
+		return null;
+	}
 }
 
 /**

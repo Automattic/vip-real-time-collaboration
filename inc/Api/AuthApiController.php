@@ -57,7 +57,7 @@ final class AuthApiController extends WP_REST_Controller {
 							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
-						'required' => false,
+						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 				],
@@ -80,17 +80,12 @@ final class AuthApiController extends WP_REST_Controller {
 		$connection_id = $request->get_param( 'connectionId' );
 
 		// Validate parameter types
-		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) ) {
+		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) || ! is_string( $connection_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
-				__( 'syncObjectType and syncObjectId must be strings.', 'vip-real-time-collaboration' ),
+				__( 'syncObjectType, syncObjectId, and connectionId must be strings.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
-		}
-
-		// connectionId is optional, default to empty string
-		if ( ! is_string( $connection_id ) ) {
-			$connection_id = '';
 		}
 
 		// Generate a short-lived token with sync object information
