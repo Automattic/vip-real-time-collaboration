@@ -31,13 +31,18 @@ declare module '@wordpress/sync' {
 
 	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
 
-	type SyncConfig = {
+	interface SyncConfig {
 		applyChangesToDoc: ( ydoc: Y.Doc, data: Partial< ObjectData > ) => void;
 		fromCRDTDoc: ( ydoc: Y.Doc ) => ObjectData;
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
 		supportsAwareness?: boolean;
-	};
+	}
+
+	interface EntityState {
+		destroy: () => void;
+		ydoc: CRDTDoc;
+	}
 
 	class SyncProvider {
 		protected connections: Map< EntityID, ConnectDocResult[] >;
@@ -45,12 +50,14 @@ declare module '@wordpress/sync' {
 		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
 		public bootstrap(
 			syncConfig: SyncConfig,
-			initialData: ObjectData,
+			record: ObjectData,
 			handleChanges: ( data: Partial< ObjectData > ) => void
 		): Promise< void >;
 		public configs: Map< ObjectType, SyncConfig >;
 		public discard( type: ObjectType, id: ObjectID ): void;
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
+		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
+		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
 		public update(
 			type: ObjectType,
 			record: ObjectData,
