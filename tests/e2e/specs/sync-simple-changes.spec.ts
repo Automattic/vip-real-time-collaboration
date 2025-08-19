@@ -139,7 +139,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
-		await editor.insertBlock( { name: 'core/quote' } );
+		await editor.insertBlock( { name: 'core/quote', attributes: { value: '<p>Quote Content</p>' } } );
 
 		// Save this draft
 		await editor.saveDraft();
@@ -154,7 +154,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 
 		// Ensure the new page contains the changes from the old page
 		expect( editedPostContent ).toEqual(
-			'<!-- wp:heading -->\n<h2 class="wp-block-heading">This is a heading.</h2>\n<!-- /wp:heading -->\n\n<!-- wp:quote -->\n<blockquote class="wp-block-quote"><!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph --></blockquote>\n<!-- /wp:quote -->'
+			'<!-- wp:heading -->\n<h2 class="wp-block-heading">This is a heading.</h2>\n<!-- /wp:heading -->\n\n<!-- wp:quote -->\n<blockquote class="wp-block-quote"><!-- wp:paragraph -->\n<p>Quote Content</p>\n<!-- /wp:paragraph --></blockquote>\n<!-- /wp:quote -->'
 		);
 
 		// Close the new context and pages
