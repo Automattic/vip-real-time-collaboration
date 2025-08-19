@@ -69,7 +69,9 @@ test.describe( 'The plugin should sync changes between multiple browser sesssion
 		} );
 
 		// This ensures that the block editor has fully loaded before we do any action.
-		await existingPostPage.waitForFunction( () => window?.wp?.data );
+		await existingPostPage.waitForFunction( () =>
+			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
+		);
 
 		// Get the updated HTML from the new page
 		const editedPostContent = await existingPostPage.evaluate( () =>
