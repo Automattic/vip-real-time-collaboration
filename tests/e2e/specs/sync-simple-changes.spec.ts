@@ -139,7 +139,10 @@ test.describe( 'The plugin should sync simple changes', () => {
 			window?.wp?.data?.select( 'core/block-editor' ).getBlocks()
 		);
 
-		await editor.insertBlock( { name: 'core/quote', attributes: { value: '<p>Quote Content</p>' } } );
+		await editor.insertBlock( {
+			name: 'core/quote',
+			attributes: { value: '<p>Quote Content</p>' },
+		} );
 
 		// Save this draft
 		await editor.saveDraft();
