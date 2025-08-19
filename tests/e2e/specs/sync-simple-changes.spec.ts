@@ -13,7 +13,7 @@ test.describe( 'The plugin should sync simple changes', () => {
 	} );
 
 	/**
-	 * Verifies that the plugin sync changes between browser sessions
+	 * Verifies that the plugin sync changes between sessions in the same browser
 	 */
 	test( 'between different sessions in the same browser', async ( { admin, editor, page } ) => {
 		await admin.createNewPost();
@@ -90,6 +90,9 @@ test.describe( 'The plugin should sync simple changes', () => {
 		await newContext.close();
 	} );
 
+	/**
+	 * Verifies that the plugin sync changes between different sessions in different browsers - chromium and firefox
+	 */
 	test( 'between different sessions in different browsers', async ( { admin, editor, page } ) => {
 		await admin.createNewPost();
 
@@ -160,8 +163,9 @@ test.describe( 'The plugin should sync simple changes', () => {
 			'<!-- wp:heading -->\n<h2 class="wp-block-heading">This is a heading.</h2>\n<!-- /wp:heading -->\n\n<!-- wp:quote -->\n<blockquote class="wp-block-quote"><!-- wp:paragraph -->\n<p>Quote Content</p>\n<!-- /wp:paragraph --></blockquote>\n<!-- /wp:quote -->'
 		);
 
-		// Close the new context and pages
+		// Close firefox
 		await firefoxPage.close();
 		await firefoxContext.close();
+		await firefoxInstance.close();
 	} );
 } );
