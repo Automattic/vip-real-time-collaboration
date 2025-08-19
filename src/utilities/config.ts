@@ -1,3 +1,5 @@
+export const REMOVAL_DELAY_IN_MS = 5000;
+
 export function getCrdtDocVersion(): number {
 	return window.VIP_RTC.crdtDocVersion;
 }

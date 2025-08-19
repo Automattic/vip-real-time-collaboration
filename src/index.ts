@@ -8,6 +8,7 @@ import { RTCSettingsPanel } from './components/rtc-settings-panel';
 import { SelectionType } from './hooks/use-render-cursors';
 import { SyncProviderWithAwareness } from './provider';
 import { UserState, store as awarenessStore } from './store/awareness-store';
+import { REMOVAL_DELAY_IN_MS } from './utilities/config';
 import { getCurrentEntity } from './utilities/entity';
 import { getNewUserColor } from './utilities/user-color';
 import { createWebSocketConnection, getWebSocketConnectionConfig } from './websocket-client';
@@ -51,7 +52,8 @@ registerPlugin( 'vip-real-time-collaboration', {
 async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 	const userInfo = await getCurrentUserInfo();
 	const { objectType, objectId } = await getCurrentEntity();
-	const { removeUser, upsertUser } = dispatch( awarenessStore );
+	const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
+	const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
 
 	syncProvider.addAwarenessListener(
 		objectType,
@@ -60,6 +62,10 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 		( { added, removed, updated }: AwarenessStateChange ) => {
 			[ ...added, ...updated ].forEach( id => {
 				const userState = syncProvider.getUserStateById( objectType, objectId, id );
+
+				if ( userRemovalTimeouts.has( id ) ) {
+					clearTimeout( userRemovalTimeouts.get( id ) );
+				}
 
 				if ( userState ) {
 					void upsertUser( id, {
@@ -71,7 +77,20 @@ async function setupAwareness( syncProvider: SyncProviderWithAwareness ) {
 			} );
 
 			removed.forEach( id => {
-				void removeUser( id );
+				// When a user is removed, we don't want to immediately remove their
+				// state. Instead, we set a timeout to remove it after a short delay.
+				if ( userRemovalTimeouts.has( id ) ) {
+					return;
+				}
+
+				void patchUser( id, {
+					isConnected: false,
+				} );
+
+				userRemovalTimeouts.set(
+					id,
+					setTimeout( () => void removeUser( id ), REMOVAL_DELAY_IN_MS )
+				);
 			} );
 		}
 	);
