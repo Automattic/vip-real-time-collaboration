@@ -1,5 +1,4 @@
 import { Avatar } from './avatar';
-import './awareness-avatars.scss';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 
 /**

@@ -25,7 +25,7 @@ export class AwarenessManager {
 	private awarenessInstances: Map< EntityID, Awareness > = new Map();
 	private currentWordPressUserInfoPromise: Promise< WordPressUserInfo >;
 
-	private static instance: AwarenessManager;
+	private static __instance: AwarenessManager;
 
 	private constructor() {
 		this.currentWordPressUserInfoPromise = getCurrentUserInfo();
@@ -42,11 +42,15 @@ export class AwarenessManager {
 		} );
 	}
 
-	public static async bootstrap( entityId: EntityID, awareness: Awareness ): Promise< void > {
-		if ( ! AwarenessManager.instance ) {
-			AwarenessManager.instance = new AwarenessManager();
+	private static get instance(): AwarenessManager {
+		if ( ! AwarenessManager.__instance ) {
+			AwarenessManager.__instance = new AwarenessManager();
 		}
 
+		return AwarenessManager.__instance;
+	}
+
+	public static async bootstrap( entityId: EntityID, awareness: Awareness ): Promise< void > {
 		const manager = AwarenessManager.instance;
 
 		// Record the awareness instance.
@@ -89,6 +93,29 @@ export class AwarenessManager {
 		return awareness.getStates() as Map< number, UserState >;
 	}
 
+	public static resetAfterDisconnect(): void {
+		const manager = AwarenessManager.instance;
+		const { removeUser, upsertUser } = dispatch( awarenessStore );
+		const { getActiveClientIds } = select( awarenessStore );
+
+		const clientIdsFromStore = new Set< number >( getActiveClientIds() );
+		const clientIdsFromAwareness = new Set< number >();
+
+		manager.awarenessInstances.forEach( awareness => {
+			manager.getStates( awareness ).forEach( ( userState, clientId ) => {
+				void upsertUser( clientId, userState );
+				clientIdsFromAwareness.add( clientId );
+			} );
+		} );
+
+		// Remove users that are in the store but not in the awareness instances.
+		clientIdsFromStore.forEach( clientId => {
+			if ( ! clientIdsFromAwareness.has( clientId ) ) {
+				void removeUser( clientId );
+			}
+		} );
+	}
+
 	/**
 	 * Set a local state field on an awareness document.
 	 */
@@ -127,6 +154,9 @@ export class AwarenessManager {
 		userStates.forEach( ( userState, clientId ) => {
 			void upsertUser( clientId, userState );
 		} );
+
+		// NOTE: Our awareness store is currently global and has no ability to scope
+		// to specific entities.
 
 		awareness.on( 'change', ( { added, removed, updated }: AwarenessStateChange ) => {
 			const updatedUserStates = this.getStates( awareness );
