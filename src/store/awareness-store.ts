@@ -59,13 +59,10 @@ const DEFAULT_STATE: AwarenessStore = {
 };
 
 const actions = {
-	patchUser: ( clientId: number, userState: Partial< UserState > ): AwarenessAction => {
-		// side effects
-		return {
-			type: 'PATCH_USER',
-			payload: { clientId, userState },
-		};
-	},
+	patchUser: ( clientId: number, userState: Partial< UserState > ): AwarenessAction => ( {
+		type: 'PATCH_USER',
+		payload: { clientId, userState },
+	} ),
 
 	// Call when a user leaves the editor (after a delay)
 	removeUser: ( clientId: number ): AwarenessAction => ( {
