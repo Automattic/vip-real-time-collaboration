@@ -9,6 +9,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
+import { useOverlayFrame } from '@/hooks/use-frame-overlay';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 
 export function RTCSettingsPanel() {
@@ -25,6 +26,9 @@ export function RTCSettingsPanel() {
 
 	const { setAwarenessAvatarsEnabled, setAwarenessHighlightsEnabled, setAwarenessCursorsEnabled } =
 		useDispatch< SettingsStoreActions >( rtcSettingsStore );
+
+	// Load the overlay frame to render awareness components.
+	useOverlayFrame();
 
 	const activeUsers = useSortedAwarenessUsers();
 

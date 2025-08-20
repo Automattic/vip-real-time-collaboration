@@ -1,20 +1,19 @@
 /**
  * External dependencies
  */
+import { select, subscribe } from '@wordpress/data';
+import { store as editorStore } from '@wordpress/editor';
 
 /**
  * Internal dependencies
  */
-import { getCrdtDoc, updateCrdtDoc } from './api/crdt';
-import { AwarenessManager } from './awareness-manager';
-import { SelectionState } from './hooks/use-render-cursors';
-import { UserState } from './store/awareness-store';
+import { getCrdtDoc, updateCrdtDoc } from '@/api/crdt';
+import { AwarenessManager } from '@/awareness-manager';
+import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
 import type {
-	AwarenessStateChangeCallback,
-	AwarenessReadyCallback,
-	ConnectDocResult,
 	CRDTDoc,
+	EntityID,
 	ObjectData,
 	ObjectID,
 	ObjectType,
@@ -22,7 +21,14 @@ import type {
 } from '@wordpress/sync';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
-	private awarenessManager = new AwarenessManager();
+	private entitiesWithCrdtPersistence: Map< EntityID, [ ObjectType, ObjectID ] > = new Map();
+
+	public constructor( config: WebSocketConnectionConfig ) {
+		// There is no local persistence, so we pass `null` for the first argument.
+		super( null, createWebSocketConnection( config ) );
+
+		this.subscribeToPostSave();
+	}
 
 	public async bootstrap(
 		syncConfig: SyncConfig,
@@ -37,11 +43,17 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 		const connections = this.connections.get( entityId ) ?? [];
 
-		connections.forEach( ( connection: ConnectDocResult ) => {
+		for ( const connection of connections ) {
 			if ( connection.awareness && syncConfig.supportsAwareness ) {
-				this.awarenessManager.bootstrap( entityId, connection.awareness );
+				// eslint-disable-next-line no-await-in-loop
+				await AwarenessManager.bootstrap( entityId, connection.awareness );
 			}
-		} );
+		}
+
+		// CRDT persistence is currently only supported for post types.
+		if ( objectType.startsWith( 'postType/' ) ) {
+			this.entitiesWithCrdtPersistence.set( entityId, [ objectType, objectId ] );
+		}
 	}
 
 	protected async getInitialCRDTDoc(
@@ -65,7 +77,27 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, true );
 	}
 
-	public async persistCrdtDoc( objectType: ObjectType, objectId: ObjectID ): Promise< void > {
+	private subscribeToPostSave(): void {
+		let hasPersistedCrdtDoc = false;
+
+		// Listen for post save events to update the CRDT document.
+		subscribe( () => {
+			const { isAutosavingPost, isSavingPost } = select( editorStore );
+			const shouldPersistCrdtDoc = isSavingPost() && ! isAutosavingPost();
+
+			if ( shouldPersistCrdtDoc && ! hasPersistedCrdtDoc ) {
+				this.entitiesWithCrdtPersistence.forEach( ( [ objectType, objectId ] ) => {
+					void this.persistCrdtDoc( objectType, objectId );
+				} );
+
+				hasPersistedCrdtDoc = true;
+			} else if ( ! shouldPersistCrdtDoc ) {
+				hasPersistedCrdtDoc = false;
+			}
+		} );
+	}
+
+	private async persistCrdtDoc( objectType: ObjectType, objectId: ObjectID ): Promise< void > {
 		const crdtDoc = this.getEntityState( objectType, objectId )?.ydoc;
 
 		if ( ! crdtDoc ) {
@@ -73,69 +105,5 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		}
 
 		await updateCrdtDoc( objectType, objectId, crdtDoc, false );
-	}
-
-	public getUserStateById(
-		objectType: ObjectType,
-		objectId: ObjectID,
-		awarenessClientId: number
-	): UserState | null {
-		return (
-			this.awarenessManager
-				.getAllStates( this.getEntityId( objectType, objectId ) )
-				.get( awarenessClientId )?.userState ?? null
-		);
-	}
-
-	public resetAwareness( objectType: ObjectType, objectId: ObjectID ): void {
-		return this.awarenessManager.removeAllStates( this.getEntityId( objectType, objectId ) );
-	}
-
-	public setUserSelection(
-		objectType: ObjectType,
-		objectId: ObjectID,
-		selection: SelectionState
-	): void {
-		const entityId = this.getEntityId( objectType, objectId );
-		const userState = this.awarenessManager.getLocalState< 'userState' >( entityId, 'userState' );
-
-		if ( userState ) {
-			this.awarenessManager.setLocalState< 'userState' >( entityId, 'userState', {
-				...userState,
-				editorState: {
-					...userState.editorState,
-					selection,
-				},
-			} );
-		}
-	}
-
-	public setUserState( objectType: ObjectType, objectId: ObjectID, userState: UserState ): void {
-		this.awarenessManager.setLocalState< 'userState' >(
-			this.getEntityId( objectType, objectId ),
-			'userState',
-			userState
-		);
-	}
-
-	public addAwarenessListener(
-		objectType: ObjectType,
-		objectId: ObjectID,
-		eventType: 'change' | 'update',
-		listener: AwarenessStateChangeCallback
-	): void {
-		this.awarenessManager.addListener(
-			this.getEntityId( objectType, objectId ),
-			eventType,
-			listener
-		);
-	}
-
-	public onAwarenessReady(
-		objectType: ObjectType,
-		objectId: ObjectID,
-		listener: AwarenessReadyCallback
-	): void {
-		this.awarenessManager.addOnReadyListener( this.getEntityId( objectType, objectId ), listener );
 	}
 }

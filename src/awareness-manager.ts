@@ -1,147 +1,168 @@
 /**
  * External dependencies
  */
+import { dispatch, select, subscribe } from '@wordpress/data';
 import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
-import type { UserState } from './store/awareness-store';
-import type {
-	EntityID,
-	AwarenessStateChangeCallback,
-	AwarenessReadyCallback,
-} from '@wordpress/sync';
+/**
+ * Internal dependencies
+ */
+import { SelectionType } from '@/hooks/use-render-cursors';
+import {
+	type UserState,
+	type WordPressUserInfo,
+	store as awarenessStore,
+} from '@/store/awareness-store';
+import { getBrowserName } from '@/utilities/browser';
+import { REMOVAL_DELAY_IN_MS } from '@/utilities/config';
+import { getCurrentUserInfo } from '@/utilities/entity';
+import { getNewUserColor } from '@/utilities/user-color';
+
+import type { EntityID, AwarenessStateChange } from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
 
-interface AwarenessPendingActions {
-	readyListeners: AwarenessReadyCallback[];
-	stateChangeListeners: [ 'change' | 'update', AwarenessStateChangeCallback ][];
-	localState: Map< string, unknown >;
-}
-
-interface LocalState {
-	userState: UserState;
-}
-
 export class AwarenessManager {
-	private instances: Map< EntityID, Awareness > = new Map();
-	private pendingActions: Map< EntityID, AwarenessPendingActions > = new Map();
+	private awarenessInstances: Map< EntityID, Awareness > = new Map();
+	private currentWordPressUserInfoPromise: Promise< WordPressUserInfo >;
 
-	public bootstrap( entityId: EntityID, awareness: Awareness ): void {
-		this.instances.set( entityId, awareness );
+	private static instance: AwarenessManager;
 
-		const pendingActions = this.pendingActions.get( entityId );
+	private constructor() {
+		this.currentWordPressUserInfoPromise = getCurrentUserInfo();
 
-		// Register pending actions
-		pendingActions?.readyListeners.forEach( callback => {
-			awareness.on( 'ready', callback );
+		// Remove awareness states when the window is closed or refreshed.
+		window.addEventListener( 'beforeunload', () => {
+			this.awarenessInstances.forEach( awareness => {
+				removeAwarenessStatesFromProtocol(
+					awareness,
+					[ awareness.clientID ],
+					'removeAwarenessStates'
+				);
+			} );
 		} );
-
-		pendingActions?.stateChangeListeners.forEach( ( [ eventType, callback ] ) => {
-			awareness.on( eventType, callback );
-		} );
-
-		// Set pending local state
-		Array.from( pendingActions?.localState?.entries() ?? [] ).forEach(
-			( [ field, value ]: [ string, unknown ] ) => {
-				awareness.setLocalStateField( field, value );
-			}
-		);
-
-		// Send a ready event
-		awareness.emit( 'ready', [] );
 	}
 
-	/**
-	 * Add a listener for update and change awareness state change events.
-	 */
-	public addListener(
-		entityId: EntityID,
-		eventType: 'change' | 'update',
-		listener: AwarenessStateChangeCallback
-	): void {
-		const awarenessInstance = this.instances.get( entityId );
-
-		if ( awarenessInstance !== undefined ) {
-			awarenessInstance.on( eventType, listener );
-		} else {
-			// If we don't have an awareness instance yet, store the listener for later.
-			this.getPendingActions( entityId ).stateChangeListeners.push( [ eventType, listener ] );
+	public static async bootstrap( entityId: EntityID, awareness: Awareness ): Promise< void > {
+		if ( ! AwarenessManager.instance ) {
+			AwarenessManager.instance = new AwarenessManager();
 		}
+
+		const manager = AwarenessManager.instance;
+
+		// Record the awareness instance.
+		manager.awarenessInstances.set( entityId, awareness );
+
+		// Subscribe to changes in the awareness instance and our store.
+		await manager.subscribeToUserChanges( awareness );
+		manager.subscribeToSelectionChanges( awareness );
 	}
 
-	/**
-	 * Add a listener for awareness ready events.
-	 */
-	public addOnReadyListener( entityId: EntityID, listener: AwarenessReadyCallback ): void {
-		const awarenessInstance = this.instances.get( entityId );
+	private async getCurrentUserState( awareness: Awareness ): Promise< UserState > {
+		const states = ( awareness.getStates() as Map< number, UserState > ) ?? new Map();
+		const otherUserColors = Array.from( states.values() )
+			.filter( userState => ! userState.isMe )
+			.map( userState => userState.color )
+			.filter( Boolean );
 
-		if ( awarenessInstance !== undefined ) {
-			awarenessInstance.on( 'ready', listener );
-			// If we already have an awareness instance and it's a ready event, call the listener immediately.
-			listener();
-		} else {
-			// If we don't have an awareness instance yet, store the listener for later.
-			this.getPendingActions( entityId ).readyListeners.push( listener );
-		}
+		const color = getNewUserColor( otherUserColors );
+		const userInfo = await this.currentWordPressUserInfoPromise;
+
+		return {
+			...userInfo,
+			browserType: getBrowserName(),
+			clientId: awareness.clientID,
+			color,
+			editorState: {
+				selection: {
+					type: SelectionType.None,
+				},
+			},
+			isConnected: true,
+			isMe: true,
+		};
 	}
 
-	/**
+	/*
 	 * Get the states from an awareness document.
 	 */
-	public getAllStates( entityId: EntityID ): Map< number, LocalState > {
-		return (
-			( this.instances.get( entityId )?.getStates() as Map< number, LocalState > ) ?? new Map()
-		);
-	}
-
-	/**
-	 * Remove the states of an awareness document.
-	 */
-	public removeAllStates( entityId: EntityID ): void {
-		const instance = this.instances.get( entityId );
-		if ( instance ) {
-			removeAwarenessStatesFromProtocol( instance, [ instance.clientID ], 'removeAwarenessStates' );
-		}
-	}
-
-	/**
-	 * Get a local state field from an awareness document.
-	 */
-	public getLocalState< FieldName extends keyof LocalState >(
-		entityId: EntityID,
-		field: FieldName
-	): LocalState[ FieldName ] | null {
-		const state = this.instances.get( entityId )?.getLocalState() as LocalState | undefined;
-
-		return state?.[ field ] ?? null; // eslint-disable-line security/detect-object-injection
+	private getStates( awareness: Awareness ): Map< number, UserState > {
+		return awareness.getStates() as Map< number, UserState >;
 	}
 
 	/**
 	 * Set a local state field on an awareness document.
 	 */
-	public setLocalState< FieldName extends keyof LocalState >(
-		entityId: EntityID,
+	private setLocalStateField< FieldName extends keyof UserState >(
+		awareness: Awareness,
 		field: FieldName,
-		value: LocalState[ FieldName ]
+		value: UserState[ FieldName ]
 	): void {
-		if ( ! this.instances.has( entityId ) ) {
-			this.getPendingActions( entityId ).localState.set( field, value );
-			return;
-		}
-
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		this.instances.get( entityId )!.setLocalStateField( field, value );
+		awareness.setLocalStateField( field, value );
 	}
 
-	private getPendingActions( entityId: EntityID ): AwarenessPendingActions {
-		if ( ! this.pendingActions.has( entityId ) ) {
-			this.pendingActions.set( entityId, {
-				readyListeners: [],
-				stateChangeListeners: [],
-				localState: new Map(),
-			} );
-		}
+	private subscribeToSelectionChanges( awareness: Awareness ): void {
+		const { getCurrentUserSelection } = select( awarenessStore );
 
-		// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-		return this.pendingActions.get( entityId )!;
+		let currentSelection = getCurrentUserSelection();
+		subscribe( () => {
+			const newSelection = getCurrentUserSelection();
+			if ( newSelection !== currentSelection ) {
+				currentSelection = newSelection;
+				this.setLocalStateField( awareness, 'editorState', {
+					selection: currentSelection,
+				} );
+			}
+		} );
+	}
+
+	private async subscribeToUserChanges( awareness: Awareness ): Promise< void > {
+		const currentUserState = await this.getCurrentUserState( awareness );
+
+		awareness.setLocalState( currentUserState );
+
+		const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
+		const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
+
+		const userStates = this.getStates( awareness );
+		userStates.forEach( ( userState, clientId ) => {
+			void upsertUser( clientId, userState );
+		} );
+
+		awareness.on( 'change', ( { added, removed, updated }: AwarenessStateChange ) => {
+			const updatedUserStates = this.getStates( awareness );
+
+			[ ...added, ...updated ].forEach( id => {
+				const userState = updatedUserStates.get( id );
+
+				if ( userRemovalTimeouts.has( id ) ) {
+					clearTimeout( userRemovalTimeouts.get( id ) );
+				}
+
+				if ( userState ) {
+					void upsertUser( id, {
+						...userState,
+						isConnected: true,
+						isMe: userState.clientId === currentUserState.clientId,
+					} );
+				}
+			} );
+
+			removed.forEach( id => {
+				// When a user is removed, we don't want to immediately remove their
+				// state. Instead, we set a timeout to remove it after a short delay.
+				if ( userRemovalTimeouts.has( id ) ) {
+					return;
+				}
+
+				void patchUser( id, {
+					isConnected: false,
+				} );
+
+				userRemovalTimeouts.set(
+					id,
+					setTimeout( () => void removeUser( id ), REMOVAL_DELAY_IN_MS )
+				);
+			} );
+		} );
 	}
 }

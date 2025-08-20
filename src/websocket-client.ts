@@ -28,7 +28,7 @@ function createConnectionIdGenerator(): () => string {
 // Create the connection ID getter
 const getConnectionId = createConnectionIdGenerator();
 
-interface WebSocketConnectionConfig {
+export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	password?: string;
 	serverUrl: string;
