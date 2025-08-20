@@ -4,10 +4,17 @@ import { store as editorStore } from '@wordpress/editor';
 
 import type { WordPressUserInfo } from '@/store/awareness-store';
 
-export async function getCurrentEntity(): Promise< {
+export interface CurrentEntity {
 	objectType: string;
 	objectId: string;
-} > {
+	entity: {
+		kind: string;
+		name: string;
+		recordId: number;
+	};
+}
+
+export async function getCurrentEntity(): Promise< CurrentEntity > {
 	const { getCurrentPostId, getCurrentPostType } = select( editorStore );
 	const postId = getCurrentPostId();
 	const postType = getCurrentPostType();
@@ -27,7 +34,13 @@ export async function getCurrentEntity(): Promise< {
 
 	for ( const config of entitiesConfig ) {
 		if ( config.name === postType && config.syncConfig.objectType ) {
-			return { objectType: config.syncConfig.objectType, objectId: postId.toString() };
+			const entity = { kind: 'postType', name: config.name, recordId: postId };
+
+			return {
+				objectType: config.syncConfig.objectType,
+				objectId: postId.toString(),
+				entity,
+			};
 		}
 	}
 
@@ -36,7 +49,7 @@ export async function getCurrentEntity(): Promise< {
 		postId,
 	} );
 
-	return { objectType: '', objectId: '' };
+	return { objectType: '', objectId: '', entity: { kind: '', name: '', recordId: 0 } };
 }
 
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
