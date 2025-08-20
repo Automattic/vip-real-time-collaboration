@@ -205,7 +205,7 @@ const updateSelection = async (
 			selection: { selectionStart, selectionEnd, initialPosition: initialCaretPosition },
 		};
 
-		await editEntityRecord( entity.kind, entity.name, entity.recordId, edits, {
+		void editEntityRecord( entity.kind, entity.name, entity.recordId, edits, {
 			undoIgnore: true,
 		} );
 	}
