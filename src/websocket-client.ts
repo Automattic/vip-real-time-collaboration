@@ -28,7 +28,7 @@ function createConnectionIdGenerator(): () => string {
 // Create the connection ID getter
 const getConnectionId = createConnectionIdGenerator();
 
-interface WebSocketConnectionConfig {
+export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	password?: string;
 	serverUrl: string;
@@ -130,6 +130,10 @@ async function configureProvider(
 			) }: ${ errorMessage }`
 		);
 	}
+
+	// Uncomment the following line to enable manual disconnection of the
+	// WebSocket (useful for debugging).
+	// window.DISCONNECT_WEB_SOCKET = () => provider.disconnect();
 }
 
 export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {

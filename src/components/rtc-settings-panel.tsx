@@ -9,6 +9,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
+import { useOverlayFrame } from '@/hooks/use-frame-overlay';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 
 export function RTCSettingsPanel() {
@@ -25,6 +26,9 @@ export function RTCSettingsPanel() {
 
 	const { setAwarenessAvatarsEnabled, setAwarenessHighlightsEnabled, setAwarenessCursorsEnabled } =
 		useDispatch< SettingsStoreActions >( rtcSettingsStore );
+
+	// Load the overlay frame to render awareness components.
+	useOverlayFrame();
 
 	const activeUsers = useSortedAwarenessUsers();
 
@@ -78,7 +82,7 @@ export function RTCSettingsPanel() {
 
 			<Flex direction="column" className="vip-real-time-collaboration-sidebar-users" gap={ 0 }>
 				{ activeUsers.map( userState => (
-					<FlexItem key={ userState.id }>
+					<FlexItem key={ userState.clientId }>
 						<Flex
 							direction="row"
 							justify="flex-start"
