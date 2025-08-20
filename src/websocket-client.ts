@@ -133,15 +133,17 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			provider.on( 'connection-close', connect );
 			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
 
-			window.DISCONNECT_WEB_SOCKET = () => {
-				provider.off( 'connection-close', connect );
-				provider.disconnect();
-			};
+			// Uncomment the following lines to provide debugging functions.
 
-			window.RECONNECT_WEB_SOCKET = () => {
-				provider.on( 'connection-close', connect );
-				void connect();
-			};
+			// window.DISCONNECT_WEB_SOCKET = () => {
+			// 	provider.off( 'connection-close', connect );
+			// 	provider.disconnect();
+			// };
+
+			// window.RECONNECT_WEB_SOCKET = () => {
+			// 	provider.on( 'connection-close', connect );
+			// 	void connect();
+			// };
 
 			await connect();
 
