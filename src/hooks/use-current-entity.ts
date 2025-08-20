@@ -1,20 +1,33 @@
-import { useEffect, useState } from '@wordpress/element';
+import { useSelect } from '@wordpress/data';
+import { type EditorStoreSelectors, store as editorStore } from '@wordpress/editor';
 
-import { getCurrentEntity } from '@/utilities/entity';
-
-import type { CurrentEntity } from '@/utilities/entity';
+export interface CurrentEntity {
+	kind: string;
+	name: string;
+	recordId: number;
+}
 
 export function useCurrentEntity(): CurrentEntity | null {
-	const [ currentEntity, setCurrentEntity ] = useState< CurrentEntity | null >( null );
+	const entityKind = 'postType';
+	const { postId, postType } = useSelect<
+		EditorStoreSelectors,
+		{ postId: number | null; postType: string | null }
+	>( select => {
+		const { getCurrentPostId, getCurrentPostType } = select( editorStore );
 
-	useEffect( () => {
-		const fetchEntity = async () => {
-			const currentEntityResult = await getCurrentEntity();
-			setCurrentEntity( currentEntityResult );
+		return {
+			postId: getCurrentPostId(),
+			postType: getCurrentPostType(),
 		};
+	} );
 
-		void fetchEntity();
-	}, [] );
+	if ( postId && postType ) {
+		return {
+			kind: entityKind,
+			name: postType,
+			recordId: postId,
+		};
+	}
 
-	return currentEntity;
+	return null;
 }

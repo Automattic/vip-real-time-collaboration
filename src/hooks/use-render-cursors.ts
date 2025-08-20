@@ -10,13 +10,12 @@ import { dispatch, useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
-import { useCurrentEntity } from './use-current-entity';
+import { useCurrentEntity, type CurrentEntity } from './use-current-entity';
 import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as awarenessStore } from '../store/awareness-store';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import { throttleByAnimationFrame } from '../utilities/throttle';
-import { CurrentEntity } from '@/utilities/entity';
 
 import type { MutableRefObject } from 'react';
 
@@ -91,8 +90,7 @@ export function useRenderCursors(
 		};
 	} );
 
-	const entityResult = useCurrentEntity();
-	const entity = entityResult?.entity;
+	const entity = useCurrentEntity();
 
 	// Workaround:
 	// When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
@@ -188,7 +186,7 @@ const updateSelection = async (
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
 	initialCaretPosition: number | null,
-	entity: CurrentEntity[ 'entity' ]
+	entity: CurrentEntity
 ) => {
 	const { editEntityRecord } = dispatch( coreStore );
 
