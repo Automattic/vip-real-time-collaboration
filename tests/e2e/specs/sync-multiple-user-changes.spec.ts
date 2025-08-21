@@ -153,6 +153,15 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			await existingPostPage.keyboard.press( 'Enter' );
 
+			// Delete the empty paragraphs that were created. This will also test the cursor movements across sessions
+			await existingPostPage.keyboard.press( 'Shift+ArrowUp' );
+
+			await existingPostPage.keyboard.press( 'Delete' );
+
+			await existingPostPage.keyboard.press( 'Shift+ArrowUp' );
+
+			await existingPostPage.keyboard.press( 'Delete' );
+
 			// Insert a random block, and access it immediately
 			randomBlocksInserted.push( getRandomBlockToInsert() );
 			await editor.insertBlock( randomBlocksInserted[ randomBlocksInserted.length - 1 ]! );
@@ -167,8 +176,7 @@ test.describe( 'Simple changes by multiple users', () => {
 			expect( oldContext === newContext ).toBeFalsy();
 
 			// Generate the expected post content, ensuring that no new line is added at the end.
-			let expectedPostContent =
-				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n';
+			let expectedPostContent = '';
 			for ( let i = 0; i < randomBlocksInserted.length; i++ ) {
 				expectedPostContent += getPostToVerifyFromRandomBlock( randomBlocksInserted[ i ]! );
 				if ( i < randomBlocksInserted.length - 1 ) {
@@ -254,9 +262,7 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			await firefoxPage.keyboard.press( 'ArrowDown' );
 
-			await firefoxPage.keyboard.press( 'End' );
-
-			await firefoxPage.keyboard.type( 'I have updated this paragraph.' );
+			await firefoxPage.keyboard.type( 'graph that has been added, besides the above para' );
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await firefoxPage.evaluate( () =>
@@ -269,7 +275,7 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			// Ensure the new page contains the changes from the old page
 			expect( editedPostContent ).toEqual(
-				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another paragraph.I have updated this paragraph.</p>\n<!-- /wp:paragraph -->'
+				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another paragraph that has been added, besides the above paragraph.</p>\n<!-- /wp:paragraph -->'
 			);
 
 			// Close the new context and pages
@@ -331,6 +337,15 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			await firefoxPage.keyboard.press( 'Enter' );
 
+			// Delete the empty paragraphs that were created. This will also test the cursor movements across sessions
+			await firefoxPage.keyboard.press( 'Shift+ArrowUp' );
+
+			await firefoxPage.keyboard.press( 'Delete' );
+
+			await firefoxPage.keyboard.press( 'Shift+ArrowUp' );
+
+			await firefoxPage.keyboard.press( 'Delete' );
+
 			// Insert a random block, and access it immediately
 			randomBlocksInserted.push( getRandomBlockToInsert() );
 			await editor.insertBlock( randomBlocksInserted[ randomBlocksInserted.length - 1 ]! );
@@ -345,8 +360,7 @@ test.describe( 'Simple changes by multiple users', () => {
 			expect( oldContext === firefoxContext ).toBeFalsy();
 
 			// Generate the expected post content, ensuring that no new line is added at the end.
-			let expectedPostContent =
-				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n';
+			let expectedPostContent = '';
 			for ( let i = 0; i < randomBlocksInserted.length; i++ ) {
 				expectedPostContent += getPostToVerifyFromRandomBlock( randomBlocksInserted[ i ]! );
 				if ( i < randomBlocksInserted.length - 1 ) {
