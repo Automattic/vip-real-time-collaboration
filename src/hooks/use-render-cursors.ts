@@ -5,17 +5,15 @@ import {
 } from '@wordpress/block-editor';
 import { BlockInstance, isUnmodifiedDefaultBlock } from '@wordpress/blocks';
 import { debounce } from '@wordpress/compose';
-import { useDispatch, useSelect } from '@wordpress/data';
+import { dispatch, useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
 import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
+import { store as awarenessStore } from '../store/awareness-store';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
-import { getCurrentEntity } from '../utilities/entity';
 import { throttleByAnimationFrame } from '../utilities/throttle';
-import { SyncProviderWithAwareness } from '@/provider';
-import { UserState } from '@/store/awareness-store';
 
 import type { MutableRefObject } from 'react';
 
@@ -68,8 +66,7 @@ export type SelectionState =
  */
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
-	blockEditorDocument: Document | null,
-	syncProvider: SyncProviderWithAwareness
+	blockEditorDocument: Document | null
 ) {
 	const { selectionStart, selectionEnd, isBlockValid } = useSelect<
 		BlockEditorStoreSelectors,
@@ -130,8 +127,8 @@ export function useRenderCursors(
 
 	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
-		debouncedUpdateSelection( selectionStart, selectionEnd, syncProvider );
-	}, [ selectionStart, selectionEnd, syncProvider, debouncedUpdateSelection ] );
+		debouncedUpdateSelection( selectionStart, selectionEnd );
+	}, [ selectionStart, selectionEnd, debouncedUpdateSelection ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
@@ -183,30 +180,11 @@ export function useRenderCursors(
  *
  * @param start - The start position of the selection
  * @param end - The end position of the selection
- * @param syncProvider - A syncProvider providing awareness functions
  */
-const updateSelection = async (
-	start: WPBlockSelection,
-	end: WPBlockSelection,
-	syncProvider: SyncProviderWithAwareness
-) => {
-	const { objectType, objectId } = await getCurrentEntity();
-	const selectionState = getSelectionState( start, end );
-	const userState = syncProvider.getLocalAwarenessState(
-		objectType,
-		objectId,
-		'userState'
-	) as UserState;
-
-	if ( userState ) {
-		syncProvider.setLocalAwarenessState( objectType, objectId, 'userState', {
-			...userState,
-			editorState: {
-				...userState.editorState,
-				selection: selectionState,
-			},
-		} );
-	}
+const updateSelection = ( start: WPBlockSelection, end: WPBlockSelection ) => {
+	const selection = getSelectionState( start, end );
+	const { setCurrentUserSelection } = dispatch( awarenessStore );
+	void setCurrentUserSelection( selection );
 };
 
 /**

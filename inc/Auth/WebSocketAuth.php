@@ -15,12 +15,17 @@ final class WebSocketAuth {
 	/**
 	 * Generate a JWT token for the current user with sync room name.
 	 *
-	 * @param string $sync_object_type Optional sync object type to include in token.
-	 * @param string $sync_object_id Optional sync object ID to include in token.
+	 * @param string $sync_object_type Sync object type to include in token.
+	 * @param string $sync_object_id Sync object ID to include in token.
+	 * @param string $connection_id Connection ID to track reconnections.
 	 *
 	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
-	public static function generate_token( string $sync_object_type, string $sync_object_id ): string|WP_Error {
+	public static function generate_token(
+		string $sync_object_type,
+		string $sync_object_id,
+		string $connection_id,
+	): string|WP_Error {
 		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
 		if ( true !== $permission_check ) {
 			if ( is_wp_error( $permission_check ) ) {
@@ -57,6 +62,7 @@ final class WebSocketAuth {
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
 			'room_name' => sprintf( '%s-%s', $sync_object_type, $sync_object_id ),
+			'connection_id' => $connection_id,
 			'iat' => time(), // Issued at
 			'exp' => $expires,
 		];

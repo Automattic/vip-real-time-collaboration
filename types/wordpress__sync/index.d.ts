@@ -13,14 +13,14 @@ declare module '@wordpress/sync' {
 
 	type AwarenessClientID = number;
 
-	type AwarenessStateChangeCallback = ( params: {
+	interface AwarenessStateChange {
 		added: AwarenessClientID[];
 		updated: AwarenessClientID[];
 		removed: AwarenessClientID[];
-	} ) => void;
-	type AwarenessReadyCallback = () => void;
+	}
 
-	type AwarenessStates = Record< string, any >;
+	type AwarenessStateChangeCallback = ( changes: AwarenessStateChange ) => void;
+	type AwarenessReadyCallback = () => void;
 
 	type CRDTDoc = Y.Doc;
 

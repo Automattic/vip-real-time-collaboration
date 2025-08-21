@@ -1,67 +1,130 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { type SelectionState } from '@/hooks/use-render-cursors';
+import { SelectionType, type SelectionState } from '@/hooks/use-render-cursors';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
-export interface UserState extends User {
+export type WordPressUserInfo = Pick< User, 'id' | 'name' | 'avatar_urls' >;
+
+export interface UserState extends WordPressUserInfo {
+	browserType: string;
+	clientId: number;
 	color: string;
 	editorState: EditorState;
+	isConnected: boolean;
+	isMe: boolean;
 }
 
-export interface EditorState {
+interface EditorState {
 	selection: SelectionState;
 }
 
-interface AwarenessStore {
+export interface AwarenessStore {
+	currentUserSelection: SelectionState;
 	userMap: Map< number, UserState >;
-	userStates: UserState[];
 }
 
+interface PatchUserAction {
+	type: 'PATCH_USER';
+	payload: { clientId: number; userState: Partial< UserState > };
+}
+
+interface RemoveUserAction {
+	type: 'REMOVE_USER';
+	payload: { clientId: number };
+}
+
+interface SetCurrentUserSelectionAction {
+	type: 'SET_CURRENT_USER_SELECTION';
+	payload: { selection: SelectionState };
+}
+
+interface UpsertUserAction {
+	type: 'UPSERT_USER';
+	payload: { clientId: number; userState: UserState };
+}
+
+type AwarenessAction =
+	| PatchUserAction
+	| RemoveUserAction
+	| SetCurrentUserSelectionAction
+	| UpsertUserAction;
+
 const DEFAULT_STATE: AwarenessStore = {
-	userMap: new Map(),
-	userStates: [],
+	currentUserSelection: {
+		type: SelectionType.None,
+	},
+	userMap: new Map< number, UserState >(),
 };
 
 const actions = {
-	updateUser: ( stateId: number, userState: UserState ): AwarenessAction => ( {
-		type: 'UPDATE_USER',
-		payload: { stateId, userState },
+	patchUser: ( clientId: number, userState: Partial< UserState > ): AwarenessAction => ( {
+		type: 'PATCH_USER',
+		payload: { clientId, userState },
 	} ),
 
-	// State removal, call when a user leaves the editor
-	removeStateId: ( stateId: number ): AwarenessAction => ( {
-		type: 'REMOVE_STATE_ID',
-		payload: { stateId },
+	// Call when a user leaves the editor (after a delay)
+	removeUser: ( clientId: number ): AwarenessAction => ( {
+		type: 'REMOVE_USER',
+		payload: { clientId },
+	} ),
+
+	setCurrentUserSelection: ( selection: SelectionState ): AwarenessAction => ( {
+		type: 'SET_CURRENT_USER_SELECTION',
+		payload: { selection },
+	} ),
+
+	upsertUser: ( clientId: number, userState: UserState ): AwarenessAction => ( {
+		type: 'UPSERT_USER',
+		payload: { clientId, userState },
 	} ),
 };
 
 const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessStore => {
 	switch ( action.type ) {
-		case 'UPDATE_USER': {
-			const newUsers = new Map( state.userMap );
-			newUsers.set( action.payload.stateId, action.payload.userState );
+		case 'PATCH_USER': {
+			if ( state.userMap.has( action.payload.clientId ) ) {
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+				const userState = state.userMap.get( action.payload.clientId )!;
 
-			const newUserStates = Array.from( newUsers.values() );
+				state.userMap.set( action.payload.clientId, {
+					...userState,
+					...action.payload.userState,
+				} );
+			}
 
 			return {
 				...state,
-				userMap: newUsers,
-				userStates: newUserStates,
+				userMap: new Map( state.userMap ),
 			};
 		}
-		case 'REMOVE_STATE_ID': {
-			const newUsers = new Map( state.userMap );
-			newUsers.delete( action.payload.stateId );
 
-			const newUserStates = Array.from( newUsers.values() );
+		case 'REMOVE_USER': {
+			state.userMap.delete( action.payload.clientId );
 
 			return {
-				userMap: newUsers,
-				userStates: newUserStates,
+				...state,
+				userMap: new Map( state.userMap ),
 			};
 		}
+
+		case 'SET_CURRENT_USER_SELECTION': {
+			return {
+				...state,
+				currentUserSelection: action.payload.selection,
+			};
+		}
+
+		case 'UPSERT_USER': {
+			state.userMap.set( action.payload.clientId, action.payload.userState );
+
+			return {
+				...state,
+				userMap: new Map( state.userMap ),
+			};
+		}
+
 		default:
 			return state;
 	}
@@ -69,20 +132,12 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 
 const selectors = {
 	getActiveUsers( state: AwarenessStore ): UserState[] {
-		return state.userStates;
+		return Array.from( state.userMap.values() );
+	},
+	getCurrentUserSelection( state: AwarenessStore ): SelectionState {
+		return state.currentUserSelection;
 	},
 };
-
-type UpdateUserAction = {
-	type: 'UPDATE_USER';
-	payload: { stateId: number; userState: UserState };
-};
-type RemoveStateIdAction = {
-	type: 'REMOVE_STATE_ID';
-	payload: { stateId: number };
-};
-
-type AwarenessAction = UpdateUserAction | RemoveStateIdAction;
 
 export const store = createReduxStore( STORE_NAME, {
 	reducer,
@@ -90,15 +145,8 @@ export const store = createReduxStore( STORE_NAME, {
 	selectors,
 } );
 
-( register as ( store: StoreDescriptor ) => void )( store );
+( register as ( storeDescriptor: StoreDescriptor ) => void )( store );
 
-export type { AwarenessStore };
-
-export type AwarenessStoreActions = {
-	updateUser: ( stateId: number, userState: UserState ) => void;
-	removeStateId: ( stateId: number ) => void;
-};
-
-export type AwarenessStoreSelectors = {
+export interface AwarenessStoreSelectors {
 	getActiveUsers: () => UserState[];
-};
+}

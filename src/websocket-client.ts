@@ -11,7 +11,24 @@ import { getErrorMessage } from './utilities/error';
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
 
-interface WebSocketConnectionConfig {
+/**
+ * Creates a connection ID generator with in-memory storage
+ */
+function createConnectionIdGenerator(): () => string {
+	let connectionId: string | null = null;
+
+	return function getConnectionId(): string {
+		if ( ! connectionId ) {
+			connectionId = crypto.randomUUID();
+		}
+		return connectionId;
+	};
+}
+
+// Create the connection ID getter
+const getConnectionId = createConnectionIdGenerator();
+
+export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	password?: string;
 	serverUrl: string;
@@ -27,6 +44,7 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 		data: {
 			syncObjectType,
 			syncObjectId,
+			connectionId: getConnectionId(),
 		},
 	} );
 
@@ -112,6 +130,10 @@ async function configureProvider(
 			) }: ${ errorMessage }`
 		);
 	}
+
+	// Uncomment the following line to enable manual disconnection of the
+	// WebSocket (useful for debugging).
+	// window.DISCONNECT_WEB_SOCKET = () => provider.disconnect();
 }
 
 export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
