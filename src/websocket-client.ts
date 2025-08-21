@@ -8,6 +8,7 @@ import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 import { getWebSocketUrl } from '@/utilities/config';
 import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
+import { generateUUID } from '@/utilities/uuid';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
@@ -24,7 +25,7 @@ export interface WebSocketConnectionConfig {
 /**
  * Creates a connection ID generator with in-memory storage
  */
-const getConnectionId = memoizeFn( (): string => crypto.randomUUID() );
+const getConnectionId = memoizeFn( (): string => generateUUID() );
 
 /**
  * Fetch a fresh authentication token from the REST API.
