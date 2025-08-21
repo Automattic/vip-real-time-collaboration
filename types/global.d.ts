@@ -1,8 +1,5 @@
 declare global {
 	interface Window {
-		DISCONNECT_WEB_SOCKET?: () => void;
-		RECONNECT_WEB_SOCKET?: () => void;
-
 		VIP_RTC: VIPRTCConfig;
 
 		wp: {

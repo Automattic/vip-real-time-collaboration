@@ -6,7 +6,7 @@ import { __ } from '@wordpress/i18n';
 import * as buffer from 'lib0/buffer';
 import * as Y from 'yjs';
 
-import { getCrdtDocVersion } from '../utilities/config';
+import { getCrdtDocVersion } from '@/utilities/config';
 
 import type { CRDTDoc } from '@wordpress/sync';
 
@@ -27,7 +27,7 @@ function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
 }
 
-function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc | null {
+function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc {
 	const ydoc = new Y.Doc();
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
@@ -110,4 +110,11 @@ export async function updateCrdtDoc(
 	}
 
 	return crdtDoc;
+}
+
+// Provide some debugging utilities in development mode.
+if ( 'development' === process.env.NODE_ENV ) {
+	window.VIP_RTC.debug.deserializeCrdtAsJson = ( serializedCrdtDoc: string ): object | null => {
+		return deserializeCrdtDoc( serializedCrdtDoc ).getMap( 'document' ).toJSON();
+	};
 }
