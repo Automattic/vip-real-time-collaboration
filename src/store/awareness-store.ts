@@ -131,11 +131,21 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 };
 
 const selectors = {
+	getActiveClientIds( state: AwarenessStore ): number[] {
+		return Array.from( state.userMap.keys() );
+	},
 	getActiveUsers( state: AwarenessStore ): UserState[] {
 		return Array.from( state.userMap.values() );
 	},
 	getCurrentUserSelection( state: AwarenessStore ): SelectionState {
 		return state.currentUserSelection;
+	},
+	isDisconnected( state: AwarenessStore ): boolean {
+		return (
+			selectors
+				.getActiveUsers( state )
+				.findIndex( user => user.isMe && false === user.isConnected ) !== -1
+		);
 	},
 };
 
@@ -148,5 +158,8 @@ export const store = createReduxStore( STORE_NAME, {
 ( register as ( storeDescriptor: StoreDescriptor ) => void )( store );
 
 export interface AwarenessStoreSelectors {
+	getActiveClientIds: () => number[];
 	getActiveUsers: () => UserState[];
+	getCurrentUserSelection: () => SelectionState;
+	isDisconnected: () => boolean;
 }

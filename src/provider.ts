@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { select, subscribe } from '@wordpress/data';
+import { dispatch, select, subscribe } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 
 /**
@@ -9,6 +9,7 @@ import { store as editorStore } from '@wordpress/editor';
  */
 import { getCrdtDoc, updateCrdtDoc } from '@/api/crdt';
 import { AwarenessManager } from '@/awareness-manager';
+import { store as awarenessStore } from '@/store/awareness-store';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
 import type {
@@ -19,13 +20,20 @@ import type {
 	ObjectType,
 	SyncConfig,
 } from '@wordpress/sync';
+import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	private entitiesWithCrdtPersistence: Map< EntityID, [ ObjectType, ObjectID ] > = new Map();
 
 	public constructor( config: WebSocketConnectionConfig ) {
 		// There is no local persistence, so we pass `null` for the first argument.
-		super( null, createWebSocketConnection( config ) );
+		super(
+			null,
+			createWebSocketConnection( {
+				...config,
+				onStatusChange: ( ...args ) => this.onProviderStatusChange( ...args ),
+			} )
+		);
 
 		this.subscribeToPostSave();
 	}
@@ -105,5 +113,35 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		}
 
 		await updateCrdtDoc( objectType, objectId, crdtDoc, false );
+	}
+
+	private onProviderStatusChange(
+		event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
+		provider: WebsocketProvider
+	): void {
+		switch ( event.status ) {
+			case 'connecting': {
+				break;
+			}
+
+			case 'connection-error': {
+				const { patchUser } = dispatch( awarenessStore );
+				void patchUser( provider.awareness.clientID, { isConnected: false } );
+				break;
+			}
+
+			case 'connected': {
+				AwarenessManager.resetAfterDisconnect();
+				break;
+			}
+
+			case 'disconnected': {
+				if ( provider.awareness.clientID ) {
+					const { patchUser } = dispatch( awarenessStore );
+					void patchUser( provider.awareness.clientID, { isConnected: false } );
+				}
+				break;
+			}
+		}
 	}
 }
