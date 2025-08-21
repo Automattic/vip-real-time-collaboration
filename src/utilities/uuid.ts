@@ -7,7 +7,7 @@
  * @returns A UUID.
  */
 export function generateUUID(): string {
-	if ( window.crypto?.randomUUID && typeof window.crypto.randomUUID === 'function' ) {
+	if ( window.isSecureContext ) {
 		return window.crypto.randomUUID();
 	}
 
