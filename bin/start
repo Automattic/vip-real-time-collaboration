@@ -2,8 +2,6 @@
 
 set -e # Exit immediately if any command exits with a non-zero status.
 
-SCRIPT_MODE=${2:-start} # "build" or "start". Default is "start".
-
 # Set WordPress port and home URL.
 PORT="${WP_ENV_PORT-8888}"
 WP_HOME="${WP_ENV_HOME_URL-http://localhost:$PORT}"
@@ -12,9 +10,14 @@ YJS_INSPECTOR_PORT="${YJS_INSPECTOR_PORT-5173}"
 
 cleanup() {
     echo ""
-    echo "✊ Caught SIG signal. Stopping..."
+    echo "✊ Caught SIG signal. Stopping all development builds..."
 
-    printf "Stop WordPress and WebSocket server? (y/n) "
+    # Kill any lingering Node.js processes.
+    pkill -f 'vip-real-time-collaboration/node_modules/'
+    pkill -f 'vip-real-time-collaboration/websocket-server/node_modules'
+    pkill -f 'vip-real-time-collaboration/yjs-inspector/node_modules'
+
+    printf "Stop WordPress? (y/n) "
     read -r answer
     if [ "$answer" != "${answer#[Yy]}" ]; then
         npm run -s dev:stop
@@ -87,12 +90,12 @@ install_dependencies() {
 }
 
 start_websocket_server() {
-    echo "🔼 Starting WebSocket server with hot-reload..."
+    echo "🔼 Starting WebSocket server development build..."
     VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret PORT=$WS_PORT npm run -s dev:websocket-server &
 }
 
 start_yjs_inspector() {
-    echo "🔼 Starting Yjs Inspector with hot-reload..."
+    echo "🔼 Starting Yjs Inspector development build..."
     VITE_PORT=$YJS_INSPECTOR_PORT npm run -s dev:yjs-inspector &
 }
 
@@ -144,14 +147,8 @@ start_yjs_inspector
 start_wordpress
 configure_wordpress
 
-if [ "$SCRIPT_MODE" = "build" ]; then
-    echo "🔼 Starting build process..."
-    npm run build
-    echo "🔼 Build completed."
-elif [ "$SCRIPT_MODE" = "start" ]; then
-    open_browser
+open_browser
 
-    # Start hot-reloading wp-scripts start
-    echo "🔼 Starting build process for development..."
-    npm start
-fi
+# Start wp-scripts development build
+echo "🔼 Starting plugin scripts development build..."
+npm start
