@@ -1,6 +1,7 @@
 /**
  * External dependencies
  */
+import { v4 as uuidv4 } from 'uuid';
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
@@ -24,7 +25,7 @@ export interface WebSocketConnectionConfig {
 /**
  * Creates a connection ID generator with in-memory storage
  */
-const getConnectionId = memoizeFn( (): string => crypto.randomUUID() );
+const getConnectionId = memoizeFn( (): string => uuidv4() );
 
 /**
  * Fetch a fresh authentication token from the REST API.
