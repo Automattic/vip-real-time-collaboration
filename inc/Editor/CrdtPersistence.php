@@ -72,12 +72,7 @@ final class CrdtPersistence {
 			'version' => self::CRDT_DOC_VERSION,
 		];
 
-		if ( false === update_post_meta( $post_id, self::POST_META_KEY, $meta_value ) ) {
-			return new WP_Error(
-				'vip_rtc_update_crdt_doc_failed',
-				__( 'Failed to update CRDT document.', 'vip-real-time-collaboration' )
-			);
-		}
+		update_post_meta( $post_id, self::POST_META_KEY, $meta_value );
 
 		return $crdt_doc;
 	}
