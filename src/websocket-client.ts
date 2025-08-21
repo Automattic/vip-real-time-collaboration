@@ -3,36 +3,28 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
-import { WebsocketProvider, WebsocketProviderOptions } from 'y-websocket';
+import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { getWebSocketUrl } from './utilities/config';
-import { getErrorMessage } from './utilities/error';
+import { getWebSocketUrl } from '@/utilities/config';
+import { getErrorMessage } from '@/utilities/error';
+import { memoizeFn } from '@/utilities/function';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
 
+export interface WebSocketConnectionConfig {
+	onStatusChange?: (
+		event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
+		provider: WebsocketProvider
+	) => void;
+	options?: WebsocketProviderOptions;
+	serverUrl: string;
+}
+
 /**
  * Creates a connection ID generator with in-memory storage
  */
-function createConnectionIdGenerator(): () => string {
-	let connectionId: string | null = null;
-
-	return function getConnectionId(): string {
-		if ( ! connectionId ) {
-			connectionId = crypto.randomUUID();
-		}
-		return connectionId;
-	};
-}
-
-// Create the connection ID getter
-const getConnectionId = createConnectionIdGenerator();
-
-export interface WebSocketConnectionConfig {
-	options?: WebsocketProviderOptions;
-	password?: string;
-	serverUrl: string;
-}
+const getConnectionId = memoizeFn( (): string => crypto.randomUUID() );
 
 /**
  * Fetch a fresh authentication token from the REST API.
@@ -55,105 +47,66 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 	return data.token;
 }
 
-const getOnConnectionClose = ( syncObjectType: string, syncObjectId: string ) => {
-	/**
-	 * Handle connection close event to fetch a new auth token and manually reconnect.
-	 */
-	return ( _event: CloseEvent | null, provider: WebsocketProvider ) => {
-		/**
-		 * Disable providershouldReconnect to prevent websocket from attempting to reconnect before
-		 * the new auth token is fetched (they are short-lived).
-		 * When the provider.connect() is called it attempts connection as well as updates
-		 * provider.shouldConnect to true. Once that is updated, y-websocket will re-attempt
-		 * connection with exponential backoff.
-		 */
-		provider.shouldConnect = false;
-
-		fetchAuthToken( syncObjectType, syncObjectId )
-			.then( authToken => {
-				provider.params = {
-					auth: authToken,
-				};
-				provider.connect();
-			} )
-			.catch( error => {
-				const errorMessage = getErrorMessage( error );
-				// eslint-disable-next-line no-console
-				console.error(
-					`[RTC:WebSocket] ${ __(
-						'Failed to fetch auth token and reconnect to WebSocket',
-						'vip-real-time-collaboration'
-					) }: ${ errorMessage }`
-				);
-			} );
+/**
+ * Log a link to inspect the Yjs provider using Yjs inspector.
+ */
+function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken: string ): void {
+	const roomName = `${ syncObjectType }-${ syncObjectId }`;
+	const connectionConfig = {
+		createNewDoc: false,
+		room: `${ roomName }?auth=${ authToken }`,
+		provider: 'y-websocket',
+		url: getWebSocketUrl(),
 	};
-};
+
+	// The inspect URL always targets a local Yjs inspector.
+	const inspectUrl = `http://localhost:5173/#/connection=${ encodeURIComponent(
+		JSON.stringify( connectionConfig )
+	) }`;
+
+	// eslint-disable-next-line no-console
+	console.debug( `Inspect Yjs provider for ${ roomName }: ${ inspectUrl }` );
+}
 
 /**
  * Configure the websocket provider to use auth token for websocket connection.
  */
-async function configureProvider(
+function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
 	syncObjectId: string
-): Promise< void > {
-	provider.on( 'connection-close', getOnConnectionClose( syncObjectType, syncObjectId ) );
+): () => Promise< void > {
+	return async function (): Promise< void > {
+		try {
+			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
 
-	try {
-		const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
+			provider.params = {
+				auth: authToken,
+			};
+			provider.connect();
 
-		provider.params = {
-			auth: authToken,
-		};
+			// Disable provider#shouldConnect to prevent websocket from attempting to
+			// reconnect before the new auth token is fetched (they are short-lived).
+			// When provider.connect() runs it updates provider#shouldConnect to true.
+			provider.shouldConnect = false;
 
-		provider.connect();
-
-		// Log a link to inspect the Yjs provider using Yjs inspector.
-		const roomName = `${ syncObjectType }-${ syncObjectId }`;
-		const connectionConfig = {
-			createNewDoc: false,
-			room: `${ roomName }?auth=${ authToken }`,
-			provider: 'y-websocket',
-			url: getWebSocketUrl(),
-		};
-		const inspectUrl = `http://localhost:5173/#/connection=${ encodeURIComponent(
-			JSON.stringify( connectionConfig )
-		) }`;
-		console.debug( `Inspect Yjs provider for ${ roomName }: ${ inspectUrl }` );
-	} catch ( error ) {
-		const errorMessage = getErrorMessage( error );
-		// eslint-disable-next-line no-console
-		console.error(
-			`[RTC:WebSocket] ${ __(
-				'Failed to fetch auth token and connect to WebSocket',
-				'vip-real-time-collaboration'
-			) }: ${ errorMessage }`
-		);
-	}
-
-	// Uncomment the following line to enable manual disconnection of the
-	// WebSocket (useful for debugging).
-	// window.DISCONNECT_WEB_SOCKET = () => provider.disconnect();
+			logInspectUrl( syncObjectType, syncObjectId, authToken );
+		} catch ( error: unknown ) {
+			const errorMessage = getErrorMessage( error );
+			// eslint-disable-next-line no-console
+			console.error(
+				`[RTC:WebSocket] ${ __(
+					'Failed to fetch auth token and connect to WebSocket',
+					'vip-real-time-collaboration'
+				) }: ${ errorMessage }`
+			);
+		}
+	};
 }
 
 export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
-	/**
-	 * We already error check for the WebSocket URL in the main plugin file,
-	 * so this is here for safety.
-	 */
-	const serverUrl = getWebSocketUrl();
-
-	if ( typeof serverUrl !== 'string' ) {
-		/**
-		 * Handled in index.ts.
-		 */
-		return {
-			serverUrl: '',
-		};
-	}
-
-	const config: WebSocketConnectionConfig = {
-		serverUrl,
+	return {
+		serverUrl: getWebSocketUrl(),
 		options: {
 			/**
 			 * Disable automatic connection to prevent websocket from attempting to connect
@@ -162,8 +115,6 @@ export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
 			connect: false,
 		},
 	};
-
-	return config;
 }
 
 /**
@@ -173,21 +124,42 @@ export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
  * @return {ConnectDoc} A function that connects a Y.Doc to a WebSocket server.
  */
 export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
-	return function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
-		const roomName = `${ objectType }-${ objectId }`;
-		let provider = null;
-
+	return async function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
 		try {
-			provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
-			void configureProvider( provider, objectType, objectId );
+			const roomName = `${ objectType }-${ objectId }`;
+			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
+			const connect = createConnect( provider, objectType, objectId );
+
+			provider.on( 'connection-close', connect );
+			provider.on( 'connection-error', () => {
+				// The provider does not change status on connection error, so we
+				// manually trigger a synthetic status change.
+				config.onStatusChange?.( { status: 'connection-error' }, provider );
+			} );
+			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
+
+			// Uncomment the following lines to provide debugging functions.
+
+			// window.DISCONNECT_WEB_SOCKET = () => {
+			// 	provider.off( 'connection-close', connect );
+			// 	provider.disconnect();
+			// };
+
+			// window.RECONNECT_WEB_SOCKET = () => {
+			// 	provider.on( 'connection-close', connect );
+			// 	void connect();
+			// };
+
+			await connect();
+
+			return {
+				awareness: provider.awareness,
+				destroy: () => provider.destroy(),
+			};
 		} catch {}
 
-		return Promise.resolve( {
-			awareness: provider?.awareness,
-			destroy: () => {
-				// The WebsocketProvider handles its own cleanup. If needed, we could
-				// implement a way to disconnect or clean up resources here.
-			},
-		} );
+		return {
+			destroy: () => {},
+		};
 	};
 }
