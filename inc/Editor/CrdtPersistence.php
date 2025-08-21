@@ -2,8 +2,11 @@
 
 namespace VIPRealTimeCollaboration\Editor;
 
+use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use WP_Error;
+use function add_action;
 use function get_post_meta;
+use function register_meta;
 use function update_post_meta;
 
 defined( 'ABSPATH' ) || exit();
@@ -15,6 +18,27 @@ defined( 'ABSPATH' ) || exit();
 final class CrdtPersistence {
 	const CRDT_DOC_VERSION = 1;
 	const POST_META_KEY = 'vip_rtc_crdt_doc';
+
+	public function __construct() {
+		add_action( 'init', [ $this, 'register_meta' ], 999, 0 );
+	}
+
+	public function register_meta(): void {
+		foreach ( Compatibility::get_supported_post_types() as $post_type ) {
+			register_meta(
+				'post',
+				self::POST_META_KEY,
+				[
+					'auth_callback' => '__return_false',
+					'object_subtype' => $post_type,
+					'revisions_enabled' => true,
+					'show_in_rest' => false,
+					'single' => true,
+					'type' => 'array',
+				]
+			);
+		}
+	}
 
 	/**
 	 * Retrieves the serialized CRDT document from post meta.
