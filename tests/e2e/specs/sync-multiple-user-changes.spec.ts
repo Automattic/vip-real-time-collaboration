@@ -400,6 +400,10 @@ function getRandomBlockToInsert(): { name: string; attributes: Record< string, a
 			name: 'core/html',
 			attributes: { content: '<p>Random HTML content</p>' },
 		},
+		{
+			name: 'core/pullquote',
+			attributes: { value: 'test', citation: 'Random pullquote citation' },
+		},
 	] as const;
 
 	const randomIndex = Math.floor( Math.random() * blocks.length );
@@ -428,6 +432,8 @@ function getPostToVerifyFromRandomBlock( block: {
 			return '<!-- wp:preformatted -->\n<pre class="wp-block-preformatted">Random preformatted text</pre>\n<!-- /wp:preformatted -->';
 		case 'core/html':
 			return '<!-- wp:html -->\n<p>Random HTML content</p>\n<!-- /wp:html -->';
+		case 'core/pullquote':
+			return '<!-- wp:pullquote -->\n<figure class="wp-block-pullquote"><blockquote><p>test</p><cite>Random pullquote citation</cite></blockquote></figure>\n<!-- /wp:pullquote -->';
 		default:
 			return '';
 	}
