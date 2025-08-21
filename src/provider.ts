@@ -116,23 +116,32 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	}
 
 	private onProviderStatusChange(
-		event: { status: 'connected' | 'disconnected' | 'connecting' },
+		event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
 		provider: WebsocketProvider
 	): void {
 		switch ( event.status ) {
-			case 'connecting':
+			case 'connecting': {
 				break;
+			}
 
-			case 'connected':
+			case 'connection-error': {
+				const { patchUser } = dispatch( awarenessStore );
+				void patchUser( provider.awareness.clientID, { isConnected: false } );
+				break;
+			}
+
+			case 'connected': {
 				AwarenessManager.resetAfterDisconnect();
 				break;
+			}
 
-			case 'disconnected':
+			case 'disconnected': {
 				if ( provider.awareness.clientID ) {
 					const { patchUser } = dispatch( awarenessStore );
 					void patchUser( provider.awareness.clientID, { isConnected: false } );
 				}
 				break;
+			}
 		}
 	}
 }

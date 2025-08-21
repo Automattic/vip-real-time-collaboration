@@ -14,7 +14,7 @@ import type * as Y from 'yjs';
 
 export interface WebSocketConnectionConfig {
 	onStatusChange?: (
-		event: { status: 'connected' | 'disconnected' | 'connecting' },
+		event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
 		provider: WebsocketProvider
 	) => void;
 	options?: WebsocketProviderOptions;
@@ -131,6 +131,11 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			const connect = createConnect( provider, objectType, objectId );
 
 			provider.on( 'connection-close', connect );
+			provider.on( 'connection-error', () => {
+				// The provider does not change status on connection error, so we
+				// manually trigger a synthetic status change.
+				config.onStatusChange?.( { status: 'connection-error' }, provider );
+			} );
 			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
 
 			// Uncomment the following lines to provide debugging functions.
