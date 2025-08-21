@@ -1,11 +1,12 @@
 {
   "$schema": "https://raw.githubusercontent.com/WordPress/gutenberg/refs/heads/trunk/schemas/json/wp-env.json",
   "config": {
+    "VIP_RTC_WS_AUTH_SECRET": "vip_rtc_ws_auth_secret",
+    "VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS": 3600,
+    "VIP_RTC_WS_URL": "ws://localhost:1234",
     "WP_DEBUG_DISPLAY": true,
     "WP_DEVELOPMENT_MODE": "plugin",
-    "WP_ENVIRONMENT_TYPE": "development",
-    "VIP_RTC_WS_URL": "ws://localhost:1234",
-    "VIP_RTC_WS_AUTH_SECRET": "vip_rtc_ws_auth_secret"
+    "WP_ENVIRONMENT_TYPE": "development"
   },
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"

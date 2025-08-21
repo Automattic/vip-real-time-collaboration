@@ -253,12 +253,12 @@ server.on( 'upgrade', ( request, socket, head ) => {
  */
 server.listen( port, host, () => {
 	// eslint-disable-next-line no-console
-	console.log( `WebSocket Server running at ws://${ host }:${ port }` );
+	console.log( `WebSocket server running at ws://${ host }:${ port }` );
 } );
 
 metricsServer.listen( metricsPort, host, () => {
 	// eslint-disable-next-line no-console
-	console.log( `WebSocket Metrics Server running at http://${ host }:${ metricsPort }` );
+	console.log( `WebSocket metrics server running at http://${ host }:${ metricsPort }` );
 
 	startMetricsMaintenanceLoop( wss );
 } );
