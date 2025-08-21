@@ -64,7 +64,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await existingPostPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
@@ -134,7 +134,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await existingPostPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
@@ -217,7 +217,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await existingPostPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
@@ -293,7 +293,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await firefoxPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
@@ -367,7 +367,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await firefoxPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
@@ -450,7 +450,7 @@ test.describe( 'Simple changes by one user', () => {
 
 			// Get the updated HTML from the new page
 			const editedPostContent = await firefoxPage.evaluate( () =>
-				// @ts-ignore - TypeScript is not aware of the wp global, this'll be tweaked in the future once the waitForTimeout issue is fixed.
+				// @ts-ignore - TypeScript is not aware of the wp global. Not worth adding that support in just for tests
 				window.wp.data.select( 'core/editor' ).getEditedPostContent()
 			);
 
