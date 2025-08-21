@@ -124,9 +124,10 @@ function getConnectionId( request: http.IncomingMessage ): string | null {
  * TODO: Add additonal check for user_id
  */
 function validateTokenPayload( request: http.IncomingMessage, jwtPayload: SyncTokenPayload ) {
+	// Extract room name from token and URL, stripping leading slash and _ws/ prefix from URL path
 	const { room_name: roomNameFromToken } = jwtPayload;
 	const pathname = getRequestPathname( request );
-	const roomNameFromUrl = pathname.replace( /^\//, '' );
+	const roomNameFromUrl = pathname.replace( /^\/(_ws\/)?/, '' );
 
 	const isValid = roomNameFromToken === roomNameFromUrl;
 	if ( ! isValid ) {
