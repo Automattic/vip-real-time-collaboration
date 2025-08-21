@@ -57,6 +57,7 @@ final class Assets {
 
 		$script_data = wp_json_encode( [
 			'crdtDocVersion' => CrdtPersistence::CRDT_DOC_VERSION,
+			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
 		] );
 

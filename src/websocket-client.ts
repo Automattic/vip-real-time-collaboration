@@ -139,17 +139,18 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			} );
 			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
 
-			// Uncomment the following lines to provide debugging functions.
+			// Provide some debugging functions in development mode.
+			if ( 'development' === process.env.NODE_ENV ) {
+				window.VIP_RTC.debug.disconnectWebSocket = () => {
+					provider.off( 'connection-close', connect );
+					provider.disconnect();
+				};
 
-			// window.DISCONNECT_WEB_SOCKET = () => {
-			// 	provider.off( 'connection-close', connect );
-			// 	provider.disconnect();
-			// };
-
-			// window.RECONNECT_WEB_SOCKET = () => {
-			// 	provider.on( 'connection-close', connect );
-			// 	void connect();
-			// };
+				window.VIP_RTC.debug.reconnectWebSocket = () => {
+					provider.on( 'connection-close', connect );
+					void connect();
+				};
+			}
 
 			await connect();
 
