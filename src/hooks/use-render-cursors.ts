@@ -1,14 +1,16 @@
 import {
-	BlockEditorStoreSelectors,
 	BlockEditorStoreActions,
+	BlockEditorStoreSelectors,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
 import { BlockInstance, isUnmodifiedDefaultBlock } from '@wordpress/blocks';
 import { debounce } from '@wordpress/compose';
+import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, useDispatch, useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
+import { useCurrentEntity, type CurrentEntity } from './use-current-entity';
 import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as awarenessStore } from '../store/awareness-store';
@@ -68,30 +70,27 @@ export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null
 ) {
-	const { selectionStart, selectionEnd, isBlockValid } = useSelect<
+	const { selectionChange } = useDispatch< BlockEditorStoreActions >( blockEditorStore );
+	const { selectionStart, selectionEnd, isBlockValid, getBlock, initialCaretPosition } = useSelect<
 		BlockEditorStoreSelectors,
 		{
 			selectionStart: WPBlockSelection;
 			selectionEnd: WPBlockSelection;
+			initialCaretPosition: number | null;
 			isBlockValid: ( clientId: string ) => boolean;
+			getBlock: ( clientId: string ) => BlockInstance;
 		}
 	>( select => {
 		return {
 			selectionStart: select( blockEditorStore ).getSelectionStart(),
 			selectionEnd: select( blockEditorStore ).getSelectionEnd(),
 			isBlockValid: select( blockEditorStore ).isBlockValid,
+			getBlock: select( blockEditorStore ).getBlock,
+			initialCaretPosition: select( blockEditorStore ).getSelectedBlocksInitialCaretPosition(),
 		};
 	} );
 
-	const { selectionChange } = useDispatch< BlockEditorStoreActions >( blockEditorStore );
-	const { getBlock } = useSelect<
-		BlockEditorStoreSelectors,
-		{ getBlock: ( clientId: string ) => BlockInstance }
-	>( select => {
-		return {
-			getBlock: select( blockEditorStore ).getBlock,
-		};
-	} );
+	const entity = useCurrentEntity();
 
 	// Workaround:
 	// When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
@@ -127,8 +126,10 @@ export function useRenderCursors(
 
 	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
-		debouncedUpdateSelection( selectionStart, selectionEnd );
-	}, [ selectionStart, selectionEnd, debouncedUpdateSelection ] );
+		if ( entity ) {
+			debouncedUpdateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
+		}
+	}, [ selectionStart, selectionEnd, debouncedUpdateSelection, initialCaretPosition, entity ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
@@ -181,9 +182,34 @@ export function useRenderCursors(
  * @param start - The start position of the selection
  * @param end - The end position of the selection
  */
-const updateSelection = ( start: WPBlockSelection, end: WPBlockSelection ) => {
-	const selection = getSelectionState( start, end );
+const updateSelection = async (
+	selectionStart: WPBlockSelection,
+	selectionEnd: WPBlockSelection,
+	initialCaretPosition: number | null,
+	entity: CurrentEntity
+) => {
+	const { editEntityRecord } = dispatch( coreStore );
+
+	if ( selectionStart.clientId ) {
+		// Send an entityRecord `selection` update if we have a selection.
+		//
+		// Normally WordPress updates the `selection` property of the post when changes are made to blocks.
+		// In a multi-user setup, block changes can occur from other users. When an entity is updated from another
+		// user's changes, useBlockSync() in Gutenberg will reset the user's selection to the last saved selection.
+		//
+		// Manually adding an edit for each movement ensures that other user's changes to the document will
+		// not cause the local user's selection to reset to the last local change location.
+		const edits = {
+			selection: { selectionStart, selectionEnd, initialPosition: initialCaretPosition },
+		};
+
+		void editEntityRecord( entity.kind, entity.name, entity.recordId, edits, {
+			undoIgnore: true,
+		} );
+	}
+
 	const { setCurrentUserSelection } = dispatch( awarenessStore );
+	const selection = getSelectionState( selectionStart, selectionEnd );
 	void setCurrentUserSelection( selection );
 };
 
