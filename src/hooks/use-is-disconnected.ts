@@ -13,15 +13,13 @@ export function useIsDisconnected(): boolean {
 	} );
 
 	useEffect( () => {
-		if ( ! isDisconnected ) {
-			setDisconnectedPastThreshold( false );
-			clearTimeout( timeoutRef.current ?? undefined );
-		}
-
 		if ( isDisconnected ) {
 			timeoutRef.current = setTimeout( () => {
 				setDisconnectedPastThreshold( true );
 			}, DISCONNECTED_THRESHOLD_IN_MS );
+		} else {
+			setDisconnectedPastThreshold( false );
+			clearTimeout( timeoutRef.current ?? undefined );
 		}
 
 		return () => clearTimeout( timeoutRef.current ?? undefined );
