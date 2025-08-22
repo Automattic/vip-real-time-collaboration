@@ -6,6 +6,7 @@ use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use WP_Error;
 use function add_action;
 use function get_post_meta;
+use function post_type_supports;
 use function register_meta;
 use function update_post_meta;
 
@@ -31,7 +32,7 @@ final class CrdtPersistence {
 				[
 					'auth_callback' => '__return_false',
 					'object_subtype' => $post_type,
-					'revisions_enabled' => true,
+					'revisions_enabled' => post_type_supports( $post_type, 'revisions' ),
 					'show_in_rest' => false,
 					'single' => true,
 					'type' => 'array',
