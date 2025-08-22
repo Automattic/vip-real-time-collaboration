@@ -90,17 +90,6 @@ export class AwarenessManager {
 		};
 	}
 
-	private getOtherUserState( entityId: EntityID, userState?: UserState ): UserState | null {
-		/* eslint-disable no-console */
-		if ( ! userState?.clientId || ! userState?.id || ! userState?.editorState ) {
-			console.warn( `AwarenessManager: Invalid user state for entity ${ entityId }` );
-			console.trace( { userState } );
-			return null;
-		}
-
-		return userState;
-	}
-
 	/*
 	 * Get the states from an awareness document.
 	 */
@@ -146,14 +135,13 @@ export class AwarenessManager {
 			awareness.setLocalState( currentUserState );
 
 			manager.getStates( awareness ).forEach( ( userState, clientId ) => {
-				const validatedUserState = manager.getOtherUserState( entityId, userState );
-				if ( ! validatedUserState ) {
+				if ( ! manager.validateUserState( userState, { entityId } ) ) {
 					return;
 				}
 
-				validatedUserState.isMe = validatedUserState.clientId === currentUserState.clientId;
+				userState.isMe = userState.clientId === currentUserState.clientId;
 
-				void upsertUser( clientId, validatedUserState );
+				void upsertUser( clientId, userState );
 				clientIdsFromAwareness.add( clientId );
 			} );
 		} );
@@ -204,15 +192,14 @@ export class AwarenessManager {
 					clearTimeout( userRemovalTimeouts.get( id ) );
 				}
 
-				const validatedUserState = this.getOtherUserState( entityId, userState );
-				if ( ! validatedUserState ) {
+				if ( ! this.validateUserState( userState, { entityId } ) ) {
 					return;
 				}
 
-				validatedUserState.isConnected = true;
-				validatedUserState.isMe = validatedUserState.clientId === currentUserClientId;
+				userState.isConnected = true;
+				userState.isMe = userState.clientId === currentUserClientId;
 
-				void upsertUser( id, validatedUserState );
+				void upsertUser( id, userState );
 			} );
 
 			removed.forEach( id => {
@@ -232,5 +219,19 @@ export class AwarenessManager {
 				);
 			} );
 		} );
+	}
+
+	private validateUserState(
+		userState: UserState | undefined,
+		context: object
+	): userState is UserState {
+		/* eslint-disable no-console */
+		if ( ! userState?.clientId || ! userState?.id || ! userState?.editorState ) {
+			console.warn( `AwarenessManager: Invalid user state` );
+			console.trace( { userState, ...context } );
+			return false;
+		}
+
+		return true;
 	}
 }
