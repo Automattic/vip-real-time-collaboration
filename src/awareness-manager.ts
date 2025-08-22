@@ -31,14 +31,22 @@ export class AwarenessManager {
 		this.currentWordPressUserInfoPromise = getCurrentUserInfo();
 
 		// Remove awareness states when the window is closed or refreshed.
-		window.addEventListener( 'beforeunload', () => {
-			this.awarenessInstances.forEach( awareness => {
-				removeAwarenessStatesFromProtocol(
-					awareness,
-					[ awareness.clientID ],
-					'removeAwarenessStates'
-				);
-			} );
+		window.addEventListener( 'visibilitychange', () => {
+			switch ( document.visibilityState ) {
+				case 'hidden':
+					this.awarenessInstances.forEach( awareness => {
+						removeAwarenessStatesFromProtocol(
+							awareness,
+							[ awareness.clientID ],
+							'removeAwarenessStates'
+						);
+					} );
+					break;
+
+				case 'visible':
+					void AwarenessManager.refreshAwareness();
+					break;
+			}
 		} );
 	}
 
@@ -56,12 +64,17 @@ export class AwarenessManager {
 		// Record the awareness instance.
 		manager.awarenessInstances.set( entityId, awareness );
 
+		// Set local state.
+		const userInfo = await manager.currentWordPressUserInfoPromise;
+		const currentUserState = manager.getCurrentUserState( awareness, userInfo );
+		awareness.setLocalState( currentUserState );
+
 		// Subscribe to changes in the awareness instance and our store.
-		await manager.subscribeToUserChanges( awareness );
+		manager.subscribeToUserChanges( awareness );
 		manager.subscribeToSelectionChanges( awareness );
 	}
 
-	private async getCurrentUserState( awareness: Awareness ): Promise< UserState > {
+	private getCurrentUserState( awareness: Awareness, userInfo: WordPressUserInfo ): UserState {
 		const states = ( awareness.getStates() as Map< number, UserState > ) ?? new Map();
 		const otherUserColors = Array.from( states.values() )
 			.filter( userState => ! userState.isMe )
@@ -69,7 +82,6 @@ export class AwarenessManager {
 			.filter( Boolean );
 
 		const color = getNewUserColor( otherUserColors );
-		const userInfo = await this.currentWordPressUserInfoPromise;
 
 		return {
 			...userInfo,
@@ -93,15 +105,44 @@ export class AwarenessManager {
 		return awareness.getStates() as Map< number, UserState >;
 	}
 
-	public static resetAfterDisconnect(): void {
+	/**
+	 * Set a local state field on an awareness document.
+	 */
+	private getLocalStateField< FieldName extends keyof UserState >(
+		awareness: Awareness,
+		field: FieldName
+	): UserState[ FieldName ] | undefined {
+		// eslint-disable-next-line security/detect-object-injection
+		return ( awareness.getLocalState() as UserState )[ field ];
+	}
+
+	/**
+	 * Set a local state field on an awareness document.
+	 */
+	private setLocalStateField< FieldName extends keyof UserState >(
+		awareness: Awareness,
+		field: FieldName,
+		value: UserState[ FieldName ]
+	): void {
+		awareness.setLocalStateField( field, value );
+	}
+
+	public static async refreshAwareness(): Promise< void > {
 		const manager = AwarenessManager.instance;
 		const { removeUser, upsertUser } = dispatch( awarenessStore );
 		const { getActiveClientIds } = select( awarenessStore );
 
 		const clientIdsFromStore = new Set< number >( getActiveClientIds() );
 		const clientIdsFromAwareness = new Set< number >();
+		console.log( { clientIdsFromStore, clientIdsFromAwareness } );
+
+		// Set local state.
+		const userInfo = await manager.currentWordPressUserInfoPromise;
 
 		manager.awarenessInstances.forEach( awareness => {
+			const currentUserState = manager.getCurrentUserState( awareness, userInfo );
+			awareness.setLocalState( currentUserState );
+
 			manager.getStates( awareness ).forEach( ( userState, clientId ) => {
 				void upsertUser( clientId, userState );
 				clientIdsFromAwareness.add( clientId );
@@ -114,17 +155,6 @@ export class AwarenessManager {
 				void removeUser( clientId );
 			}
 		} );
-	}
-
-	/**
-	 * Set a local state field on an awareness document.
-	 */
-	private setLocalStateField< FieldName extends keyof UserState >(
-		awareness: Awareness,
-		field: FieldName,
-		value: UserState[ FieldName ]
-	): void {
-		awareness.setLocalStateField( field, value );
 	}
 
 	private subscribeToSelectionChanges( awareness: Awareness ): void {
@@ -142,11 +172,7 @@ export class AwarenessManager {
 		} );
 	}
 
-	private async subscribeToUserChanges( awareness: Awareness ): Promise< void > {
-		const currentUserState = await this.getCurrentUserState( awareness );
-
-		awareness.setLocalState( currentUserState );
-
+	private subscribeToUserChanges( awareness: Awareness ): void {
 		const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
 		const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
 
@@ -172,7 +198,8 @@ export class AwarenessManager {
 					void upsertUser( id, {
 						...userState,
 						isConnected: true,
-						isMe: userState.clientId === currentUserState.clientId,
+						isMe:
+							userState.clientId === this.getLocalStateField< 'clientId' >( awareness, 'clientId' ),
 					} );
 				}
 			} );
