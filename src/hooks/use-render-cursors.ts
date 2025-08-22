@@ -478,8 +478,6 @@ const findInnerBlockOffset = (
 
 		currentOffset += nodeLength;
 		lastTextNode = node;
-
-		node = treeWalker.nextNode();
 	}
 
 	if ( lastTextNode && lastTextNode.nodeValue?.length ) {
