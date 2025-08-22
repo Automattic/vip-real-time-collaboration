@@ -21,7 +21,7 @@
   "scripts": {
     "build": "npm run cmd:build",
     "check-types": "tsc --noEmit",
-    "cmd:build": "wp-scripts build --experimental-modules",
+    "cmd:build": "WP_DEVTOOL=source-map wp-scripts build --experimental-modules",
     "cmd:format": "prettier '**/*.(js|json|jsx|md|ts|tsx|yml|yaml)'",
     "cmd:lint:js": "eslint --ext 'js,jsx,ts,tsx' --quiet",
     "dev": "./bin/start",
