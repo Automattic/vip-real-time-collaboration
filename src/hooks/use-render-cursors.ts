@@ -3,7 +3,7 @@ import {
 	BlockEditorStoreSelectors,
 	store as blockEditorStore,
 } from '@wordpress/block-editor';
-import { BlockInstance, isUnmodifiedDefaultBlock } from '@wordpress/blocks';
+import { BlockInstance } from '@wordpress/blocks';
 import { debounce } from '@wordpress/compose';
 import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, useDispatch, useSelect } from '@wordpress/data';
@@ -11,7 +11,6 @@ import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors'
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
 import { useCurrentEntity, type CurrentEntity } from './use-current-entity';
-import useInterceptActionDispatch from './use-intercept-action-dispatch';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as awarenessStore } from '../store/awareness-store';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
@@ -92,28 +91,29 @@ export function useRenderCursors(
 
 	const entity = useCurrentEntity();
 
-	// Workaround:
-	// When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
-	// second block, the selection is not updated.
-	// Intercept the `mergeBlocks` call and update the selection after WordPress has processed the merge.
-	useInterceptActionDispatch(
-		blockEditorStore,
-		'mergeBlocks',
-		( originalAction, args: unknown[] ) => {
-			originalAction( ...args );
+	// Disabled - may cause lag issues.
+	// // Workaround:
+	// // When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
+	// // second block, the selection is not updated.
+	// // Intercept the `mergeBlocks` call and update the selection after WordPress has processed the merge.
+	// useInterceptActionDispatch(
+	// 	blockEditorStore,
+	// 	'mergeBlocks',
+	// 	( originalAction, args: unknown[] ) => {
+	// 		originalAction( ...args );
 
-			// Trigger selection update after the merge
-			setTimeout( () => {
-				const clientIds = args as string[];
-				for ( const clientId of clientIds ) {
-					const block = getBlock( clientId );
-					if ( isBlockValid( clientId ) && isUnmodifiedDefaultBlock( block ) ) {
-						selectionChange( clientId );
-					}
-				}
-			}, 0 );
-		}
-	);
+	// 		// Trigger selection update after the merge
+	// 		setTimeout( () => {
+	// 			const clientIds = args as string[];
+	// 			for ( const clientId of clientIds ) {
+	// 				const block = getBlock( clientId );
+	// 				if ( isBlockValid( clientId ) && isUnmodifiedDefaultBlock( block ) ) {
+	// 					selectionChange( clientId );
+	// 				}
+	// 			}
+	// 		}, 0 );
+	// 	}
+	// );
 
 	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
