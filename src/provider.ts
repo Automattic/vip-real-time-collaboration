@@ -1,12 +1,15 @@
 /**
  * External dependencies
  */
+import { store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 
 /**
  * Internal dependencies
  */
+import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+
 import { getCrdtDoc, updateCrdtDoc } from '@/api/crdt';
 import { AwarenessManager } from '@/awareness-manager';
 import { store as awarenessStore } from '@/store/awareness-store';
@@ -18,7 +21,10 @@ import type {
 	ObjectData,
 	ObjectID,
 	ObjectType,
+	StackItemEvent,
 	SyncConfig,
+	UndoManager,
+	UndoManagerCallbacks,
 } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
@@ -83,6 +89,76 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		// Return the result from updateCrdtDoc. There is a chance that our doc
 		// has been updated by the server!
 		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, true );
+	}
+
+	private lastUndoItem: StackItemEvent | null = null;
+
+	protected getUndoManagerCallbacks(): UndoManagerCallbacks {
+		return {
+			onStackItemAdded: ( event: StackItemEvent, _undoManager: UndoManager ) => {
+				if ( event.type === 'redo' ) {
+					// Don't need to add selection metadata during a redo, only for undo events.
+					return;
+				}
+
+				this.lastUndoItem = event;
+
+				// // @ts-expect-error - block editor store type issues
+				// const { getSelectionStart, getSelectionEnd } = select( blockEditorStore );
+				// const selectionStart = getSelectionStart();
+				// const selectionEnd = getSelectionEnd();
+
+				// console.log( 'onStackItemAdded, saving selection:', {
+				// 	selectionStart,
+				// 	selectionEnd,
+				// 	event,
+				// } );
+
+				// event.stackItem.meta.set( 'selectionStart', selectionStart );
+				// event.stackItem.meta.set( 'selectionEnd', selectionEnd );
+			},
+			onStackItemPopped: ( event: StackItemEvent, _undoManager: UndoManager ) => {
+				const { selectionChange } = dispatch( blockEditorStore );
+
+				const selectionStart = event.stackItem.meta.get( 'selectionStart' ) as WPBlockSelection;
+				// const selectionEnd = event.stackItem.meta.get( 'selectionEnd' ) as WPBlockSelection;
+
+				// console.log( 'onStackItemPopped, calling selectionChange with:', selectionStart );
+				// void selectionChange( selectionStart );
+
+				// if ( selectionStart.clientId === selectionEnd.clientId ) {
+				// 	// Restore a selection within a single block.
+				// 	console.log( 'onStackItemPopped, restoring selection:', {
+				// 		clientId: selectionStart.clientId,
+				// 		attributeKey: selectionStart.attributeKey,
+				// 		startOffset: selectionEnd.offset,
+				// 		endOffset: selectionEnd.offset,
+				// 		event,
+				// 	} );
+
+				// 	// @ts-expect-error - block editor store type issues
+				// 	void selectionChange( {
+				// 		clientId: selectionStart.clientId,
+				// 		attributeKey: selectionStart.attributeKey,
+				// 		startOffset: selectionEnd.offset - 2,
+				// 		endOffset: selectionEnd.offset - 2,
+				// 	} );
+				// } else {
+				// 	// If the selection spans multiple blocks, only restore cursor to start position.
+				// 	console.log( 'onStackItemPopped over multiple blocks, restoring selection:', {
+				// 		selectionStart,
+				// 	} );
+
+				// 	// @ts-expect-error - block editor store type issues
+				// 	void selectionChange( {
+				// 		clientId: selectionStart.clientId,
+				// 		attributeKey: selectionStart.attributeKey,
+				// 		startOffset: selectionStart.offset,
+				// 		endOffset: selectionStart.offset,
+				// 	} );
+				// }
+			},
+		};
 	}
 
 	private subscribeToPostSave(): void {

@@ -44,6 +44,35 @@ declare module '@wordpress/sync' {
 		ydoc: CRDTDoc;
 	}
 
+	interface StackItem {
+		meta: Map< string, unknown >;
+	}
+
+	interface StackItemEvent {
+		stackItem: StackItem;
+		origin: string;
+		type: 'undo' | 'redo';
+		changedParentTypes: Map<
+			Y.AbstractType< Y.YEvent< any > >,
+			Array< Y.YEvent< any > >
+		>;
+	}
+
+	interface UndoManagerCallbacks {
+		onStackItemAdded?: (
+			event: StackItemEvent,
+			undoManager: Y.UndoManager
+		) => void;
+		onStackItemUpdated?: (
+			event: StackItemEvent,
+			undoManager: Y.UndoManager
+		) => void;
+		onStackItemPopped?: (
+			event: StackItemEvent,
+			undoManager: Y.UndoManager
+		) => void;
+	}
+
 	class SyncProvider {
 		protected connections: Map< EntityID, ConnectDocResult[] >;
 
@@ -58,6 +87,7 @@ declare module '@wordpress/sync' {
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
 		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
 		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
+		protected getUndoManagerCallbacks(): UndoManagerCallbacks;
 		public update(
 			type: ObjectType,
 			record: ObjectData,

@@ -10,7 +10,7 @@ declare module '@wordpress/block-editor' {
 		isBlockValid: ( clientId: string ) => boolean;
 		getBlock: ( clientId: string ) => BlockInstance;
 		getBlockOrder: () => string[];
-		getSelectedBlocksInitialCaretPosition: () => number | null;
+		getSelectedBlocksInitialCaretPosition: () => 0 | -1 | null;
 	}
 
 	interface BlockEditorStoreActions {
