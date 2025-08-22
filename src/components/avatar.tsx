@@ -11,7 +11,7 @@ export function Avatar( {
 	showUserColorBorder?: boolean;
 } ) {
 	const avatarUrl =
-		userState.avatar_urls[ 24 ] || userState.avatar_urls[ 48 ] || userState.avatar_urls[ 96 ];
+		userState.avatar_urls?.[ 24 ] || userState.avatar_urls?.[ 48 ] || userState.avatar_urls?.[ 96 ];
 
 	const style = {
 		border: showUserColorBorder === true ? `2px solid ${ userState.color }` : undefined,

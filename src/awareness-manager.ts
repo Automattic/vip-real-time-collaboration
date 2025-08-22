@@ -62,7 +62,7 @@ export class AwarenessManager {
 		awareness.setLocalState( currentUserState );
 
 		// Subscribe to changes in the awareness instance and our store.
-		manager.subscribeToUserChanges( awareness );
+		manager.subscribeToUserChanges( awareness, entityId );
 		manager.subscribeToSelectionChanges( awareness );
 	}
 
@@ -88,6 +88,17 @@ export class AwarenessManager {
 			isConnected: true,
 			isMe: true,
 		};
+	}
+
+	private getOtherUserState( entityId: EntityID, userState?: UserState ): UserState | null {
+		/* eslint-disable no-console */
+		if ( ! userState?.clientId || ! userState?.id || ! userState?.editorState ) {
+			console.warn( `AwarenessManager: Invalid user state for entity ${ entityId }` );
+			console.trace( { userState } );
+			return null;
+		}
+
+		return userState;
 	}
 
 	/*
@@ -126,17 +137,23 @@ export class AwarenessManager {
 
 		const clientIdsFromStore = new Set< number >( getActiveClientIds() );
 		const clientIdsFromAwareness = new Set< number >();
-		console.log( { clientIdsFromStore, clientIdsFromAwareness } );
 
 		// Set local state.
 		const userInfo = await manager.currentWordPressUserInfoPromise;
 
-		manager.awarenessInstances.forEach( awareness => {
+		manager.awarenessInstances.forEach( ( awareness, entityId ) => {
 			const currentUserState = manager.getCurrentUserState( awareness, userInfo );
 			awareness.setLocalState( currentUserState );
 
 			manager.getStates( awareness ).forEach( ( userState, clientId ) => {
-				void upsertUser( clientId, userState );
+				const validatedUserState = manager.getOtherUserState( entityId, userState );
+				if ( ! validatedUserState ) {
+					return;
+				}
+
+				validatedUserState.isMe = validatedUserState.clientId === currentUserState.clientId;
+
+				void upsertUser( clientId, validatedUserState );
 				clientIdsFromAwareness.add( clientId );
 			} );
 		} );
@@ -164,7 +181,7 @@ export class AwarenessManager {
 		} );
 	}
 
-	private subscribeToUserChanges( awareness: Awareness ): void {
+	private subscribeToUserChanges( awareness: Awareness, entityId: EntityID ): void {
 		const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
 		const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
 
@@ -178,6 +195,7 @@ export class AwarenessManager {
 
 		awareness.on( 'change', ( { added, removed, updated }: AwarenessStateChange ) => {
 			const updatedUserStates = this.getStates( awareness );
+			const currentUserClientId = this.getLocalStateField< 'clientId' >( awareness, 'clientId' );
 
 			[ ...added, ...updated ].forEach( id => {
 				const userState = updatedUserStates.get( id );
@@ -186,14 +204,15 @@ export class AwarenessManager {
 					clearTimeout( userRemovalTimeouts.get( id ) );
 				}
 
-				if ( userState ) {
-					void upsertUser( id, {
-						...userState,
-						isConnected: true,
-						isMe:
-							userState.clientId === this.getLocalStateField< 'clientId' >( awareness, 'clientId' ),
-					} );
+				const validatedUserState = this.getOtherUserState( entityId, userState );
+				if ( ! validatedUserState ) {
+					return;
 				}
+
+				validatedUserState.isConnected = true;
+				validatedUserState.isMe = validatedUserState.clientId === currentUserClientId;
+
+				void upsertUser( id, validatedUserState );
 			} );
 
 			removed.forEach( id => {
