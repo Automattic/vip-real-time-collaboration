@@ -31,22 +31,14 @@ export class AwarenessManager {
 		this.currentWordPressUserInfoPromise = getCurrentUserInfo();
 
 		// Remove awareness states when the window is closed or refreshed.
-		window.addEventListener( 'visibilitychange', () => {
-			switch ( document.visibilityState ) {
-				case 'hidden':
-					this.awarenessInstances.forEach( awareness => {
-						removeAwarenessStatesFromProtocol(
-							awareness,
-							[ awareness.clientID ],
-							'removeAwarenessStates'
-						);
-					} );
-					break;
-
-				case 'visible':
-					void AwarenessManager.refreshAwareness();
-					break;
-			}
+		window.addEventListener( 'beforeunload', () => {
+			this.awarenessInstances.forEach( awareness => {
+				removeAwarenessStatesFromProtocol(
+					awareness,
+					[ awareness.clientID ],
+					'removeAwarenessStates'
+				);
+			} );
 		} );
 	}
 
