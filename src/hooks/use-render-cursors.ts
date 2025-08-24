@@ -59,6 +59,12 @@ export type SelectionState =
 	| SelectionInOneBlock
 	| SelectionInMultipleBlocks;
 
+enum DrawType {
+	None,
+	OtherUsers,
+	All,
+}
+
 /**
  * Custom hook for rendering cursors for each user in the editor.
  * @param overlayRef - The ref to the overlay element
@@ -115,8 +121,12 @@ export function useRenderCursors(
 	// 	}
 	// );
 
-	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+	const isDrawingEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
+	} );
+
+	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isSelfAwarenessEnabled();
 	} );
 
 	const debouncedUpdateSelection = useMemo(
@@ -136,7 +146,7 @@ export function useRenderCursors(
 	// Use a ref to store the current render function to avoid stale closures
 	const renderCursorsRef = useRef< () => void >();
 
-	// Update render function and call it when user selection or mounted elements change
+	// Draw user cursors in the overlay.
 	useEffect( () => {
 		renderCursorsRef.current = () => {
 			if ( ! overlayRef.current || ! blockEditorDocument ) {
@@ -148,15 +158,33 @@ export function useRenderCursors(
 					userName: user.name,
 					selection: user.editorState.selection ?? { type: SelectionType.None },
 					color: user.color,
+					isMe: user.isMe,
 				};
 			} );
 
-			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, isEnabled );
+			let drawType: DrawType;
+			if ( isDrawingEnabled ) {
+				if ( isSelfAwarenessEnabled ) {
+					drawType = DrawType.All;
+				} else {
+					drawType = DrawType.OtherUsers;
+				}
+			} else {
+				drawType = DrawType.None;
+			}
+
+			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );
 		};
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [ sortedUsers, overlayRef.current, blockEditorDocument, isEnabled ] );
+	}, [
+		sortedUsers,
+		overlayRef.current,
+		blockEditorDocument,
+		isDrawingEnabled,
+		isSelfAwarenessEnabled,
+	] );
 
 	// Also re-render cursors on resize
 	useEffect( () => {
@@ -273,8 +301,8 @@ const getSelectionState = (
 const drawUserSelections = (
 	overlay: HTMLElement,
 	editorDocument: Document,
-	userSelections: { userName: string; selection: SelectionState; color: string }[],
-	isEnabled: boolean
+	userSelections: { userName: string; selection: SelectionState; color: string; isMe: boolean }[],
+	drawType: DrawType
 ) => {
 	// Clear up previous state
 	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
@@ -282,12 +310,17 @@ const drawUserSelections = (
 		container.remove();
 	} );
 
-	if ( ! isEnabled ) {
+	if ( drawType === DrawType.None ) {
 		return;
 	}
 
 	// Draw cursors
-	userSelections.forEach( ( { userName, selection, color } ) => {
+	userSelections.forEach( ( { userName, selection, color, isMe } ) => {
+		if ( isMe && drawType === DrawType.OtherUsers ) {
+			// Skip drawing the local user's cursor.
+			return;
+		}
+
 		let coords: { x: number; y: number; height: number } | null = null;
 
 		if ( selection.type === SelectionType.None ) {
