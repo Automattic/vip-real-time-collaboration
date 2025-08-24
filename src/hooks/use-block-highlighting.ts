@@ -1,7 +1,7 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
-import { SelectionType } from './use-render-cursors';
+import { SelectionType, SelectionWholeBlock } from './use-render-cursors';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import {
 	AwarenessStoreSelectors,
@@ -19,8 +19,14 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 		return select( awarenessStore ).getActiveUsers();
 	} );
 
-	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessHighlightsEnabled();
+	const { isHighlightsEnabled, isSelfAwarenessEnabled } = useSelect<
+		SettingsStoreSelectors,
+		{ isHighlightsEnabled: boolean; isSelfAwarenessEnabled: boolean }
+	>( select => {
+		return {
+			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
+			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+		};
 	} );
 
 	// Draw block highlights
@@ -45,9 +51,15 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 
 		const blocksToHighlight = userStates
 			.map( userState => {
-				if ( userState.editorState?.selection?.type === SelectionType.Cursor ) {
+				const isWholeBlockSelected =
+					userState.editorState?.selection?.type === SelectionType.WholeBlock;
+				const shouldDrawUser = userState.isMe ? isSelfAwarenessEnabled : true;
+
+				if ( isWholeBlockSelected && shouldDrawUser ) {
+					const selection = userState.editorState.selection as SelectionWholeBlock;
+
 					return {
-						blockId: userState.editorState.selection.blockId,
+						blockId: selection.blockId,
 						color: userState.color,
 					};
 				}
@@ -56,7 +68,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			} )
 			.filter( block => block !== null );
 
-		if ( ! isEnabled ) {
+		if ( ! isHighlightsEnabled ) {
 			// If the overlay is disabled, remove all highlights.
 			unhighlightBlocks( Array.from( highlightedBlockIds.current ) );
 			return;
@@ -71,11 +83,6 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 		unhighlightBlocks( blocksIdsToUnhighlight );
 
 		// Highlight blocks that are currently highlighted.
-		if ( userStates.length === 1 ) {
-			// Don't highlight anything if we're the only user.
-			return;
-		}
-
 		blocksToHighlight.forEach( blockColorPair => {
 			const { color, blockId } = blockColorPair;
 			const blockElement = getBlockElementById( blockEditorDocument, blockId );
@@ -90,7 +97,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );
-	}, [ userStates, isEnabled, blockEditorDocument ] );
+	}, [ userStates, isHighlightsEnabled, isSelfAwarenessEnabled, blockEditorDocument ] );
 }
 
 const getBlockElementById = (
