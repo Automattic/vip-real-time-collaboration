@@ -117,7 +117,7 @@ export class AwarenessManager {
 		field: FieldName
 	): UserState[ FieldName ] | undefined {
 		// eslint-disable-next-line security/detect-object-injection
-		return ( awareness.getLocalState() as UserState )[ field ];
+		return ( awareness.getLocalState() as UserState )?.[ field ];
 	}
 
 	/**
