@@ -89,7 +89,9 @@ export function useRenderCursors(
 			const userSelections = sortedUsers.map( user => {
 				return {
 					userName: user.name,
-					selection: user.editorState.selection ?? { type: SelectionType.None },
+					selection: user.isMe
+						? getSelectionState( selectionStart, selectionEnd )
+						: user.editorState.selection ?? { type: SelectionType.None },
 					color: user.color,
 					isMe: user.isMe,
 				};
