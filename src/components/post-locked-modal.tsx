@@ -23,7 +23,7 @@ export function PostLockedModal() {
 			__experimentalHideHeader={ true }
 			icon={ error }
 			isDismissible={ false }
-			isFullScreen={ true }
+			isFullScreen={ false }
 			onRequestClose={ () => {} }
 			shouldCloseOnClickOutside={ false }
 			shouldCloseOnEsc={ false }
