@@ -205,6 +205,7 @@ export class AwarenessManager {
 				}
 
 				userState.isConnected = true;
+				userState.isMe = false;
 
 				void upsertUser( id, userState );
 			} );
