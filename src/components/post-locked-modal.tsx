@@ -8,10 +8,12 @@ import {
 import { __ } from '@wordpress/i18n';
 import { error } from '@wordpress/icons';
 
+import { useCopyPostContentToClipboard } from '@/hooks/use-copy-post-content-to-clipboard';
 import { useIsDisconnected } from '@/hooks/use-is-disconnected';
 import '@/components/post-locked-modal.scss';
 
 export function PostLockedModal() {
+	const buttonRef = useCopyPostContentToClipboard();
 	const isDisconnected = useIsDisconnected();
 
 	if ( ! isDisconnected ) {
@@ -43,11 +45,11 @@ export function PostLockedModal() {
 						) }
 					</p>
 					<HStack spacing={ 2 } justify="center">
+						<Button ref={ buttonRef } variant="primary">
+							{ __( 'Copy post content', 'vip-real-time-collaboration' ) }
+						</Button>
 						<Button href="edit.php" isDestructive={ true } variant="secondary">
 							{ __( 'Edit another post', 'vip-real-time-collaboration' ) }
-						</Button>
-						<Button isDestructive={ true } onClick={ () => location.reload() } variant="secondary">
-							{ __( 'Refresh', 'vip-real-time-collaboration' ) }
 						</Button>
 					</HStack>
 				</VStack>
