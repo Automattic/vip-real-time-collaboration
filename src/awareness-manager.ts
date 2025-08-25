@@ -56,30 +56,38 @@ export class AwarenessManager {
 		// Record the awareness instance.
 		manager.awarenessInstances.set( entityId, awareness );
 
-		// Set local state.
+		// Get WordPress user info.
 		const userInfo = await manager.currentWordPressUserInfoPromise;
-		const currentUserState = manager.getCurrentUserState( awareness, userInfo );
-		awareness.setLocalState( currentUserState );
+
+		// Refresh awareness across all instances.
+		manager.refreshAwareness( awareness, userInfo );
 
 		// Subscribe to changes in the awareness instance and our store.
-		manager.subscribeToUserChanges( awareness, entityId );
+		manager.subscribeToUserChanges( awareness );
 		manager.subscribeToSelectionChanges( awareness );
 	}
 
-	private getCurrentUserState( awareness: Awareness, userInfo: WordPressUserInfo ): UserState {
+	public static async initialize(): Promise< void > {
+		const manager = AwarenessManager.instance;
+		const userInfo = await manager.currentWordPressUserInfoPromise;
+
+		manager.awarenessInstances.forEach( awareness => {
+			manager.refreshAwareness( awareness, userInfo );
+		} );
+	}
+
+	private setCurrentUserState( awareness: Awareness, userInfo: WordPressUserInfo ): UserState {
 		const states = ( awareness.getStates() as Map< number, UserState > ) ?? new Map();
 		const otherUserColors = Array.from( states.values() )
 			.filter( userState => ! userState.isMe )
 			.map( userState => userState.color )
 			.filter( Boolean );
 
-		const color = getNewUserColor( otherUserColors );
-
-		return {
+		const currentUserState: UserState = {
 			...userInfo,
 			browserType: getBrowserName(),
 			clientId: awareness.clientID,
-			color,
+			color: getNewUserColor( otherUserColors ),
 			editorState: {
 				selection: {
 					type: SelectionType.None,
@@ -88,6 +96,10 @@ export class AwarenessManager {
 			isConnected: true,
 			isMe: true,
 		};
+
+		awareness.setLocalState( currentUserState );
+
+		return currentUserState;
 	}
 
 	/*
@@ -119,31 +131,27 @@ export class AwarenessManager {
 		awareness.setLocalStateField( field, value );
 	}
 
-	public static async refreshAwareness(): Promise< void > {
-		const manager = AwarenessManager.instance;
+	private refreshAwareness( awareness: Awareness, userInfo: WordPressUserInfo ): void {
 		const { removeUser, upsertUser } = dispatch( awarenessStore );
 		const { getActiveClientIds } = select( awarenessStore );
 
 		const clientIdsFromStore = new Set< number >( getActiveClientIds() );
 		const clientIdsFromAwareness = new Set< number >();
 
-		// Set local state.
-		const userInfo = await manager.currentWordPressUserInfoPromise;
+		this.getStates( awareness ).forEach( ( userState, clientId ) => {
+			// Set local state for this awareness instance.
+			const currentUserState = this.setCurrentUserState( awareness, userInfo );
 
-		manager.awarenessInstances.forEach( ( awareness, entityId ) => {
-			const currentUserState = manager.getCurrentUserState( awareness, userInfo );
-			awareness.setLocalState( currentUserState );
+			// The initial state may contain invalid state, so we validate it and
+			// skip logging since the origin of the state is not from us.
+			if ( ! this.validateUserState( userState ) ) {
+				return;
+			}
 
-			manager.getStates( awareness ).forEach( ( userState, clientId ) => {
-				if ( ! manager.validateUserState( userState, { entityId } ) ) {
-					return;
-				}
+			userState.isMe = userState.clientId === currentUserState.clientId;
 
-				userState.isMe = userState.clientId === currentUserState.clientId;
-
-				void upsertUser( clientId, userState );
-				clientIdsFromAwareness.add( clientId );
-			} );
+			void upsertUser( clientId, userState );
+			clientIdsFromAwareness.add( clientId );
 		} );
 
 		// Remove users that are in the store but not in the awareness instances.
@@ -169,14 +177,9 @@ export class AwarenessManager {
 		} );
 	}
 
-	private subscribeToUserChanges( awareness: Awareness, entityId: EntityID ): void {
+	private subscribeToUserChanges( awareness: Awareness ): void {
 		const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
 		const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
-
-		const userStates = this.getStates( awareness );
-		userStates.forEach( ( userState, clientId ) => {
-			void upsertUser( clientId, userState );
-		} );
 
 		// NOTE: Our awareness store is currently global and has no ability to scope
 		// to specific entities.
@@ -192,12 +195,16 @@ export class AwarenessManager {
 					clearTimeout( userRemovalTimeouts.get( id ) );
 				}
 
-				if ( ! this.validateUserState( userState, { entityId } ) ) {
+				if ( ! this.validateUserState( userState ) ) {
+					return;
+				}
+
+				// If this is the current user, ignore. We handle our own state updates.
+				if ( userState.clientId === currentUserClientId ) {
 					return;
 				}
 
 				userState.isConnected = true;
-				userState.isMe = userState.clientId === currentUserClientId;
 
 				void upsertUser( id, userState );
 			} );
@@ -221,14 +228,10 @@ export class AwarenessManager {
 		} );
 	}
 
-	private validateUserState(
-		userState: UserState | undefined,
-		context: object
-	): userState is UserState {
-		/* eslint-disable no-console */
+	private validateUserState( userState: UserState | undefined ): userState is UserState {
+		// User state can be set to an empty object by the Yjs awareness protocol
+		// when the user disconnects.
 		if ( ! userState?.clientId || ! userState?.id || ! userState?.editorState ) {
-			console.warn( `AwarenessManager: Invalid user state` );
-			console.trace( { userState, ...context } );
 			return false;
 		}
 
