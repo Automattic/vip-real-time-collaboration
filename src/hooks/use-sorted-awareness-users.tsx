@@ -22,7 +22,9 @@ export function useSortedAwarenessUsers(): UserState[] {
 
 	// Only return a new user array if data has changed
 	return useMemo( () => {
-		const sortedUsers = [ ...activeUsers ];
+		// Filter out any empty user states
+		const sortedUsers = [ ...activeUsers ].filter( user => user?.id !== undefined );
+
 		const currentUserStateIndex = sortedUsers.findIndex( user => user.id === currentUser?.id );
 
 		if ( currentUserStateIndex >= 0 ) {
