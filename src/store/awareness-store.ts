@@ -110,6 +110,12 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 		}
 
 		case 'SET_CURRENT_USER_SELECTION': {
+			if (
+				JSON.stringify( state.currentUserSelection ) === JSON.stringify( action.payload.selection )
+			) {
+				return state;
+			}
+
 			return {
 				...state,
 				currentUserSelection: action.payload.selection,
