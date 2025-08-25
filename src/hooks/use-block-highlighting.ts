@@ -16,7 +16,7 @@ import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
 export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
 	const userStates = useSelect< AwarenessStoreSelectors, UserState[] >( select => {
-		return select( awarenessStore ).getActiveUsers();
+		return Array.from( select( awarenessStore ).getActiveUsers().values() );
 	} );
 
 	const { isHighlightsEnabled, isSelfAwarenessEnabled } = useSelect<

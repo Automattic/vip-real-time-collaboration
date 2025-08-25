@@ -90,6 +90,8 @@ export class AwarenessManager {
 			color: getNewUserColor( otherUserColors ),
 			editorState: {
 				selection: {
+					// We set this to none, but note that it is never used and never
+					// updated. Instead we consume the selection from the editor store.
 					type: SelectionType.None,
 				},
 			},

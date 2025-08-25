@@ -1,9 +1,11 @@
+import { debounce } from '@wordpress/compose';
 import { store as coreStore } from '@wordpress/core-data';
 import { dispatch } from '@wordpress/data';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 
 import { type CurrentEntity } from '@/hooks/use-current-entity';
 import { store as awarenessStore } from '@/store/awareness-store';
+import { CURSOR_UPDATE_DEBOUNCE_IN_MS } from '@/utilities/config';
 
 export enum SelectionType {
 	None = 'none',
@@ -166,7 +168,7 @@ export function getSelectionState(
  * @param start - The start position of the selection
  * @param end - The end position of the selection
  */
-export function updateSelection(
+export function undebouncedUpdateSelection(
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
 	initialCaretPosition: number | null,
@@ -200,3 +202,8 @@ export function updateSelection(
 	const selection = getSelectionState( selectionStart, selectionEnd );
 	void setCurrentUserSelection( selection );
 }
+
+export const updateSelection = debounce(
+	undebouncedUpdateSelection as ( ...args: unknown[] ) => void,
+	CURSOR_UPDATE_DEBOUNCE_IN_MS
+);

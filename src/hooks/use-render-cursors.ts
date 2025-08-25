@@ -1,9 +1,8 @@
 import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { BlockInstance } from '@wordpress/blocks';
-import { debounce } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import { useEffect, useMemo, useRef } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 
 import { useCurrentEntity } from './use-current-entity';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
@@ -56,23 +55,23 @@ export function useRenderCursors(
 
 	const entity = useCurrentEntity();
 
-	const isDrawingEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
-	} );
+	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
+		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
+		if ( isAwarenessCursorsEnabled() ) {
+			if ( isSelfAwarenessEnabled() ) {
+				return DrawType.All;
+			}
 
-	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isSelfAwarenessEnabled();
-	} );
+			return DrawType.OtherUsers;
+		}
 
-	const debouncedUpdateSelection = useMemo(
-		() => debounce( updateSelection as ( ...args: unknown[] ) => void, 20 ),
-		[]
-	);
+		return DrawType.None;
+	} );
 
 	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
-		debouncedUpdateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
-	}, [ selectionStart, selectionEnd, debouncedUpdateSelection, initialCaretPosition, entity ] );
+		updateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
+	}, [ selectionStart, selectionEnd, initialCaretPosition, entity ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
@@ -82,31 +81,16 @@ export function useRenderCursors(
 	// Draw user cursors in the overlay.
 	useEffect( () => {
 		renderCursorsRef.current = () => {
-			if ( ! overlayRef.current || ! blockEditorDocument ) {
-				return;
-			}
-
-			const userSelections = sortedUsers.map( user => {
-				return {
-					userName: user.name,
-					selection: user.isMe
-						? getSelectionState( selectionStart, selectionEnd )
-						: user.editorState.selection ?? { type: SelectionType.None },
-					color: user.color,
-					isMe: user.isMe,
-				};
-			} );
-
-			let drawType: DrawType;
-			if ( isDrawingEnabled ) {
-				if ( isSelfAwarenessEnabled ) {
-					drawType = DrawType.All;
-				} else {
-					drawType = DrawType.OtherUsers;
-				}
-			} else {
-				drawType = DrawType.None;
-			}
+			const currentUserSelectionState = getSelectionState( selectionStart, selectionEnd );
+			const userSelections = sortedUsers.map( user => ( {
+				userName: user.name,
+				// Replace local user's selection with the current selection from the editor state.
+				selection: user.isMe
+					? currentUserSelectionState
+					: user.editorState.selection ?? { type: SelectionType.None },
+				color: user.color,
+				isMe: user.isMe,
+			} ) );
 
 			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );
 		};
@@ -114,11 +98,12 @@ export function useRenderCursors(
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
 	}, [
+		drawType,
 		sortedUsers,
 		overlayRef.current,
 		blockEditorDocument,
-		isDrawingEnabled,
-		isSelfAwarenessEnabled,
+		selectionStart,
+		selectionEnd,
 	] );
 
 	// Also re-render cursors on resize
@@ -146,11 +131,15 @@ export function useRenderCursors(
  * @param userSelections - The user selections
  */
 const drawUserSelections = (
-	overlay: HTMLElement,
-	editorDocument: Document,
+	overlay: HTMLElement | null,
+	editorDocument: Document | null,
 	userSelections: { userName: string; selection: SelectionState; color: string; isMe: boolean }[],
 	drawType: DrawType
 ) => {
+	if ( ! overlay || ! editorDocument ) {
+		return;
+	}
+
 	// Clear up previous state
 	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
 	userContainers.forEach( container => {
