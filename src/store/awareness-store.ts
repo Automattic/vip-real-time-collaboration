@@ -1,7 +1,7 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { SelectionType, type SelectionState } from '@/hooks/use-render-cursors';
+import { SelectionType, type SelectionState } from '@/utilities/selection';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 

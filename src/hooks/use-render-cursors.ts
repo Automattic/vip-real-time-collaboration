@@ -1,75 +1,23 @@
-import {
-	BlockEditorStoreActions,
-	BlockEditorStoreSelectors,
-	store as blockEditorStore,
-} from '@wordpress/block-editor';
+import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { BlockInstance } from '@wordpress/blocks';
 import { debounce } from '@wordpress/compose';
-import { store as coreStore } from '@wordpress/core-data';
-import { dispatch, useDispatch, useSelect } from '@wordpress/data';
+import { useSelect } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useMemo, useRef } from '@wordpress/element';
 
-import { useCurrentEntity, type CurrentEntity } from './use-current-entity';
+import { useCurrentEntity } from './use-current-entity';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
-import { store as awarenessStore } from '../store/awareness-store';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
-import { throttleByAnimationFrame } from '../utilities/throttle';
+import {
+	getSelectionState,
+	type SelectionCursor,
+	type SelectionState,
+	SelectionType,
+	updateSelection,
+} from '@/utilities/selection';
+import { throttleByAnimationFrame } from '@/utilities/throttle';
 
 import type { MutableRefObject } from 'react';
-
-/**
- * Todo: Maybe use integers for SelectionType values
- */
-export enum SelectionType {
-	None = 'none',
-	Cursor = 'cursor',
-	SelectionInOneBlock = 'selection-in-1-block',
-	SelectionInMultipleBlocks = 'selection-in-multiple-blocks',
-	WholeBlock = 'whole-block',
-}
-
-export type SelectionNone = {
-	// The user has not made a selection.
-	type: SelectionType.None;
-};
-
-export type SelectionCursor = {
-	// The user has a cursor position in a block with no text highlighted.
-	type: SelectionType.Cursor;
-	blockId: string;
-	cursorPosition: number;
-};
-
-export type SelectionInOneBlock = {
-	// The user has highlighted text in a single block.
-	type: SelectionType.SelectionInOneBlock;
-	blockId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
-};
-
-export type SelectionInMultipleBlocks = {
-	// The user has highlighted text over multiple blocks.
-	type: SelectionType.SelectionInMultipleBlocks;
-	blockStartId: string;
-	blockEndId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
-};
-
-export type SelectionWholeBlock = {
-	// The user has a non-text block selected, like an image block.
-	type: SelectionType.WholeBlock;
-	blockId: string;
-};
-
-export type SelectionState =
-	| SelectionNone
-	| SelectionCursor
-	| SelectionInOneBlock
-	| SelectionInMultipleBlocks
-	| SelectionWholeBlock;
 
 enum DrawType {
 	None,
@@ -148,9 +96,7 @@ export function useRenderCursors(
 
 	// Update the awareness state when user selection changes (with debounce)
 	useEffect( () => {
-		if ( entity ) {
-			debouncedUpdateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
-		}
+		debouncedUpdateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
 	}, [ selectionStart, selectionEnd, debouncedUpdateSelection, initialCaretPosition, entity ] );
 
 	const sortedUsers = useSortedAwarenessUsers();
@@ -214,104 +160,6 @@ export function useRenderCursors(
 		};
 	}, [] );
 }
-
-/**
- * Updates the awareness state with the current user's selection.
- * Converts WordPress block editor selection to a SelectionState and broadcasts it to other users.
- *
- * @param start - The start position of the selection
- * @param end - The end position of the selection
- */
-const updateSelection = async (
-	selectionStart: WPBlockSelection,
-	selectionEnd: WPBlockSelection,
-	initialCaretPosition: number | null,
-	entity: CurrentEntity
-) => {
-	const { editEntityRecord } = dispatch( coreStore );
-
-	if ( selectionStart.clientId ) {
-		// Send an entityRecord `selection` update if we have a selection.
-		//
-		// Normally WordPress updates the `selection` property of the post when changes are made to blocks.
-		// In a multi-user setup, block changes can occur from other users. When an entity is updated from another
-		// user's changes, useBlockSync() in Gutenberg will reset the user's selection to the last saved selection.
-		//
-		// Manually adding an edit for each movement ensures that other user's changes to the document will
-		// not cause the local user's selection to reset to the last local change location.
-		const edits = {
-			selection: { selectionStart, selectionEnd, initialPosition: initialCaretPosition },
-		};
-
-		void editEntityRecord( entity.kind, entity.name, entity.recordId, edits, {
-			undoIgnore: true,
-		} );
-	}
-
-	const { setCurrentUserSelection } = dispatch( awarenessStore );
-	const selection = getSelectionState( selectionStart, selectionEnd );
-	void setCurrentUserSelection( selection );
-};
-
-/**
- * Converts WordPress block editor selection to a SelectionState.
- *
- * @param selectionStart - The start position of the selection
- * @param selectionEnd - The end position of the selection
- * @returns The SelectionState
- */
-const getSelectionState = (
-	selectionStart: WPBlockSelection,
-	selectionEnd: WPBlockSelection
-): SelectionState => {
-	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
-	if ( isSelectionEmpty ) {
-		// Case 1: No selection
-		return {
-			type: SelectionType.None,
-		};
-	}
-
-	// When the page initially loads, selectionStart can contain an empty object `{}`.
-	const isSelectionInOneBlock = selectionStart.clientId === selectionEnd.clientId;
-	const isCursorOnly = isSelectionInOneBlock && selectionStart.offset === selectionEnd.offset;
-	const isSelectionAWholeBlock =
-		isSelectionInOneBlock &&
-		selectionStart.offset === undefined &&
-		selectionEnd.offset === undefined;
-
-	if ( isSelectionAWholeBlock ) {
-		// Case 2: A whole block is selected.
-		return {
-			type: SelectionType.WholeBlock,
-			blockId: selectionStart.clientId,
-		};
-	} else if ( isCursorOnly ) {
-		// Case 3: Cursor only, no text selected
-		return {
-			type: SelectionType.Cursor,
-			blockId: selectionStart.clientId,
-			cursorPosition: selectionStart.offset,
-		};
-	} else if ( isSelectionInOneBlock ) {
-		// Case 4: Selection in a single block
-		return {
-			type: SelectionType.SelectionInOneBlock,
-			blockId: selectionStart.clientId,
-			cursorStartPosition: selectionStart.offset,
-			cursorEndPosition: selectionEnd.offset,
-		};
-	}
-
-	// Caes 5: Selection in multiple blocks
-	return {
-		type: SelectionType.SelectionInMultipleBlocks,
-		blockStartId: selectionStart.clientId,
-		blockEndId: selectionEnd.clientId,
-		cursorStartPosition: selectionStart.offset,
-		cursorEndPosition: selectionEnd.offset,
-	};
-};
 
 /**
  * Draws user selections on the overlay.

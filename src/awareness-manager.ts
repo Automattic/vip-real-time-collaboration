@@ -7,7 +7,6 @@ import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-pr
 /**
  * Internal dependencies
  */
-import { SelectionType } from '@/hooks/use-render-cursors';
 import {
 	type UserState,
 	type WordPressUserInfo,
@@ -16,6 +15,7 @@ import {
 import { getBrowserName } from '@/utilities/browser';
 import { REMOVAL_DELAY_IN_MS } from '@/utilities/config';
 import { getCurrentUserInfo } from '@/utilities/entity';
+import { SelectionType } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
 import type { EntityID, AwarenessStateChange } from '@wordpress/sync';

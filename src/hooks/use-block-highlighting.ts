@@ -1,13 +1,13 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
-import { SelectionType, SelectionWholeBlock } from './use-render-cursors';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
 import {
 	AwarenessStoreSelectors,
 	UserState,
 	store as awarenessStore,
 } from '@/store/awareness-store';
+import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
 
 /**
  * Custom hook for highlighting selected blocks in the editor
