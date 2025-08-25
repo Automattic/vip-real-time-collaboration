@@ -1,7 +1,7 @@
 import { useSelect } from '@wordpress/data';
 import { useRef } from '@wordpress/element';
 
-import { AwarenessAvatars } from '@/components/avatars';
+import { Avatars } from '@/components/avatars';
 import { PostLockedModal } from '@/components/post-locked-modal';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
@@ -34,7 +34,7 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 			{ /* This is a fixed overlay that covers the iframe window.
 				Good for floating elements like awareness avatars */ }
 			<div className="vip-real-time-collaboration-overlay-fixed">
-				{ isAvatarsEnabled && <AwarenessAvatars /> }
+				{ isAvatarsEnabled && <Avatars /> }
 			</div>
 
 			<PostLockedModal />

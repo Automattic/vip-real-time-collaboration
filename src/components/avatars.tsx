@@ -7,7 +7,7 @@ import { store as rtcSettingsStore, type SettingsStoreSelectors } from '@/store/
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  */
-export function AwarenessAvatars() {
+export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
 	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isSelfAwarenessEnabled();
