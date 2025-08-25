@@ -1,13 +1,19 @@
-import { Avatar } from './avatar';
+import { useSelect } from '@wordpress/data';
+
+import { Avatar } from '@/components/avatar';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
+import { store as rtcSettingsStore, type SettingsStoreSelectors } from '@/store/settings-store';
 
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  */
 export function AwarenessAvatars() {
 	const activeUsers = useSortedAwarenessUsers();
+	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isSelfAwarenessEnabled();
+	} );
 
-	if ( activeUsers.length <= 1 ) {
+	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
 		// Hide avatars when there's only one user.
 		// This also avoids showing a single user when navigating away from the editor
 		// after the connection is closed but before the page reloads.

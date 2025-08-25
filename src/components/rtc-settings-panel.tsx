@@ -1,4 +1,10 @@
-import { ToggleControl, __experimentalText as Text, FlexItem, Flex } from '@wordpress/components';
+import {
+	Flex,
+	FlexItem,
+	ToggleControl,
+	__experimentalHeading as Heading,
+	__experimentalText as Text,
+} from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
@@ -62,12 +68,12 @@ export function RTCSettingsPanel() {
 	return (
 		<PluginDocumentSettingPanel
 			name="vip-real-time-collaboration"
-			title="Real-Time Collaboration"
+			title="Real-time collaboration"
 			className="vip-real-time-collaboration-settings"
 		>
 			<div>
 				<ToggleControl
-					label="Enable Avatars"
+					label="Enable avatars"
 					checked={ isAvatarsEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleAvatars( enabled );
@@ -75,7 +81,7 @@ export function RTCSettingsPanel() {
 				/>
 
 				<ToggleControl
-					label="Enable Highlights"
+					label="Enable highlights"
 					checked={ isHighlightsEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleHighlights( enabled );
@@ -83,7 +89,7 @@ export function RTCSettingsPanel() {
 				/>
 
 				<ToggleControl
-					label="Enable Cursors"
+					label="Enable cursors"
 					checked={ isCursorsEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleCursors( enabled );
@@ -91,7 +97,7 @@ export function RTCSettingsPanel() {
 				/>
 
 				<ToggleControl
-					label="Show My Awareness"
+					label="Show my awareness"
 					checked={ isSelfAwarenessEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleSelfAwareness( enabled );
@@ -99,9 +105,9 @@ export function RTCSettingsPanel() {
 				/>
 			</div>
 
-			<Text style={ { marginTop: '16px', display: 'block' } }>
+			<Heading level={ 3 } style={ { marginTop: '24px' } }>
 				{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-			</Text>
+			</Heading>
 
 			<Flex direction="column" className="vip-real-time-collaboration-sidebar-users" gap={ 0 }>
 				{ activeUsers.map( userState => (
