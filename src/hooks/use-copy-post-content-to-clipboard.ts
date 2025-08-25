@@ -10,4 +10,3 @@ export function useCopyPostContentToClipboard( onSuccess: () => void = () => {} 
 
 	return useCopyToClipboard( postContent ?? '', onSuccess );
 }
-
