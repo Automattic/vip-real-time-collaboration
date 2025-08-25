@@ -9,12 +9,14 @@ interface SettingsState {
 	isAwarenessAvatarsEnabled: boolean;
 	isAwarenessHighlightsEnabled: boolean;
 	isAwarenessCursorsEnabled: boolean;
+	isSelfAwarenessEnabled: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
 	isAwarenessAvatarsEnabled: true,
 	isAwarenessHighlightsEnabled: true,
 	isAwarenessCursorsEnabled: true,
+	isSelfAwarenessEnabled: false,
 };
 
 const actions = {
@@ -28,6 +30,10 @@ const actions = {
 	} ),
 	setAwarenessCursorsEnabled: ( enabled: boolean ): SettingsAction => ( {
 		type: 'SET_AWARENESS_CURSORS_ENABLED',
+		payload: enabled,
+	} ),
+	setSelfAwarenessEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_SELF_AWARENESS_ENABLED',
 		payload: enabled,
 	} ),
 };
@@ -64,6 +70,15 @@ const reducer = (
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
 		}
+		case 'SET_SELF_AWARENESS_ENABLED': {
+			const newState = {
+				...state,
+				isSelfAwarenessEnabled: action.payload,
+			};
+
+			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
+			return newState;
+		}
 		default:
 			return state;
 	}
@@ -82,13 +97,18 @@ const selectors = {
 		const { isAwarenessCursorsEnabled } = state;
 		return isAwarenessCursorsEnabled;
 	},
+	isSelfAwarenessEnabled( state: SettingsState ) {
+		const { isSelfAwarenessEnabled } = state;
+		return isSelfAwarenessEnabled;
+	},
 };
 
 type SettingsAction = {
 	type:
 		| 'SET_AWARENESS_AVATARS_ENABLED'
 		| 'SET_AWARENESS_HIGHLIGHTS_ENABLED'
-		| 'SET_AWARENESS_CURSORS_ENABLED';
+		| 'SET_AWARENESS_CURSORS_ENABLED'
+		| 'SET_SELF_AWARENESS_ENABLED';
 	payload: boolean;
 };
 
@@ -106,10 +126,12 @@ export type SettingsStoreActions = {
 	setAwarenessAvatarsEnabled: ( enabled: boolean ) => void;
 	setAwarenessHighlightsEnabled: ( enabled: boolean ) => void;
 	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
+	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
 };
 
 export type SettingsStoreSelectors = {
 	isAwarenessAvatarsEnabled: () => boolean;
 	isAwarenessHighlightsEnabled: () => boolean;
 	isAwarenessCursorsEnabled: () => boolean;
+	isSelfAwarenessEnabled: () => boolean;
 };

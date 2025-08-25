@@ -13,19 +13,30 @@ import { useOverlayFrame } from '@/hooks/use-frame-overlay';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 
 export function RTCSettingsPanel() {
-	const { isAvatarsEnabled, isHighlightsEnabled, isCursorsEnabled } = useSelect<
-		SettingsStoreSelectors,
-		{ isAvatarsEnabled: boolean; isHighlightsEnabled: boolean; isCursorsEnabled: boolean }
-	>( select => {
-		return {
-			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
-			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-		};
-	} );
+	const { isAvatarsEnabled, isHighlightsEnabled, isCursorsEnabled, isSelfAwarenessEnabled } =
+		useSelect<
+			SettingsStoreSelectors,
+			{
+				isAvatarsEnabled: boolean;
+				isHighlightsEnabled: boolean;
+				isCursorsEnabled: boolean;
+				isSelfAwarenessEnabled: boolean;
+			}
+		>( select => {
+			return {
+				isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+				isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
+				isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
+				isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+			};
+		} );
 
-	const { setAwarenessAvatarsEnabled, setAwarenessHighlightsEnabled, setAwarenessCursorsEnabled } =
-		useDispatch< SettingsStoreActions >( rtcSettingsStore );
+	const {
+		setAwarenessAvatarsEnabled,
+		setAwarenessHighlightsEnabled,
+		setAwarenessCursorsEnabled,
+		setSelfAwarenessEnabled,
+	} = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	// Load the overlay frame to render awareness components.
 	useOverlayFrame();
@@ -42,6 +53,10 @@ export function RTCSettingsPanel() {
 
 	const handleToggleCursors = ( enabled: boolean ) => {
 		setAwarenessCursorsEnabled( enabled );
+	};
+
+	const handleToggleSelfAwareness = ( enabled: boolean ) => {
+		setSelfAwarenessEnabled( enabled );
 	};
 
 	return (
@@ -72,6 +87,14 @@ export function RTCSettingsPanel() {
 					checked={ isCursorsEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleCursors( enabled );
+					} }
+				/>
+
+				<ToggleControl
+					label="Show My Awareness"
+					checked={ isSelfAwarenessEnabled }
+					onChange={ ( enabled: boolean ) => {
+						handleToggleSelfAwareness( enabled );
 					} }
 				/>
 			</div>

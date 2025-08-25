@@ -26,26 +26,31 @@ export enum SelectionType {
 	Cursor = 'cursor',
 	SelectionInOneBlock = 'selection-in-1-block',
 	SelectionInMultipleBlocks = 'selection-in-multiple-blocks',
+	WholeBlock = 'whole-block',
 }
 
-type SelectionNone = {
+export type SelectionNone = {
+	// The user has not made a selection.
 	type: SelectionType.None;
 };
 
-type SelectionCursor = {
+export type SelectionCursor = {
+	// The user has a cursor position in a block with no text highlighted.
 	type: SelectionType.Cursor;
 	blockId: string;
 	cursorPosition: number;
 };
 
-type SelectionInOneBlock = {
+export type SelectionInOneBlock = {
+	// The user has highlighted text in a single block.
 	type: SelectionType.SelectionInOneBlock;
 	blockId: string;
 	cursorStartPosition: number;
 	cursorEndPosition: number;
 };
 
-type SelectionInMultipleBlocks = {
+export type SelectionInMultipleBlocks = {
+	// The user has highlighted text over multiple blocks.
 	type: SelectionType.SelectionInMultipleBlocks;
 	blockStartId: string;
 	blockEndId: string;
@@ -53,11 +58,24 @@ type SelectionInMultipleBlocks = {
 	cursorEndPosition: number;
 };
 
+export type SelectionWholeBlock = {
+	// The user has a non-text block selected, like an image block.
+	type: SelectionType.WholeBlock;
+	blockId: string;
+};
+
 export type SelectionState =
 	| SelectionNone
 	| SelectionCursor
 	| SelectionInOneBlock
-	| SelectionInMultipleBlocks;
+	| SelectionInMultipleBlocks
+	| SelectionWholeBlock;
+
+enum DrawType {
+	None,
+	OtherUsers,
+	All,
+}
 
 /**
  * Custom hook for rendering cursors for each user in the editor.
@@ -115,8 +133,12 @@ export function useRenderCursors(
 	// 	}
 	// );
 
-	const isEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+	const isDrawingEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
+	} );
+
+	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
+		return select( rtcSettingsStore ).isSelfAwarenessEnabled();
 	} );
 
 	const debouncedUpdateSelection = useMemo(
@@ -148,15 +170,33 @@ export function useRenderCursors(
 					userName: user.name,
 					selection: user.editorState.selection ?? { type: SelectionType.None },
 					color: user.color,
+					isMe: user.isMe,
 				};
 			} );
 
-			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, isEnabled );
+			let drawType: DrawType;
+			if ( isDrawingEnabled ) {
+				if ( isSelfAwarenessEnabled ) {
+					drawType = DrawType.All;
+				} else {
+					drawType = DrawType.OtherUsers;
+				}
+			} else {
+				drawType = DrawType.None;
+			}
+
+			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );
 		};
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [ sortedUsers, overlayRef.current, blockEditorDocument, isEnabled ] );
+	}, [
+		sortedUsers,
+		overlayRef.current,
+		blockEditorDocument,
+		isDrawingEnabled,
+		isSelfAwarenessEnabled,
+	] );
 
 	// Also re-render cursors on resize
 	useEffect( () => {
@@ -235,16 +275,26 @@ const getSelectionState = (
 	// When the page initially loads, selectionStart can contain an empty object `{}`.
 	const isSelectionInOneBlock = selectionStart.clientId === selectionEnd.clientId;
 	const isCursorOnly = isSelectionInOneBlock && selectionStart.offset === selectionEnd.offset;
+	const isSelectionAWholeBlock =
+		isSelectionInOneBlock &&
+		selectionStart.offset === undefined &&
+		selectionEnd.offset === undefined;
 
-	if ( isCursorOnly ) {
-		// Case 2: Cursor only, no text selected
+	if ( isSelectionAWholeBlock ) {
+		// Case 2: A whole block is selected.
+		return {
+			type: SelectionType.WholeBlock,
+			blockId: selectionStart.clientId,
+		};
+	} else if ( isCursorOnly ) {
+		// Case 3: Cursor only, no text selected
 		return {
 			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
 			cursorPosition: selectionStart.offset,
 		};
 	} else if ( isSelectionInOneBlock ) {
-		// Case 3: Selection in a single block
+		// Case 4: Selection in a single block
 		return {
 			type: SelectionType.SelectionInOneBlock,
 			blockId: selectionStart.clientId,
@@ -253,7 +303,7 @@ const getSelectionState = (
 		};
 	}
 
-	// Selection in multiple blocks
+	// Caes 5: Selection in multiple blocks
 	return {
 		type: SelectionType.SelectionInMultipleBlocks,
 		blockStartId: selectionStart.clientId,
@@ -273,8 +323,8 @@ const getSelectionState = (
 const drawUserSelections = (
 	overlay: HTMLElement,
 	editorDocument: Document,
-	userSelections: { userName: string; selection: SelectionState; color: string }[],
-	isEnabled: boolean
+	userSelections: { userName: string; selection: SelectionState; color: string; isMe: boolean }[],
+	drawType: DrawType
 ) => {
 	// Clear up previous state
 	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
@@ -282,16 +332,23 @@ const drawUserSelections = (
 		container.remove();
 	} );
 
-	if ( ! isEnabled ) {
+	if ( drawType === DrawType.None ) {
 		return;
 	}
 
 	// Draw cursors
-	userSelections.forEach( ( { userName, selection, color } ) => {
+	userSelections.forEach( ( { userName, selection, color, isMe } ) => {
+		if ( isMe && drawType === DrawType.OtherUsers ) {
+			// Skip drawing the local user's cursor.
+			return;
+		}
+
 		let coords: { x: number; y: number; height: number } | null = null;
 
 		if ( selection.type === SelectionType.None ) {
-			// Do nothing
+			// Nothing selected.
+		} else if ( selection.type === SelectionType.WholeBlock ) {
+			// Don't try to draw a cursor for a whole block selection.
 		} else if ( selection.type === SelectionType.Cursor ) {
 			coords = getCursorPosition( selection, editorDocument, overlay );
 		} else if ( selection.type === SelectionType.SelectionInOneBlock ) {
