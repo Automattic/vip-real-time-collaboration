@@ -136,7 +136,7 @@ export function useRenderCursors(
 	// Use a ref to store the current render function to avoid stale closures
 	const renderCursorsRef = useRef< () => void >();
 
-	// Update render function and call it when user selection or mounted elements change
+	// Draw user cursors in the overlay.
 	useEffect( () => {
 		renderCursorsRef.current = () => {
 			if ( ! overlayRef.current || ! blockEditorDocument ) {
@@ -452,9 +452,13 @@ const findInnerBlockOffset = (
 	offset: number,
 	editorDocument: Document
 ) => {
-	const treeWalker = editorDocument.createTreeWalker( blockElement, NodeFilter.SHOW_TEXT );
+	const treeWalker = editorDocument.createTreeWalker(
+		blockElement,
+		NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT // eslint-disable-line no-bitwise
+	);
+
 	let currentOffset = 0;
-	let lastTextNode = null;
+	let lastTextNode: Node | null = null;
 
 	let node: Node | null = null;
 	let nodeCount = 1;
@@ -463,26 +467,64 @@ const findInnerBlockOffset = (
 		nodeCount++;
 
 		if ( nodeCount > MAX_NODE_OFFSET_COUNT ) {
+			// If we've walked too many nodes, return the last text node or the beginning of the block.
+			if ( lastTextNode ) {
+				return { node: lastTextNode, offset: 0 };
+			}
 			return { node: blockElement, offset: 0 };
 		}
 
-		if ( ! node.nodeValue?.length ) {
+		const nodeLength = node.nodeValue?.length ?? 0;
+
+		if ( node.nodeType === Node.ELEMENT_NODE ) {
+			if ( node.nodeName === 'BR' ) {
+				// Treat <br> as a single "\n" character.
+
+				if ( currentOffset + 1 >= offset ) {
+					// If the <br> occurs right on the target offset, return the next text node.
+					const nodeAfterBr = treeWalker.nextNode();
+
+					if ( nodeAfterBr?.nodeType === Node.TEXT_NODE ) {
+						return { node: nodeAfterBr, offset: 0 };
+					} else if ( lastTextNode ) {
+						// If there's no text node after the <br>, return the end offset of the last text node.
+						return { node: lastTextNode, offset: lastTextNode.nodeValue?.length ?? 0 };
+					}
+					// Just in case, if there's no last text node, return the beginning of the block.
+					return { node: blockElement, offset: 0 };
+				}
+
+				// The <br> is before the target offset. Count it as a single character.
+				currentOffset += 1;
+				continue;
+			} else {
+				// Skip other element types.
+				continue;
+			}
+		}
+
+		if ( nodeLength === 0 ) {
+			// Skip empty nodes.
 			continue;
 		}
 
-		const nodeLength = node.nodeValue.length;
-
 		if ( currentOffset + nodeLength >= offset ) {
+			// This node exceeds the target offset. Return the node and the position of the offset within it.
 			return { node, offset: offset - currentOffset };
 		}
 
 		currentOffset += nodeLength;
-		lastTextNode = node;
+
+		if ( node.nodeType === Node.TEXT_NODE ) {
+			lastTextNode = node;
+		}
 	}
 
 	if ( lastTextNode && lastTextNode.nodeValue?.length ) {
+		// We didn't reach the target offset. Return the last text node's last character.
 		return { node: lastTextNode, offset: lastTextNode.nodeValue.length };
 	}
 
+	// We didn't find any text nodes. Return the beginning of the block.
 	return { node: blockElement, offset: 0 };
 };
