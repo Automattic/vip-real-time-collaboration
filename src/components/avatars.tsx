@@ -4,7 +4,7 @@ import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  */
-export function AwarenessAvatars() {
+export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
 
 	if ( activeUsers.length <= 1 ) {

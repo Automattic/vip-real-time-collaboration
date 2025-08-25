@@ -111,7 +111,11 @@ export function RTCSettingsPanel() {
 							justify="flex-start"
 							className="vip-real-time-collaboration-sidebar-user-row"
 						>
-							<Avatar userState={ userState } showUserColorBorder={ true } />
+							<Avatar
+								key={ userState.clientId }
+								showUserColorBorder={ true }
+								userState={ userState }
+							/>
 							<Text>{ userState.name }</Text>
 						</Flex>
 					</FlexItem>
