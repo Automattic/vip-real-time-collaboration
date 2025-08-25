@@ -131,6 +131,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			}
 
 			case 'connected': {
+				// Initialize awareness state on connect and reconnect.
 				void AwarenessManager.initialize();
 				break;
 			}

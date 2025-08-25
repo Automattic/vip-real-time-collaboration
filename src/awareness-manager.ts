@@ -59,7 +59,7 @@ export class AwarenessManager {
 		// Get WordPress user info.
 		const userInfo = await manager.currentWordPressUserInfoPromise;
 
-		// Refresh awareness across all instances.
+		// Refresh our store based on the current state of the awareness instance.
 		manager.refreshAwareness( awareness, userInfo );
 
 		// Subscribe to changes in the awareness instance and our store.
