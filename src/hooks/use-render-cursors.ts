@@ -35,8 +35,7 @@ export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null
 ) {
-	const { selectionChange } = useDispatch< BlockEditorStoreActions >( blockEditorStore );
-	const { selectionStart, selectionEnd, isBlockValid, getBlock, initialCaretPosition } = useSelect<
+	const { selectionStart, selectionEnd, initialCaretPosition } = useSelect<
 		BlockEditorStoreSelectors,
 		{
 			selectionStart: WPBlockSelection;
@@ -56,30 +55,6 @@ export function useRenderCursors(
 	} );
 
 	const entity = useCurrentEntity();
-
-	// Disabled - may cause lag issues.
-	// // Workaround:
-	// // When a user is in the editor and creates two new blocks in a row, and then uses <Backspace> to delete the
-	// // second block, the selection is not updated.
-	// // Intercept the `mergeBlocks` call and update the selection after WordPress has processed the merge.
-	// useInterceptActionDispatch(
-	// 	blockEditorStore,
-	// 	'mergeBlocks',
-	// 	( originalAction, args: unknown[] ) => {
-	// 		originalAction( ...args );
-
-	// 		// Trigger selection update after the merge
-	// 		setTimeout( () => {
-	// 			const clientIds = args as string[];
-	// 			for ( const clientId of clientIds ) {
-	// 				const block = getBlock( clientId );
-	// 				if ( isBlockValid( clientId ) && isUnmodifiedDefaultBlock( block ) ) {
-	// 					selectionChange( clientId );
-	// 				}
-	// 			}
-	// 		}, 0 );
-	// 	}
-	// );
 
 	const isDrawingEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
 		return select( rtcSettingsStore ).isAwarenessCursorsEnabled();
