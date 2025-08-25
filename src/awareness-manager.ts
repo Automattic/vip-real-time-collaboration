@@ -173,7 +173,7 @@ export class AwarenessManager {
 			if ( newSelection !== currentSelection ) {
 				currentSelection = newSelection;
 				this.setLocalStateField( awareness, 'editorState', {
-					selection: currentSelection,
+					selection: newSelection,
 				} );
 			}
 		} );
