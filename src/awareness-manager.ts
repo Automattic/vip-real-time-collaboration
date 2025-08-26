@@ -3,7 +3,6 @@
  */
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
-import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
 /**
  * Internal dependencies
@@ -38,15 +37,6 @@ export class AwarenessManager {
 		this.refreshAwareness();
 		this.subscribeToSelectionChanges();
 		this.subscribeToUserChanges();
-
-		// Remove awareness states when the window is closed or refreshed.
-		window.addEventListener( 'beforeunload', () => {
-			removeAwarenessStatesFromProtocol(
-				this.awareness,
-				[ awareness.clientID ],
-				'removeAwarenessStates'
-			);
-		} );
 	}
 
 	public static async initialize( awareness: Awareness, entityId: EntityID ): Promise< void > {
