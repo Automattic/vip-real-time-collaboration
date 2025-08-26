@@ -214,8 +214,17 @@ export class AwarenessManager {
 					return;
 				}
 
-				// If this is the current user, ignore. We handle our own state updates.
+				// If this is the current user, ignore most state updates. We handle our own state locally.
 				if ( userState.clientId === this.awareness.clientID ) {
+					// Except reconnection updates, which we receive from awareness.
+					// This is necessary when reconnecting after a short timeout, where we
+					// receive back-to-back 'removed' and 'added' events for ourselves.
+					if ( userState.isConnected === true ) {
+						void patchUser( id, {
+							isConnected: true,
+						} );
+					}
+
 					return;
 				}
 
