@@ -1,11 +1,12 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { SelectionType, type SelectionState } from '@/hooks/use-render-cursors';
+import { type SelectionState } from '@/utilities/selection';
+import { areUserStatesEqual } from '@/utilities/user';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
-export type WordPressUserInfo = Pick< User, 'id' | 'name' | 'avatar_urls' >;
+export type WordPressUserInfo = Pick< User, 'id' | 'name' > & { avatarUrl?: string };
 
 export interface UserState extends WordPressUserInfo {
 	browserType: string;
@@ -16,12 +17,11 @@ export interface UserState extends WordPressUserInfo {
 	isMe: boolean;
 }
 
-interface EditorState {
+export interface EditorState {
 	selection: SelectionState;
 }
 
 export interface AwarenessStore {
-	currentUserSelection: SelectionState;
 	userMap: Map< number, UserState >;
 }
 
@@ -52,9 +52,6 @@ type AwarenessAction =
 	| UpsertUserAction;
 
 const DEFAULT_STATE: AwarenessStore = {
-	currentUserSelection: {
-		type: SelectionType.None,
-	},
 	userMap: new Map< number, UserState >(),
 };
 
@@ -70,11 +67,6 @@ const actions = {
 		payload: { clientId },
 	} ),
 
-	setCurrentUserSelection: ( selection: SelectionState ): AwarenessAction => ( {
-		type: 'SET_CURRENT_USER_SELECTION',
-		payload: { selection },
-	} ),
-
 	upsertUser: ( clientId: number, userState: UserState ): AwarenessAction => ( {
 		type: 'UPSERT_USER',
 		payload: { clientId, userState },
@@ -86,18 +78,24 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 		case 'PATCH_USER': {
 			if ( state.userMap.has( action.payload.clientId ) ) {
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				const userState = state.userMap.get( action.payload.clientId )!;
-
-				state.userMap.set( action.payload.clientId, {
-					...userState,
+				const existingState = state.userMap.get( action.payload.clientId )!;
+				const updatedState = {
+					...existingState,
 					...action.payload.userState,
-				} );
+				};
+
+				if ( ! areUserStatesEqual( existingState, updatedState ) ) {
+					state.userMap.set( action.payload.clientId, updatedState );
+
+					return {
+						...state,
+						userMap: new Map( state.userMap ),
+					};
+				}
 			}
 
-			return {
-				...state,
-				userMap: new Map( state.userMap ),
-			};
+			// No changes, don't update the state.
+			return state;
 		}
 
 		case 'REMOVE_USER': {
@@ -109,20 +107,17 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 			};
 		}
 
-		case 'SET_CURRENT_USER_SELECTION': {
-			if (
-				JSON.stringify( state.currentUserSelection ) === JSON.stringify( action.payload.selection )
-			) {
-				return state;
+		case 'UPSERT_USER': {
+			if ( state.userMap.has( action.payload.clientId ) ) {
+				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+				const existingState = state.userMap.get( action.payload.clientId )!;
+
+				if ( areUserStatesEqual( existingState, action.payload.userState ) ) {
+					// No changes, don't update the state.
+					return state;
+				}
 			}
 
-			return {
-				...state,
-				currentUserSelection: action.payload.selection,
-			};
-		}
-
-		case 'UPSERT_USER': {
 			state.userMap.set( action.payload.clientId, action.payload.userState );
 
 			return {
@@ -140,17 +135,14 @@ const selectors = {
 	getActiveClientIds( state: AwarenessStore ): number[] {
 		return Array.from( state.userMap.keys() );
 	},
-	getActiveUsers( state: AwarenessStore ): UserState[] {
-		return Array.from( state.userMap.values() );
-	},
-	getCurrentUserSelection( state: AwarenessStore ): SelectionState {
-		return state.currentUserSelection;
+	getActiveUsers( state: AwarenessStore ): Map< number, UserState > {
+		return state.userMap;
 	},
 	isDisconnected( state: AwarenessStore ): boolean {
 		return (
-			selectors
-				.getActiveUsers( state )
-				.findIndex( user => user.isMe && false === user.isConnected ) !== -1
+			Array.from( selectors.getActiveUsers( state ).values() ).findIndex(
+				user => user.isMe && false === user.isConnected
+			) !== -1
 		);
 	},
 };
@@ -165,7 +157,6 @@ export const store = createReduxStore( STORE_NAME, {
 
 export interface AwarenessStoreSelectors {
 	getActiveClientIds: () => number[];
-	getActiveUsers: () => UserState[];
-	getCurrentUserSelection: () => SelectionState;
+	getActiveUsers: () => Map< number, UserState >;
 	isDisconnected: () => boolean;
 }
