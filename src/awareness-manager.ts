@@ -193,6 +193,7 @@ export class AwarenessManager {
 
 				if ( userRemovalTimeouts.has( id ) ) {
 					clearTimeout( userRemovalTimeouts.get( id ) );
+					userRemovalTimeouts.delete( id );
 				}
 
 				if ( ! this.validateUserState( userState ) ) {
@@ -223,7 +224,10 @@ export class AwarenessManager {
 
 				userRemovalTimeouts.set(
 					id,
-					setTimeout( () => void removeUser( id ), REMOVAL_DELAY_IN_MS )
+					setTimeout( () => {
+						userRemovalTimeouts.delete( id );
+						void removeUser( id );
+					}, REMOVAL_DELAY_IN_MS )
 				);
 			} );
 		} );
