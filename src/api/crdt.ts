@@ -7,16 +7,20 @@ import * as buffer from 'lib0/buffer';
 import * as Y from 'yjs';
 
 import { getCrdtDocVersion } from '@/utilities/config';
+import { generateHash } from '@/utilities/crypto';
+import { getErrorMessage } from '@/utilities/error';
 
 import type { CRDTDoc } from '@wordpress/sync';
 
 interface GetCrdtResponse {
 	crdtDoc: string | null;
+	error?: string;
 	success: boolean;
 }
 
 interface UpdateCrdtResponse {
 	crdtDoc?: string;
+	error?: string;
 	success: boolean;
 }
 
@@ -56,7 +60,7 @@ export async function getCrdtDoc(
 
 		if ( ! data.crdtDoc ) {
 			if ( true !== data.success ) {
-				throw new Error( __( 'Unexpected response format', 'vip-real-time-collaboration' ) );
+				throw new Error( data.error ?? __( 'Unexpected response', 'vip-real-time-collaboration' ) );
 			}
 
 			return null;
@@ -64,9 +68,10 @@ export async function getCrdtDoc(
 
 		return deserializeCrdtDoc( data.crdtDoc );
 	} catch ( error: unknown ) {
+		// eslint-disable-next-line no-console
 		console.debug(
 			`Error fetching CRDT document for ${ syncObjectType }:${ syncObjectId }`,
-			error instanceof Error ? error.message : String( error )
+			getErrorMessage( error )
 		);
 	}
 
@@ -77,11 +82,13 @@ export async function updateCrdtDoc(
 	syncObjectType: string,
 	syncObjectId: string,
 	crdtDoc: CRDTDoc,
+	rawContent: string,
 	isInitialUpdate = false
 ): Promise< CRDTDoc > {
 	try {
 		const data = await apiFetch< UpdateCrdtResponse >( {
 			data: {
+				contentHash: await generateHash( rawContent, 'SHA-256' ),
 				crdtDoc: serializeCrdtDoc( crdtDoc ),
 				crdtVersion: CRDT_DOC_VERSION,
 				isInitialUpdate,
@@ -93,7 +100,7 @@ export async function updateCrdtDoc(
 		} );
 
 		if ( ! data.success ) {
-			throw new Error( __( 'Unknown failure', 'vip-real-time-collaboration' ) );
+			throw new Error( data.error ?? __( 'Unexpected response', 'vip-real-time-collaboration' ) );
 		}
 
 		// If the server returns a CRDT document, it indicates that our update was
@@ -103,9 +110,10 @@ export async function updateCrdtDoc(
 			return deserializeCrdtDoc( data.crdtDoc ) ?? crdtDoc;
 		}
 	} catch ( error: unknown ) {
+		// eslint-disable-next-line no-console
 		console.debug(
 			`Error updating CRDT document for ${ syncObjectType }:${ syncObjectId }`,
-			error instanceof Error ? error.message : String( error )
+			getErrorMessage( error )
 		);
 	}
 

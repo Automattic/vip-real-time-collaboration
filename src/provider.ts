@@ -2,7 +2,7 @@
  * External dependencies
  */
 import { select, subscribe } from '@wordpress/data';
-import { store as editorStore } from '@wordpress/editor';
+import { store as editorStore, EditorStoreSelectors } from '@wordpress/editor';
 
 /**
  * Internal dependencies
@@ -20,6 +20,7 @@ import type {
 	SyncConfig,
 } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
+import { BlockEditorStoreDescriptor } from '@wordpress/block-editor';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	private entitiesWithCrdtPersistence: Map< EntityID, [ ObjectType, ObjectID ] > = new Map();
@@ -44,8 +45,8 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	): Promise< void > {
 		await super.bootstrap( syncConfig, record, handleChanges );
 
-		const objectType = syncConfig.objectType;
-		const objectId = syncConfig.getObjectId( record );
+		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectType = syncConfig.objectType.toString();
 		const entityId = this.getEntityId( objectType, objectId );
 
 		const connections = this.connections.get( entityId ) ?? [];
@@ -67,10 +68,11 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		syncConfig: SyncConfig,
 		record: ObjectData
 	): Promise< CRDTDoc > {
-		const objectId = syncConfig.getObjectId( record );
+		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectType = syncConfig.objectType.toString();
 
 		// Attempt to load the initial CRDT document from post meta.
-		const existingDoc = await getCrdtDoc( syncConfig.objectType, objectId );
+		const existingDoc = await getCrdtDoc( objectType, objectId );
 		if ( existingDoc ) {
 			return existingDoc;
 		}
@@ -79,9 +81,19 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		// document based on the persisted post content.
 		const newDoc = await super.getInitialCRDTDoc( syncConfig, record );
 
+		// Extract the raw post content from the record.
+		const rawContent =
+			'content' in record &&
+			record.content &&
+			'object' === typeof record.content &&
+			'raw' in record.content &&
+			'string' === typeof record.content.raw
+				? record.content.raw
+				: '';
+
 		// Return the result from updateCrdtDoc. There is a chance that our doc
 		// has been updated by the server!
-		return await updateCrdtDoc( syncConfig.objectType, objectId, newDoc, true );
+		return await updateCrdtDoc( objectType, objectId, newDoc, rawContent, true );
 	}
 
 	private subscribeToPostSave(): void {
@@ -89,12 +101,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 		// Listen for post save events to update the CRDT document.
 		subscribe( () => {
-			const { isAutosavingPost, isSavingPost } = select( editorStore );
+			const { getEditedPostContent, isAutosavingPost, isSavingPost } = select( editorStore );
 			const shouldPersistCrdtDoc = isSavingPost() && ! isAutosavingPost();
 
 			if ( shouldPersistCrdtDoc && ! hasPersistedCrdtDoc ) {
 				this.entitiesWithCrdtPersistence.forEach( ( [ objectType, objectId ] ) => {
-					void this.persistCrdtDoc( objectType, objectId );
+					void this.persistCrdtDoc( objectType, objectId, getEditedPostContent() as string );
 				} );
 
 				hasPersistedCrdtDoc = true;
@@ -104,14 +116,18 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		} );
 	}
 
-	private async persistCrdtDoc( objectType: ObjectType, objectId: ObjectID ): Promise< void > {
+	private async persistCrdtDoc(
+		objectType: ObjectType,
+		objectId: ObjectID,
+		rawContent: string
+	): Promise< void > {
 		const crdtDoc = this.getEntityState( objectType, objectId )?.ydoc;
 
 		if ( ! crdtDoc ) {
 			throw new Error( `CRDT document not found for ${ objectType } with ID ${ objectId }` );
 		}
 
-		await updateCrdtDoc( objectType, objectId, crdtDoc, false );
+		await updateCrdtDoc( objectType, objectId, crdtDoc, rawContent, false );
 	}
 
 	private onProviderStatusChange(

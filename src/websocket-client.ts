@@ -6,9 +6,9 @@ import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
 import { getWebSocketUrl, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS } from '@/utilities/config';
+import { generateUUID } from '@/utilities/crypto';
 import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
-import { generateUUID } from '@/utilities/uuid';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
