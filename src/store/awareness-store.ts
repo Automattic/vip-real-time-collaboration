@@ -1,7 +1,7 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { areSelectionsEqual, SelectionType, type SelectionState } from '@/utilities/selection';
+import { type SelectionState } from '@/utilities/selection';
 import { areUserStatesEqual } from '@/utilities/user';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
@@ -22,7 +22,6 @@ export interface EditorState {
 }
 
 export interface AwarenessStore {
-	currentUserSelection: SelectionState;
 	userMap: Map< number, UserState >;
 }
 
@@ -53,9 +52,6 @@ type AwarenessAction =
 	| UpsertUserAction;
 
 const DEFAULT_STATE: AwarenessStore = {
-	currentUserSelection: {
-		type: SelectionType.None,
-	},
 	userMap: new Map< number, UserState >(),
 };
 
@@ -69,11 +65,6 @@ const actions = {
 	removeUser: ( clientId: number ): AwarenessAction => ( {
 		type: 'REMOVE_USER',
 		payload: { clientId },
-	} ),
-
-	setCurrentUserSelection: ( selection: SelectionState ): AwarenessAction => ( {
-		type: 'SET_CURRENT_USER_SELECTION',
-		payload: { selection },
 	} ),
 
 	upsertUser: ( clientId: number, userState: UserState ): AwarenessAction => ( {
@@ -116,17 +107,6 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 			};
 		}
 
-		case 'SET_CURRENT_USER_SELECTION': {
-			if ( areSelectionsEqual( state.currentUserSelection, action.payload.selection ) ) {
-				return state;
-			}
-
-			return {
-				...state,
-				currentUserSelection: action.payload.selection,
-			};
-		}
-
 		case 'UPSERT_USER': {
 			if ( state.userMap.has( action.payload.clientId ) ) {
 				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -158,9 +138,6 @@ const selectors = {
 	getActiveUsers( state: AwarenessStore ): Map< number, UserState > {
 		return state.userMap;
 	},
-	getCurrentUserSelection( state: AwarenessStore ): SelectionState {
-		return state.currentUserSelection;
-	},
 	isDisconnected( state: AwarenessStore ): boolean {
 		return (
 			Array.from( selectors.getActiveUsers( state ).values() ).findIndex(
@@ -181,6 +158,5 @@ export const store = createReduxStore( STORE_NAME, {
 export interface AwarenessStoreSelectors {
 	getActiveClientIds: () => number[];
 	getActiveUsers: () => Map< number, UserState >;
-	getCurrentUserSelection: () => SelectionState;
 	isDisconnected: () => boolean;
 }

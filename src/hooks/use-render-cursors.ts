@@ -1,19 +1,9 @@
-import { BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
-import { BlockInstance } from '@wordpress/blocks';
 import { useSelect } from '@wordpress/data';
-import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { useEffect, useRef } from '@wordpress/element';
 
-import { useCurrentEntity } from './use-current-entity';
 import { useSortedAwarenessUsers } from './use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
-import {
-	getSelectionState,
-	type SelectionCursor,
-	type SelectionState,
-	SelectionType,
-	updateSelection,
-} from '@/utilities/selection';
+import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
 import { throttleByAnimationFrame } from '@/utilities/throttle';
 
 import type { MutableRefObject } from 'react';
@@ -34,27 +24,6 @@ export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null
 ) {
-	const { selectionStart, selectionEnd, initialCaretPosition } = useSelect<
-		BlockEditorStoreSelectors,
-		{
-			selectionStart: WPBlockSelection;
-			selectionEnd: WPBlockSelection;
-			initialCaretPosition: number | null;
-			isBlockValid: ( clientId: string ) => boolean;
-			getBlock: ( clientId: string ) => BlockInstance;
-		}
-	>( select => {
-		return {
-			selectionStart: select( blockEditorStore ).getSelectionStart(),
-			selectionEnd: select( blockEditorStore ).getSelectionEnd(),
-			isBlockValid: select( blockEditorStore ).isBlockValid,
-			getBlock: select( blockEditorStore ).getBlock,
-			initialCaretPosition: select( blockEditorStore ).getSelectedBlocksInitialCaretPosition(),
-		};
-	} );
-
-	const entity = useCurrentEntity();
-
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
 		if ( isAwarenessCursorsEnabled() ) {
@@ -68,11 +37,6 @@ export function useRenderCursors(
 		return DrawType.None;
 	} );
 
-	// Update the awareness state when user selection changes (with debounce)
-	useEffect( () => {
-		updateSelection( selectionStart, selectionEnd, initialCaretPosition, entity );
-	}, [ selectionStart, selectionEnd, initialCaretPosition, entity ] );
-
 	const sortedUsers = useSortedAwarenessUsers();
 
 	// Use a ref to store the current render function to avoid stale closures
@@ -81,13 +45,10 @@ export function useRenderCursors(
 	// Draw user cursors in the overlay.
 	useEffect( () => {
 		renderCursorsRef.current = () => {
-			const currentUserSelectionState = getSelectionState( selectionStart, selectionEnd );
 			const userSelections = sortedUsers.map( user => ( {
 				userName: user.name,
 				// Replace local user's selection with the current selection from the editor state.
-				selection: user.isMe
-					? currentUserSelectionState
-					: user.editorState.selection ?? { type: SelectionType.None },
+				selection: user.editorState.selection ?? { type: SelectionType.None },
 				color: user.color,
 				isMe: user.isMe,
 			} ) );
@@ -97,14 +58,7 @@ export function useRenderCursors(
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [
-		drawType,
-		sortedUsers,
-		overlayRef.current,
-		blockEditorDocument,
-		selectionStart,
-		selectionEnd,
-	] );
+	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
 
 	// Also re-render cursors on resize
 	useEffect( () => {

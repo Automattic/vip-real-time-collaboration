@@ -1,10 +1,9 @@
 import { debounce } from '@wordpress/compose';
 import { store as coreStore } from '@wordpress/core-data';
-import { dispatch } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
+import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 
-import { type CurrentEntity } from '@/hooks/use-current-entity';
-import { store as awarenessStore } from '@/store/awareness-store';
 import { CURSOR_UPDATE_DEBOUNCE_IN_MS } from '@/utilities/config';
 
 export enum SelectionType {
@@ -168,42 +167,39 @@ export function getSelectionState(
  * @param start - The start position of the selection
  * @param end - The end position of the selection
  */
-export function undebouncedUpdateSelection(
+function updateSelectionInEntityRecord(
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
-	initialCaretPosition: number | null,
-	entity: CurrentEntity | null
+	initialPosition: number | null
 ): void {
 	const { editEntityRecord } = dispatch( coreStore );
+	const { getCurrentPostId, getCurrentPostType } = select( editorStore );
 
-	if ( ! entity ) {
+	const postId = getCurrentPostId();
+	const postType = getCurrentPostType();
+
+	if ( ! postId || ! postType || ! selectionStart.clientId ) {
 		return;
 	}
 
-	if ( selectionStart.clientId ) {
-		// Send an entityRecord `selection` update if we have a selection.
-		//
-		// Normally WordPress updates the `selection` property of the post when changes are made to blocks.
-		// In a multi-user setup, block changes can occur from other users. When an entity is updated from another
-		// user's changes, useBlockSync() in Gutenberg will reset the user's selection to the last saved selection.
-		//
-		// Manually adding an edit for each movement ensures that other user's changes to the document will
-		// not cause the local user's selection to reset to the last local change location.
-		const edits = {
-			selection: { selectionStart, selectionEnd, initialPosition: initialCaretPosition },
-		};
+	// Send an entityRecord `selection` update if we have a selection.
+	//
+	// Normally WordPress updates the `selection` property of the post when changes are made to blocks.
+	// In a multi-user setup, block changes can occur from other users. When an entity is updated from another
+	// user's changes, useBlockSync() in Gutenberg will reset the user's selection to the last saved selection.
+	//
+	// Manually adding an edit for each movement ensures that other user's changes to the document will
+	// not cause the local user's selection to reset to the last local change location.
+	const edits = {
+		selection: { selectionStart, selectionEnd, initialPosition },
+	};
 
-		void editEntityRecord( entity.kind, entity.name, entity.recordId, edits, {
-			undoIgnore: true,
-		} );
-	}
-
-	const { setCurrentUserSelection } = dispatch( awarenessStore );
-	const selection = getSelectionState( selectionStart, selectionEnd );
-	void setCurrentUserSelection( selection );
+	void editEntityRecord( 'postType', postType, postId, edits, {
+		undoIgnore: true,
+	} );
 }
 
-export const updateSelection = debounce(
-	undebouncedUpdateSelection as ( ...args: unknown[] ) => void,
+export const debouncedUpdateSelectionInEntityRecord = debounce(
+	updateSelectionInEntityRecord as ( ...args: unknown[] ) => void,
 	CURSOR_UPDATE_DEBOUNCE_IN_MS
 );

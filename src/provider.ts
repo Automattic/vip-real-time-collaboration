@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { dispatch, select, subscribe } from '@wordpress/data';
+import { select, subscribe } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 
 /**
@@ -9,7 +9,6 @@ import { store as editorStore } from '@wordpress/editor';
  */
 import { getCrdtDoc, updateCrdtDoc } from '@/api/crdt';
 import { AwarenessManager } from '@/awareness-manager';
-import { store as awarenessStore } from '@/store/awareness-store';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
 import type {
@@ -54,7 +53,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		for ( const connection of connections ) {
 			if ( connection.awareness && syncConfig.supportsAwareness ) {
 				// eslint-disable-next-line no-await-in-loop
-				await AwarenessManager.bootstrap( entityId, connection.awareness );
+				await AwarenessManager.initialize( connection.awareness, entityId );
 			}
 		}
 
@@ -125,22 +124,17 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			}
 
 			case 'connection-error': {
-				const { patchUser } = dispatch( awarenessStore );
-				void patchUser( provider.awareness.clientID, { isConnected: false } );
+				AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
 				break;
 			}
 
 			case 'connected': {
-				// Initialize awareness state on connect and reconnect.
-				void AwarenessManager.initialize();
+				AwarenessManager.setConnectionStatus( provider.awareness.clientID, true );
 				break;
 			}
 
 			case 'disconnected': {
-				if ( provider.awareness.clientID ) {
-					const { patchUser } = dispatch( awarenessStore );
-					void patchUser( provider.awareness.clientID, { isConnected: false } );
-				}
+				AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
 				break;
 			}
 		}
