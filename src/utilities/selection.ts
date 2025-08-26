@@ -1,10 +1,7 @@
-import { debounce } from '@wordpress/compose';
 import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, select } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-
-import { CURSOR_UPDATE_DEBOUNCE_IN_MS } from '@/utilities/config';
 
 export enum SelectionType {
 	None = 'none',
@@ -161,17 +158,16 @@ export function getSelectionState(
 }
 
 /**
- * Updates the awareness state with the current user's selection.
- * Converts WordPress block editor selection to a SelectionState and broadcasts it to other users.
+ * Update the entity record with the current user's selection.
  *
  * @param start - The start position of the selection
  * @param end - The end position of the selection
  */
-function updateSelectionInEntityRecord(
+export async function updateSelectionInEntityRecord(
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
 	initialPosition: number | null
-): void {
+): Promise< void > {
 	const { editEntityRecord } = dispatch( coreStore );
 	const { getCurrentPostId, getCurrentPostType } = select( editorStore );
 
@@ -194,12 +190,7 @@ function updateSelectionInEntityRecord(
 		selection: { selectionStart, selectionEnd, initialPosition },
 	};
 
-	void editEntityRecord( 'postType', postType, postId, edits, {
+	await editEntityRecord( 'postType', postType, postId, edits, {
 		undoIgnore: true,
 	} );
 }
-
-export const debouncedUpdateSelectionInEntityRecord = debounce(
-	updateSelectionInEntityRecord as ( ...args: unknown[] ) => void,
-	CURSOR_UPDATE_DEBOUNCE_IN_MS
-);

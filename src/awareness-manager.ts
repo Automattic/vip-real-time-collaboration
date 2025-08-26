@@ -14,12 +14,16 @@ import {
 	store as awarenessStore,
 } from '@/store/awareness-store';
 import { getBrowserName } from '@/utilities/browser';
-import { REMOVAL_DELAY_IN_MS } from '@/utilities/config';
+import {
+	AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS,
+	LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS,
+	REMOVAL_DELAY_IN_MS,
+} from '@/utilities/config';
 import { getCurrentUserInfo } from '@/utilities/entity';
 import {
-	debouncedUpdateSelectionInEntityRecord,
 	getSelectionState,
 	SelectionType,
+	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
@@ -154,6 +158,10 @@ export class AwarenessManager {
 		let selectionStart = getSelectionStart();
 		let selectionEnd = getSelectionEnd();
 
+		// Use timeouts to debounce state changes, local and remote.
+		let awarenessCursorTimeout: NodeJS.Timeout;
+		let localCursorTimeout: NodeJS.Timeout;
+
 		subscribe( () => {
 			const newSelectionStart = getSelectionStart();
 			const newSelectionEnd = getSelectionEnd();
@@ -169,15 +177,21 @@ export class AwarenessManager {
 				selection: getSelectionState( selectionStart, selectionEnd ),
 			};
 
-			void patchUser( this.awareness.clientID, { editorState } );
+			clearTimeout( awarenessCursorTimeout );
+			clearTimeout( localCursorTimeout );
 
-			this.setLocalStateField( 'editorState', editorState );
+			localCursorTimeout = setTimeout( () => {
+				void updateSelectionInEntityRecord(
+					selectionStart,
+					selectionEnd,
+					getSelectedBlocksInitialCaretPosition()
+				);
+				void patchUser( this.awareness.clientID, { editorState } );
+			}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 
-			debouncedUpdateSelectionInEntityRecord(
-				selectionStart,
-				selectionEnd,
-				getSelectedBlocksInitialCaretPosition()
-			);
+			awarenessCursorTimeout = setTimeout( () => {
+				this.setLocalStateField( 'editorState', editorState );
+			}, AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 		} );
 	}
 
