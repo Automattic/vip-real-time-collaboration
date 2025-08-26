@@ -3,7 +3,6 @@
  */
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
-import { removeAwarenessStates as removeAwarenessStatesFromProtocol } from 'y-protocols/awareness';
 
 /**
  * Internal dependencies
@@ -38,15 +37,6 @@ export class AwarenessManager {
 		this.refreshAwareness();
 		this.subscribeToSelectionChanges();
 		this.subscribeToUserChanges();
-
-		// Remove awareness states when the window is closed or refreshed.
-		window.addEventListener( 'beforeunload', () => {
-			removeAwarenessStatesFromProtocol(
-				this.awareness,
-				[ awareness.clientID ],
-				'removeAwarenessStates'
-			);
-		} );
 	}
 
 	public static async initialize( awareness: Awareness, entityId: EntityID ): Promise< void > {
@@ -214,8 +204,17 @@ export class AwarenessManager {
 					return;
 				}
 
-				// If this is the current user, ignore. We handle our own state updates.
+				// If this is the current user, ignore most state updates. We handle our own state locally.
 				if ( userState.clientId === this.awareness.clientID ) {
+					// Except reconnection updates, which we receive from awareness.
+					// This is necessary when reconnecting after a short timeout, where we
+					// receive back-to-back 'removed' and 'added' events for ourselves.
+					if ( userState.isConnected === true ) {
+						void patchUser( id, {
+							isConnected: true,
+						} );
+					}
+
 					return;
 				}
 
