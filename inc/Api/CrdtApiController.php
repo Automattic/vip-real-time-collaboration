@@ -89,6 +89,19 @@ final class CrdtApiController extends WP_REST_Controller {
 				'args' => array_merge(
 					$common_args,
 					[
+						'contentHash' => [
+							'description' => __(
+								'Base-64-endcoded SHA-256 hash of the content underlying the CRDT document',
+								'vip-real-time-collaboration',
+							),
+							'type' => 'string',
+							'required' => true,
+							'sanitize_callback' => 'sanitize_text_field',
+							'validate_callback' => function ( mixed $value, WP_REST_Request $request ): bool {
+								$post_id = intval( $request->get_param( 'syncObjectId' ) );
+								return $this->crdt_persistence->validate_content_hash( $value, $post_id );
+							},
+						],
 						'crdtDoc' => [
 							'description' => __(
 								'The CRDT document to persist for the sync object',
@@ -130,11 +143,21 @@ final class CrdtApiController extends WP_REST_Controller {
 	public function get_crdt_doc( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$post_id = intval( $request->get_param( 'syncObjectId' ) );
 		$expected_version = intval( $request->get_param( 'crdtVersion' ) );
+		$crdt_doc = $this->crdt_persistence->get_crdt_doc( $post_id, $expected_version );
+
+		if ( is_wp_error( $crdt_doc ) ) {
+			return rest_ensure_response(
+				[
+					'error' => $crdt_doc->get_error_message(),
+					'success' => false,
+				]
+			);
+		}
 
 		return rest_ensure_response(
 			[
 				'success' => true,
-				'crdtDoc' => $this->crdt_persistence->get_crdt_doc( $post_id, $expected_version ),
+				'crdtDoc' => $crdt_doc,
 			]
 		);
 	}
@@ -153,11 +176,16 @@ final class CrdtApiController extends WP_REST_Controller {
 		 */
 		$crdt_doc = $request->get_param( 'crdtDoc' );
 
+		/**
+		 * @var string
+		 */
+		$content_hash = $request->get_param( 'contentHash' );
+
 		$post_id = intval( $request->get_param( 'syncObjectId' ) );
 		$is_initial_update = boolval( $request->get_param( 'isInitialUpdate' ) );
 		$version = intval( $request->get_param( 'crdtVersion' ) );
 
-		$latest_crdt_doc = $this->crdt_persistence->update_crdt_doc( $post_id, $crdt_doc, $version, $is_initial_update );
+		$latest_crdt_doc = $this->crdt_persistence->update_crdt_doc( $post_id, $crdt_doc, $content_hash, $version, $is_initial_update );
 
 		if ( is_wp_error( $latest_crdt_doc ) ) {
 			return rest_ensure_response(
