@@ -27,7 +27,9 @@ final class CrdtPersistence {
 				'post',
 				self::POST_META_KEY,
 				[
-					'auth_callback' => '__return_true',
+					'auth_callback' => function ( bool $_allowed, string $_meta_key, int $object_id, int $user_id ): bool {
+						return user_can( $user_id, 'edit_post', $object_id );
+					},
 					'object_subtype' => $post_type,
 					'revisions_enabled' => post_type_supports( $post_type, 'revisions' ),
 					'show_in_rest' => true,
