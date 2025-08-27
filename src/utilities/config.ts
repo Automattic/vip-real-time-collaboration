@@ -4,6 +4,8 @@ export const LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS = 20;
 export const DISCONNECTED_THRESHOLD_IN_MS = 5000;
 export const REMOVAL_DELAY_IN_MS = 5000;
 
+export const WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS = 15000;
+
 export function getCrdtDocVersion(): number {
 	return window.VIP_RTC.crdtDocVersion;
 }

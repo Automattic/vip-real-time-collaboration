@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { getWebSocketUrl } from '@/utilities/config';
+import { getWebSocketUrl, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS } from '@/utilities/config';
 import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { generateUUID } from '@/utilities/uuid';
@@ -71,13 +71,32 @@ function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken:
 
 /**
  * Configure the websocket provider to use auth token for websocket connection.
+ * Implement exponential backoff for reconnect attempts since we are opting out
+ * of the built-in reconnect logic by disabling `provider.shouldConnect`.
  */
 function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
 	syncObjectId: string
 ): () => Promise< void > {
+	let reconnectAttempts = 0;
+
 	return async function (): Promise< void > {
+		if ( reconnectAttempts > 0 ) {
+			const backoffDelayInMs = Math.min(
+				1000 * 2 ** reconnectAttempts,
+				WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS
+			);
+			const backoffDelayInS = Math.floor( backoffDelayInMs / 1000 );
+
+			// eslint-disable-next-line no-console
+			console.debug( `Attempting to reconnect to WebSocket in ${ backoffDelayInS }s...` );
+
+			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs * 1000 ) );
+		}
+
+		reconnectAttempts += 1;
+
 		try {
 			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
 
@@ -93,13 +112,12 @@ function createConnect(
 
 			logInspectUrl( syncObjectType, syncObjectId, authToken );
 		} catch ( error: unknown ) {
-			const errorMessage = getErrorMessage( error );
 			// eslint-disable-next-line no-console
 			console.error(
 				`[RTC:WebSocket] ${ __(
 					'Failed to fetch auth token and connect to WebSocket',
 					'vip-real-time-collaboration'
-				) }: ${ errorMessage }`
+				) }: ${ getErrorMessage( error ) }`
 			);
 		}
 	};
