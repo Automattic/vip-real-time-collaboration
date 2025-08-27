@@ -1,14 +1,14 @@
 /**
- * External dependencies
- */
-import { select, subscribe } from '@wordpress/data';
-import { store as editorStore, EditorStoreSelectors } from '@wordpress/editor';
-
-/**
  * Internal dependencies
  */
-import { getCrdtDoc, updateCrdtDoc } from '@/api/crdt';
 import { AwarenessManager } from '@/awareness-manager';
+import {
+	createPersistedCrdtDocMetaRecord,
+	getPersistedCrdtDocFromMeta,
+	type MetaRecord,
+} from '@/utilities/crdt';
+import { getMetaFromEntityRecord, getRawContentFromEntityRecord } from '@/utilities/entity';
+import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
 import type {
@@ -20,10 +20,10 @@ import type {
 	SyncConfig,
 } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
-import { BlockEditorStoreDescriptor } from '@wordpress/block-editor';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	private entitiesWithCrdtPersistence: Map< EntityID, [ ObjectType, ObjectID ] > = new Map();
+	private logger: Logger = new Logger( 'vip-rtc-provider' );
 
 	public constructor( config: WebSocketConnectionConfig ) {
 		// There is no local persistence, so we pass `null` for the first argument.
@@ -34,8 +34,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 				onStatusChange: ( ...args ) => this.onProviderStatusChange( ...args ),
 			} )
 		);
-
-		this.subscribeToPostSave();
 	}
 
 	public async bootstrap(
@@ -48,6 +46,8 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
 		const entityId = this.getEntityId( objectType, objectId );
+
+		this.logger.debug( 'Bootstrapping entity', { objectType, objectId } );
 
 		const connections = this.connections.get( entityId ) ?? [];
 
@@ -64,70 +64,49 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		}
 	}
 
-	protected async getInitialCRDTDoc(
+	public async createEntityMeta(
 		syncConfig: SyncConfig,
-		record: ObjectData
-	): Promise< CRDTDoc > {
+		record: ObjectData,
+		changes: Partial< ObjectData >
+	): Promise< MetaRecord > {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
+		const ydoc = this.getEntityState( objectType, objectId )?.ydoc;
+		const rawContent = getRawContentFromEntityRecord( changes );
+
+		if ( ! ydoc || ! rawContent || 'auto-draft' === record.status ) {
+			return {};
+		}
+
+		const meta = await createPersistedCrdtDocMetaRecord( ydoc, rawContent );
+
+		this.logger.debug( 'Providing updated meta to saveEntityRecord', {
+			objectType,
+			objectId,
+			meta,
+		} );
+
+		return meta;
+	}
+
+	protected getPersistedCRDTDoc(
+		syncConfig: SyncConfig,
+		record: ObjectData
+	): Promise< CRDTDoc | null > {
+		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectType = syncConfig.objectType.toString();
+		const meta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const existingDoc = await getCrdtDoc( objectType, objectId );
-		if ( existingDoc ) {
-			return existingDoc;
-		}
+		const persistedDoc = getPersistedCrdtDocFromMeta( meta );
 
-		// Otherwise, defer to the parent class method, which will create a new
-		// document based on the persisted post content.
-		const newDoc = await super.getInitialCRDTDoc( syncConfig, record );
-
-		// Extract the raw post content from the record.
-		const rawContent =
-			'content' in record &&
-			record.content &&
-			'object' === typeof record.content &&
-			'raw' in record.content &&
-			'string' === typeof record.content.raw
-				? record.content.raw
-				: '';
-
-		// Return the result from updateCrdtDoc. There is a chance that our doc
-		// has been updated by the server!
-		return await updateCrdtDoc( objectType, objectId, newDoc, rawContent, true );
-	}
-
-	private subscribeToPostSave(): void {
-		let hasPersistedCrdtDoc = false;
-
-		// Listen for post save events to update the CRDT document.
-		subscribe( () => {
-			const { getEditedPostContent, isAutosavingPost, isSavingPost } = select( editorStore );
-			const shouldPersistCrdtDoc = isSavingPost() && ! isAutosavingPost();
-
-			if ( shouldPersistCrdtDoc && ! hasPersistedCrdtDoc ) {
-				this.entitiesWithCrdtPersistence.forEach( ( [ objectType, objectId ] ) => {
-					void this.persistCrdtDoc( objectType, objectId, getEditedPostContent() as string );
-				} );
-
-				hasPersistedCrdtDoc = true;
-			} else if ( ! shouldPersistCrdtDoc ) {
-				hasPersistedCrdtDoc = false;
-			}
+		this.logger.debug( 'Loading existing CRDT doc from meta', {
+			objectType,
+			objectId,
+			persistedDoc,
 		} );
-	}
 
-	private async persistCrdtDoc(
-		objectType: ObjectType,
-		objectId: ObjectID,
-		rawContent: string
-	): Promise< void > {
-		const crdtDoc = this.getEntityState( objectType, objectId )?.ydoc;
-
-		if ( ! crdtDoc ) {
-			throw new Error( `CRDT document not found for ${ objectType } with ID ${ objectId }` );
-		}
-
-		await updateCrdtDoc( objectType, objectId, crdtDoc, rawContent, false );
+		return Promise.resolve( persistedDoc );
 	}
 
 	private onProviderStatusChange(

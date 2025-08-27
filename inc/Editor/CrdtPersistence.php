@@ -19,7 +19,7 @@ defined( 'ABSPATH' ) || exit();
  */
 final class CrdtPersistence {
 	const CRDT_DOC_VERSION = 1;
-	const POST_META_KEY = 'vip_rtc_crdt_doc';
+	const POST_META_KEY = 'vip_rtc_state';
 
 	public function __construct() {
 		add_action( 'init', [ $this, 'register_meta' ], 999, 0 );
@@ -31,12 +31,12 @@ final class CrdtPersistence {
 				'post',
 				self::POST_META_KEY,
 				[
-					'auth_callback' => '__return_false',
+					'auth_callback' => '__return_true',
 					'object_subtype' => $post_type,
 					'revisions_enabled' => post_type_supports( $post_type, 'revisions' ),
-					'show_in_rest' => false,
+					'show_in_rest' => true,
 					'single' => true,
-					'type' => 'array',
+					'type' => 'string',
 				]
 			);
 		}
@@ -84,16 +84,17 @@ final class CrdtPersistence {
 			);
 		}
 
-		if ( ! $this->validate_content_hash( $content_hash, $post_id ) ) {
-			return new WP_Error(
-				'vip_rtc_update_content_hash_invalid',
-				__( 'Content hash does not match expected value.', 'vip-real-time-collaboration' )
-			);
-		}
-
 		// If this is the initial update, we want to avoid a race condition where
 		// two peers try to establish the initial CRDT doc at the same time.
 		if ( true === $is_initial_update ) {
+			// An initial update is validated against the existing post content.
+			if ( ! $this->validate_content_hash( $content_hash, $post_id ) ) {
+				return new WP_Error(
+					'vip_rtc_update_content_hash_invalid',
+					__( 'Content hash does not match expected value.', 'vip-real-time-collaboration' )
+				);
+			}
+
 			$existing_crdt_doc = $this->get_crdt_doc( $post_id, $version );
 
 			if ( is_string( $existing_crdt_doc ) ) {

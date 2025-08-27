@@ -5,29 +5,21 @@ import type { Awareness } from 'y-protocols/awareness';
 import type * as Y from 'yjs';
 
 declare module '@wordpress/sync' {
+	type CRDTDoc = Y.Doc;
 	type EntityID = string;
 	type ObjectID = string;
 	type ObjectType = string;
-	type ObjectData = object;
 	type UndoManager = Y.UndoManager;
 
-	type AwarenessClientID = number;
-
-	interface AwarenessStateChange {
-		added: AwarenessClientID[];
-		updated: AwarenessClientID[];
-		removed: AwarenessClientID[];
+	interface ObjectData extends Record< string, unknown > {
+		meta?: Record< string, unknown >;
+		status?: string;
 	}
 
-	type AwarenessStateChangeCallback = ( changes: AwarenessStateChange ) => void;
-	type AwarenessReadyCallback = () => void;
-
-	type CRDTDoc = Y.Doc;
-
-	type ConnectDocResult = {
+	interface ConnectDocResult {
 		awareness?: Awareness;
 		destroy: () => void;
-	};
+	}
 
 	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
 
@@ -55,15 +47,26 @@ declare module '@wordpress/sync' {
 		): Promise< void >;
 		public configs: Map< ObjectType, SyncConfig >;
 		public discard( type: ObjectType, id: ObjectID ): void;
-		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
-		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
-		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
 		public update(
 			type: ObjectType,
 			record: ObjectData,
 			changes: Partial< ObjectData >,
 			origin: string
 		): void;
+
+		public createEntityMeta(
+			syncConfig: SyncConfig,
+			record: ObjectData,
+			changes: Partial< ObjectData >
+		): Promise< Record< string, any > >;
+
+		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
+		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
+		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
+		protected getPersistedCRDTDoc(
+			syncConfig: SyncConfig,
+			record: ObjectData
+		): Promise< CRDTDoc | null >;
 	}
 }
 

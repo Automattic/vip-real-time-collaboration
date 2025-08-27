@@ -97,9 +97,8 @@ final class CrdtApiController extends WP_REST_Controller {
 							'type' => 'string',
 							'required' => true,
 							'sanitize_callback' => 'sanitize_text_field',
-							'validate_callback' => function ( mixed $value, WP_REST_Request $request ): bool {
-								$post_id = intval( $request->get_param( 'syncObjectId' ) );
-								return $this->crdt_persistence->validate_content_hash( $value, $post_id );
+							'validate_callback' => function ( mixed $value ): bool {
+								return is_string( $value );
 							},
 						],
 						'crdtDoc' => [

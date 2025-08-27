@@ -6,7 +6,7 @@ import { generateHash, generateUUID } from './crypto';
 describe( 'crypto utilities', () => {
 	let originalProcess: string | undefined;
 	let originalWindow: typeof global.window;
-	let mockConsoleWarn: Mock< typeof console.warn >;
+	let mockConsoleLog: Mock< typeof console.log >;
 
 	before( () => {
 		originalProcess = process.env.NODE_ENV;
@@ -19,7 +19,7 @@ describe( 'crypto utilities', () => {
 	} );
 
 	beforeEach( () => {
-		mockConsoleWarn = mock.method( console, 'warn', () => {} );
+		mockConsoleLog = mock.method( console, 'log', () => {} );
 	} );
 
 	afterEach( () => {
@@ -52,7 +52,7 @@ describe( 'crypto utilities', () => {
 				// 'mock generated hash' in hex
 				assert.strictEqual( result, '6d6f636b2067656e6572617465642068617368' );
 				assert.strictEqual( cryptoMock.mock.callCount(), 1 );
-				assert.strictEqual( mockConsoleWarn.mock.callCount(), 0 );
+				assert.strictEqual( mockConsoleLog.mock.callCount(), 0 );
 
 				const [ algorithm, message ] = cryptoMock.mock.calls[ 0 ]?.arguments ?? new Array( 2 );
 
@@ -77,9 +77,9 @@ describe( 'crypto utilities', () => {
 					result,
 					'3f0a377ba0a4a460ecb616f6507ce0d8cfa3e704025d4fda3ed0c5ca05468728'
 				);
-				assert.strictEqual( mockConsoleWarn.mock.callCount(), 1 );
+				assert.strictEqual( mockConsoleLog.mock.callCount(), 1 );
 				assert.strictEqual(
-					mockConsoleWarn.mock.calls[ 0 ]?.arguments[ 0 ],
+					mockConsoleLog.mock.calls[ 0 ]?.arguments[ 1 ],
 					'Using fallback hash function in non-secure context.'
 				);
 
@@ -151,9 +151,9 @@ describe( 'crypto utilities', () => {
 					/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 				);
 
-				assert.strictEqual( mockConsoleWarn.mock.callCount(), 1 );
+				assert.strictEqual( mockConsoleLog.mock.callCount(), 1 );
 				assert.strictEqual(
-					mockConsoleWarn.mock.calls[ 0 ]?.arguments[ 0 ],
+					mockConsoleLog.mock.calls[ 0 ]?.arguments[ 1 ],
 					'Using fallback UUID function in non-secure context.'
 				);
 			} );
@@ -178,7 +178,7 @@ describe( 'crypto utilities', () => {
 					message: 'Unable to generate UUID outside of secure context in non-development mode!',
 				} );
 
-				assert.strictEqual( mockConsoleWarn.mock.callCount(), 0 );
+				assert.strictEqual( mockConsoleLog.mock.callCount(), 0 );
 			} );
 		} );
 	} );

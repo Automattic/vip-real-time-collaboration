@@ -26,8 +26,16 @@ import {
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
-import type { EntityID, AwarenessStateChange } from '@wordpress/sync';
+import type { EntityID } from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
+
+type AwarenessClientID = number;
+
+interface AwarenessStateChange {
+	added: AwarenessClientID[];
+	updated: AwarenessClientID[];
+	removed: AwarenessClientID[];
+}
 
 export class AwarenessManager {
 	private static __instance: AwarenessManager;
