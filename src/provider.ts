@@ -100,7 +100,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		// Attempt to load the initial CRDT document from post meta.
 		const persistedDoc = getPersistedCrdtDocFromMeta( meta );
 
-		this.logger.debug( 'Loading existing CRDT doc from meta', {
+		const logMessage = persistedDoc
+			? 'Using persisted CRDT doc from meta'
+			: 'Persisted CRDT doc not found in meta';
+		this.logger.debug( logMessage, {
 			objectType,
 			objectId,
 			persistedDoc,
