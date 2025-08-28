@@ -15,7 +15,7 @@ import type { CRDTDoc, ObjectData, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
-	private logger: Logger = new Logger( 'vip-rtc-provider' );
+	private logger: Logger = new Logger( 'provider' );
 
 	public constructor( config: WebSocketConnectionConfig ) {
 		// There is no local persistence, so we pass `null` for the first argument.

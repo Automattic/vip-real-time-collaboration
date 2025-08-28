@@ -3,7 +3,7 @@ import { Logger } from '@/utilities/logger';
 
 import type * as SHA256 from 'fast-sha256';
 
-const logger = new Logger( 'vip-rtc-crypto' );
+const logger = new Logger( 'crypto' );
 
 function arrayBufferToHex( arrayBuffer: ArrayBuffer, hashBase = 16 ): string {
 	const hashArray = Array.from( new Uint8Array( arrayBuffer ) ); // convert buffer to byte array

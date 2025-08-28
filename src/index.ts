@@ -1,9 +1,10 @@
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 
-import { RTCSettingsPanel } from './components/rtc-settings-panel';
-import { SyncProviderWithAwareness } from './provider';
-import { getWebSocketConnectionConfig } from './websocket-client';
+import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
+import { SyncProviderWithAwareness } from '@/provider';
+import { Logger } from '@/utilities/logger';
+import { getWebSocketConnectionConfig } from '@/websocket-client';
 
 import type { SyncProvider } from '@wordpress/sync';
 
@@ -18,7 +19,7 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 	// We already error check for the WebSocket URL in the main plugin file,
 	// so this is here for safety.
 	if ( ! webSocketConnectionConfig.serverUrl ) {
-		console.error(
+		new Logger().critical(
 			'VIP Real-Time Collaboration WebSocket URL has not been configured. The plugin will not be functional without it.'
 		);
 		return null;
