@@ -1,4 +1,3 @@
-export const CRDT_DOC_VERSION = 1;
 export const PERSISTED_STATE_POST_META_KEY = getVipConfigFromWindow( 'rtcPostMetaKey' );
 
 export const AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS = 150;

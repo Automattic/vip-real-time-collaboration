@@ -14,7 +14,6 @@ defined( 'ABSPATH' ) || exit();
  * now, this is limited to posts.
  */
 final class CrdtPersistence {
-	const CRDT_DOC_VERSION = 1;
 	const POST_META_KEY = 'vip_rtc_state';
 
 	public function __construct() {

@@ -84,7 +84,8 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 	protected getPersistedCRDTDoc(
 		syncConfig: SyncConfig,
-		record: ObjectData
+		record: ObjectData,
+		expectedVersion: number
 	): Promise< CRDTDoc | null > {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
@@ -97,10 +98,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const meta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const persistedDoc = getPersistedCrdtDocFromMeta( meta );
+		const persistedDoc = getPersistedCrdtDocFromMeta( meta, expectedVersion );
 
 		const logMessage = persistedDoc
-			? 'Using persisted CRDT doc from meta'
+			? 'Found persisted CRDT doc in meta'
 			: 'Persisted CRDT doc not found in meta';
 		this.logger.debug( logMessage, {
 			objectType,

@@ -1,16 +1,15 @@
 /**
  * External dependencies
  */
+import { type CRDTDoc } from '@wordpress/sync';
 import * as buffer from 'lib0/buffer';
 import * as Y from 'yjs';
 
 /**
  * Internal dependencies
  */
-import { CRDT_DOC_VERSION, isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config';
+import { isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config';
 import { generateHash } from '@/utilities/crypto';
-
-import type { CRDTDoc } from '@wordpress/sync';
 
 export interface MetaRecord {
 	[ PERSISTED_STATE_POST_META_KEY ]?: string; // serialized PersistedCrdtDocMetaValue
@@ -34,8 +33,9 @@ function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
 }
 
-function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc {
-	const ydoc = new Y.Doc();
+function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
+	const meta = new Map< string, unknown >( [ [ 'version', version ] ] );
+	const ydoc = new Y.Doc( { meta } );
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
@@ -49,7 +49,8 @@ function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc {
  * validate the CRDT document itself.
  */
 function isValidCrdtDocMetaValueShape(
-	metaValue: unknown
+	metaValue: unknown,
+	expectedVersion: number
 ): metaValue is PersistedCrdtDocMetaValue {
 	if ( 'object' !== typeof metaValue || null === metaValue ) {
 		return false;
@@ -70,11 +71,19 @@ function isValidCrdtDocMetaValueShape(
 	// Version is an incrementing integer. If the client is ahead of the persisted
 	// version, it should be ignored. @TODO: If the client is behind, we may want
 	// to notify the user to refresh.
-	if ( 'number' !== typeof metaValue.version || metaValue.version !== CRDT_DOC_VERSION ) {
+	if ( 'number' !== typeof metaValue.version || metaValue.version !== expectedVersion ) {
 		return false;
 	}
 
 	return true;
+}
+
+function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
+	// Y.Doc.meta is untyped
+	const version: unknown = ( crdtDoc.meta as Map< string, unknown > | null )?.get( 'version' );
+	const fallbackVersion = 0;
+
+	return 'number' === typeof version ? version : fallbackVersion;
 }
 
 /**
@@ -87,7 +96,7 @@ async function createCrdtDocMetaValue(
 	return {
 		contentHash: await generateHash( rawContent, 'SHA-256' ),
 		crdtDoc: serializeCrdtDoc( crdtDoc ),
-		version: CRDT_DOC_VERSION,
+		version: getCrdtDocVersion( crdtDoc ),
 	};
 }
 
@@ -109,10 +118,13 @@ export async function createPersistedCrdtDocMetaRecord(
 /**
  * Extract and validate a persisted CRDT document from post meta.
  */
-export function getPersistedCrdtDocFromMeta( meta: Record< string, unknown > ): CRDTDoc | null {
+export function getPersistedCrdtDocFromMeta(
+	meta: Record< string, unknown >,
+	expectedVersion: number
+): CRDTDoc | null {
 	try {
 		// eslint-disable-next-line security/detect-object-injection
-		const rawMetaValue = meta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
+		const rawMetaValue: unknown = meta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
 
 		if ( 'string' !== typeof rawMetaValue ) {
 			return null;
@@ -120,11 +132,11 @@ export function getPersistedCrdtDocFromMeta( meta: Record< string, unknown > ): 
 
 		const metaValue: unknown = JSON.parse( rawMetaValue );
 
-		if ( ! isValidCrdtDocMetaValueShape( metaValue ) ) {
+		if ( ! isValidCrdtDocMetaValueShape( metaValue, expectedVersion ) ) {
 			return null;
 		}
 
-		return deserializeCrdtDoc( metaValue.crdtDoc );
+		return deserializeCrdtDoc( metaValue.crdtDoc, metaValue.version );
 	} catch {
 		return null;
 	}
