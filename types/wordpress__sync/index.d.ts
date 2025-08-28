@@ -62,10 +62,10 @@ declare module '@wordpress/sync' {
 
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
 		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
-		protected getInitialCRDTDoc( syncConfig: SyncConfig, record: ObjectData ): Promise< CRDTDoc >;
 		protected getPersistedCRDTDoc(
 			syncConfig: SyncConfig,
-			record: ObjectData
+			record: ObjectData,
+			expectedVersion: number
 		): Promise< CRDTDoc | null >;
 	}
 }
