@@ -11,18 +11,10 @@ import { getMetaFromEntityRecord, getRawContentFromEntityRecord } from '@/utilit
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
-import type {
-	CRDTDoc,
-	EntityID,
-	ObjectData,
-	ObjectID,
-	ObjectType,
-	SyncConfig,
-} from '@wordpress/sync';
+import type { CRDTDoc, ObjectData, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
-	private entitiesWithCrdtPersistence: Map< EntityID, [ ObjectType, ObjectID ] > = new Map();
 	private logger: Logger = new Logger( 'vip-rtc-provider' );
 
 	public constructor( config: WebSocketConnectionConfig ) {
@@ -57,11 +49,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 				await AwarenessManager.initialize( connection.awareness, entityId );
 			}
 		}
-
-		// CRDT persistence is currently only supported for post types.
-		if ( objectType.startsWith( 'postType/' ) ) {
-			this.entitiesWithCrdtPersistence.set( entityId, [ objectType, objectId ] );
-		}
 	}
 
 	public async createEntityMeta(
@@ -71,6 +58,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	): Promise< MetaRecord > {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
+
+		// CRDT persistence is currently only supported for post types.
+		if ( ! objectType.startsWith( 'postType/' ) ) {
+			return {};
+		}
+
 		const ydoc = this.getEntityState( objectType, objectId )?.ydoc;
 		const rawContent = getRawContentFromEntityRecord( changes );
 
@@ -95,6 +88,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	): Promise< CRDTDoc | null > {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
+
+		// CRDT persistence is currently only supported for post types.
+		if ( ! objectType.startsWith( 'postType/' ) ) {
+			return Promise.resolve( null );
+		}
+
 		const meta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
