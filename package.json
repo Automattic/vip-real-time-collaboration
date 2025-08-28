@@ -45,9 +45,11 @@
     "postinstall": "composer install",
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
+    "test": "npm run test:js:unit && npm run test:integration",
     "test:e2e": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts",
     "test:e2e:debug": "wp-scripts test-playwright --config tests/e2e/playwright.config.ts --ui",
     "test:integration": "wp-env run tests-cli --env-cwd=wp-content/plugins/vip-real-time-collaboration ./vendor/bin/phpunit -c ./phpunit-integration.xml",
+    "test:js:unit": "npx tsx --test \"src/**/*.test.ts\"",
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
@@ -73,6 +75,7 @@
     "@wordpress/scripts": "30.1.0",
     "@wordpress/sync": "1.27.0",
     "eslint": "8.57.1",
+    "fast-sha256": "1.3.0",
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
     "jsonwebtoken": "9.0.2",

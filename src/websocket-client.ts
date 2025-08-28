@@ -5,10 +5,15 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { getWebSocketUrl, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS } from '@/utilities/config';
+import {
+	isDevelopment,
+	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
+	WEBSOCKET_URL,
+} from '@/utilities/config';
+import { generateUUID } from '@/utilities/crypto';
 import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
-import { generateUUID } from '@/utilities/uuid';
+import { Logger } from '@/utilities/logger';
 
 import type { ConnectDoc } from '@wordpress/sync';
 import type * as Y from 'yjs';
@@ -26,6 +31,8 @@ export interface WebSocketConnectionConfig {
  * Creates a connection ID generator with in-memory storage
  */
 const getConnectionId = memoizeFn( (): string => generateUUID() );
+
+const logger = new Logger( 'vip-rtc-websocket-client' );
 
 /**
  * Fetch a fresh authentication token from the REST API.
@@ -57,7 +64,7 @@ function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken:
 		createNewDoc: false,
 		room: `${ roomName }?auth=${ authToken }`,
 		provider: 'y-websocket',
-		url: getWebSocketUrl(),
+		url: WEBSOCKET_URL,
 	};
 
 	// The inspect URL always targets a local Yjs inspector.
@@ -65,8 +72,7 @@ function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken:
 		JSON.stringify( connectionConfig )
 	) }`;
 
-	// eslint-disable-next-line no-console
-	console.debug( `Inspect Yjs provider for ${ roomName }: ${ inspectUrl }` );
+	logger.info( `Yjs inspector for ${ roomName }: ${ inspectUrl }` );
 }
 
 /**
@@ -89,8 +95,7 @@ function createConnect(
 			);
 			const backoffDelayInS = Math.floor( backoffDelayInMs / 1000 );
 
-			// eslint-disable-next-line no-console
-			console.debug( `Attempting to reconnect to WebSocket in ${ backoffDelayInS }s...` );
+			logger.warn( `Attempting to reconnect to WebSocket in ${ backoffDelayInS }s...` );
 
 			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs * 1000 ) );
 		}
@@ -112,9 +117,8 @@ function createConnect(
 
 			logInspectUrl( syncObjectType, syncObjectId, authToken );
 		} catch ( error: unknown ) {
-			// eslint-disable-next-line no-console
-			console.error(
-				`[RTC:WebSocket] ${ __(
+			logger.error(
+				`${ __(
 					'Failed to fetch auth token and connect to WebSocket',
 					'vip-real-time-collaboration'
 				) }: ${ getErrorMessage( error ) }`
@@ -125,7 +129,7 @@ function createConnect(
 
 export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
 	return {
-		serverUrl: getWebSocketUrl(),
+		serverUrl: WEBSOCKET_URL,
 		options: {
 			/**
 			 * Disable automatic connection to prevent websocket from attempting to connect
@@ -158,7 +162,7 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
 
 			// Provide some debugging functions in development mode.
-			if ( 'development' === process.env.NODE_ENV ) {
+			if ( isDevelopment() ) {
 				window.VIP_RTC.debug.disconnectWebSocket = () => {
 					provider.off( 'connection-close', connect );
 					provider.disconnect();
