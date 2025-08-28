@@ -19,6 +19,7 @@ import {
 	REMOVAL_DELAY_IN_MS,
 } from '@/utilities/config';
 import { getCurrentUserInfo } from '@/utilities/entity';
+import { Logger } from '@/utilities/logger';
 import {
 	getSelectionState,
 	SelectionType,
@@ -39,6 +40,7 @@ interface AwarenessStateChange {
 
 export class AwarenessManager {
 	private static __instance: AwarenessManager;
+	private logger: Logger = new Logger( 'awareness-manager' );
 
 	private constructor( private awareness: Awareness, private userInfo: WordPressUserInfo ) {
 		this.setCurrentUserState();
@@ -49,8 +51,9 @@ export class AwarenessManager {
 
 	public static async initialize( awareness: Awareness, entityId: EntityID ): Promise< void > {
 		if ( AwarenessManager.__instance ) {
-			// eslint-disable-next-line no-console
-			console.debug( `AwarenessManager was created more than once for entity ${ entityId }.` );
+			AwarenessManager.__instance.logger.error(
+				`AwarenessManager was created more than once for entity ${ entityId }.`
+			);
 			return;
 		}
 

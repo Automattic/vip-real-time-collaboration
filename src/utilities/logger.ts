@@ -11,10 +11,14 @@ export enum LogLevel {
 const DEFAULT_LOG_THRESHOLD = isDevelopment() ? LogLevel.DEBUG : LogLevel.WARNING;
 
 export class Logger {
+	private namespace: string;
+
 	public constructor(
-		private namespace: string = 'vip-rtc',
+		localNamespace: string = '',
 		private threshold: LogLevel = DEFAULT_LOG_THRESHOLD
-	) {}
+	) {
+		this.namespace = `vip-rtc${ localNamespace ? `:${ localNamespace }` : '' }`;
+	}
 
 	protected log( level: LogLevel, ...args: unknown[] ): void {
 		if ( level < this.threshold ) {

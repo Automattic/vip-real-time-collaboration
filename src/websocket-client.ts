@@ -32,7 +32,7 @@ export interface WebSocketConnectionConfig {
  */
 const getConnectionId = memoizeFn( (): string => generateUUID() );
 
-const logger = new Logger( 'vip-rtc-websocket-client' );
+const logger = new Logger( 'websocket-client' );
 
 /**
  * Fetch a fresh authentication token from the REST API.

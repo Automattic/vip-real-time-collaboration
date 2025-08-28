@@ -1,3 +1,7 @@
+import { Logger } from '@/utilities/logger';
+
+const logger = new Logger( 'local-storage' );
+
 /**
  * Load data from localStorage with error handling
  * @param key - The localStorage key to read from
@@ -17,7 +21,7 @@ export const loadFromLocalStorage = < T >( key: string, defaultValue: T ): T => 
 			return parsed;
 		}
 	} catch ( error ) {
-		console.warn( `Failed to load data from localStorage (key: ${ key }):`, error );
+		logger.warn( `Failed to load data from localStorage (key: ${ key }):`, error );
 	}
 	return defaultValue;
 };
@@ -31,6 +35,6 @@ export const saveToLocalStorage = < T >( key: string, data: T ): void => {
 	try {
 		localStorage.setItem( key, JSON.stringify( data ) );
 	} catch ( error ) {
-		console.warn( `Failed to save data to localStorage (key: ${ key }):`, error );
+		logger.warn( `Failed to save data to localStorage (key: ${ key }):`, error );
 	}
 };
