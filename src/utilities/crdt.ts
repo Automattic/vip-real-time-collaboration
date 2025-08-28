@@ -78,14 +78,6 @@ function isValidCrdtDocMetaValueShape(
 	return true;
 }
 
-function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
-	// Y.Doc.meta is untyped
-	const version: unknown = ( crdtDoc.meta as Map< string, unknown > | null )?.get( 'version' );
-	const fallbackVersion = 0;
-
-	return 'number' === typeof version ? version : fallbackVersion;
-}
-
 /**
  * Create the unserialized entity meta value object.
  */
@@ -113,6 +105,17 @@ export async function createPersistedCrdtDocMetaRecord(
 	return {
 		[ PERSISTED_STATE_POST_META_KEY ]: JSON.stringify( metaValue ),
 	};
+}
+
+/**
+ * Get a CRDT document's version from document meta.
+ */
+export function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
+	// Y.Doc.meta is untyped
+	const version: unknown = ( crdtDoc.meta as Map< string, unknown > | null )?.get( 'version' );
+	const fallbackVersion = 0;
+
+	return 'number' === typeof version ? version : fallbackVersion;
 }
 
 /**

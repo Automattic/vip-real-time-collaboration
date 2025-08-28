@@ -4,6 +4,7 @@
 import { AwarenessManager } from '@/awareness-manager';
 import {
 	createPersistedCrdtDocMetaRecord,
+	getCrdtDocVersion,
 	getPersistedCrdtDocFromEntityMeta,
 	type EntityMetaRecord,
 } from '@/utilities/crdt';
@@ -107,6 +108,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			objectType,
 			objectId,
 			persistedDoc,
+			version: persistedDoc ? getCrdtDocVersion( persistedDoc ) : null,
 		} );
 
 		return Promise.resolve( persistedDoc );
