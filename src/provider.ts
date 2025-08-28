@@ -4,8 +4,8 @@
 import { AwarenessManager } from '@/awareness-manager';
 import {
 	createPersistedCrdtDocMetaRecord,
-	getPersistedCrdtDocFromMeta,
-	type MetaRecord,
+	getPersistedCrdtDocFromEntityMeta,
+	type EntityMetaRecord,
 } from '@/utilities/crdt';
 import { getMetaFromEntityRecord, getRawContentFromEntityRecord } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
@@ -55,7 +55,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		syncConfig: SyncConfig,
 		record: ObjectData,
 		changes: Partial< ObjectData >
-	): Promise< MetaRecord > {
+	): Promise< EntityMetaRecord > {
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
 
@@ -71,15 +71,15 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return {};
 		}
 
-		const meta = await createPersistedCrdtDocMetaRecord( ydoc, rawContent );
+		const entityMeta = await createPersistedCrdtDocMetaRecord( ydoc, rawContent );
 
-		this.logger.debug( 'Providing updated meta to saveEntityRecord', {
+		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
 			objectType,
 			objectId,
-			meta,
+			entityMeta,
 		} );
 
-		return meta;
+		return entityMeta;
 	}
 
 	protected getPersistedCRDTDoc(
@@ -95,14 +95,14 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return Promise.resolve( null );
 		}
 
-		const meta = getMetaFromEntityRecord( record );
+		const entityMeta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const persistedDoc = getPersistedCrdtDocFromMeta( meta, expectedVersion );
+		const persistedDoc = getPersistedCrdtDocFromEntityMeta( entityMeta, expectedVersion );
 
 		const logMessage = persistedDoc
-			? 'Found persisted CRDT doc in meta'
-			: 'Persisted CRDT doc not found in meta';
+			? 'Found persisted CRDT doc in entity meta'
+			: 'Persisted CRDT doc not found in entity meta';
 		this.logger.debug( logMessage, {
 			objectType,
 			objectId,

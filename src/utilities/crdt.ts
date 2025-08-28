@@ -11,7 +11,7 @@ import * as Y from 'yjs';
 import { isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config';
 import { generateHash } from '@/utilities/crypto';
 
-export interface MetaRecord {
+export interface EntityMetaRecord {
 	[ PERSISTED_STATE_POST_META_KEY ]?: string; // serialized PersistedCrdtDocMetaValue
 }
 
@@ -34,8 +34,8 @@ function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 }
 
 function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
-	const meta = new Map< string, unknown >( [ [ 'version', version ] ] );
-	const ydoc = new Y.Doc( { meta } );
+	const docMeta = new Map< string, unknown >( [ [ 'version', version ] ] );
+	const ydoc = new Y.Doc( { meta: docMeta } );
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
@@ -45,8 +45,8 @@ function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
 }
 
 /**
- * Type predicate to check the deserialized meta value shape. This does not
- * validate the CRDT document itself.
+ * Type predicate to check the deserialized entity meta value shape. This does
+ * not validate the CRDT document itself.
  */
 function isValidCrdtDocMetaValueShape(
 	metaValue: unknown,
@@ -87,7 +87,7 @@ function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
 }
 
 /**
- * Create the unserialized meta value object.
+ * Create the unserialized entity meta value object.
  */
 async function createCrdtDocMetaValue(
 	crdtDoc: CRDTDoc,
@@ -101,13 +101,13 @@ async function createCrdtDocMetaValue(
 }
 
 /**
- * Create a serialized meta record that is ready to pass to the `meta` field of
- * the WP REST API.
+ * Create a serialized entity meta record that is ready to pass to the `meta`
+ * field of the WP REST API.
  */
 export async function createPersistedCrdtDocMetaRecord(
 	crdtDoc: CRDTDoc,
 	rawContent: string
-): Promise< MetaRecord > {
+): Promise< EntityMetaRecord > {
 	const metaValue = await createCrdtDocMetaValue( crdtDoc, rawContent );
 
 	return {
@@ -116,15 +116,15 @@ export async function createPersistedCrdtDocMetaRecord(
 }
 
 /**
- * Extract and validate a persisted CRDT document from post meta.
+ * Extract and validate a persisted CRDT document from entity meta.
  */
-export function getPersistedCrdtDocFromMeta(
-	meta: Record< string, unknown >,
+export function getPersistedCrdtDocFromEntityMeta(
+	entityMeta: Record< string, unknown >,
 	expectedVersion: number
 ): CRDTDoc | null {
 	try {
 		// eslint-disable-next-line security/detect-object-injection
-		const rawMetaValue: unknown = meta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
+		const rawMetaValue: unknown = entityMeta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
 
 		if ( 'string' !== typeof rawMetaValue ) {
 			return null;
