@@ -18,30 +18,40 @@ export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	return { avatarUrl, id, name };
 }
 
-/**
- * Extract the raw content from an entity record.
- */
-export function getRawContentFromEntityRecord( record: ObjectData ): string | null {
-	// Content may be a string property or a nested object with a `raw` property.
-	const content = 'content' in record ? record.content : null;
+export function getHashInputForEntityRecord( record: ObjectData ): string {
+	const content = getRawValueFromEntityRecord( record, 'content' ) ?? '';
+	const title = getRawValueFromEntityRecord( record, 'title' ) ?? '';
 
-	if ( 'string' === typeof content ) {
-		return content;
-	}
+	// Add more record fields that should invalidate a persisted CRDT doc here. In
+	// the future, this should be controlled by the entity's sync config.
 
-	return content &&
-		'object' === typeof content &&
-		'raw' in content &&
-		'string' === typeof content.raw
-		? content.raw
-		: null;
+	return JSON.stringify( { content, title } );
 }
 
 /**
  * Extract the meta object from an entity record.
  */
 export function getMetaFromEntityRecord( record: ObjectData ): Record< string, unknown > {
-	return 'meta' in record && record.meta && 'object' === typeof record.meta
-		? ( record.meta as Record< string, unknown > )
-		: {};
+	return 'meta' in record && record.meta && 'object' === typeof record.meta ? record.meta : {};
+}
+
+/**
+ * Extract the raw value from an entity record like content or title that
+ * may be a string or an object with a `raw` property.
+ */
+export function getRawValueFromEntityRecord(
+	record: ObjectData,
+	key: 'content' | 'title'
+): string | null {
+	// Value may be a string property or a nested object with a `raw` property.
+	// eslint-disable-next-line security/detect-object-injection
+	const value = key in record ? record[ key ] : null;
+
+	if ( 'string' === typeof value ) {
+		return value;
+	}
+
+	return value && 'object' === typeof value && 'raw' in value && 'string' === typeof value.raw
+		? value.raw
+		: null;
 }
