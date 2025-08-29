@@ -11,14 +11,14 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 - **src/**: TypeScript source files for the frontend components
 - **tests/**: Tests for validating the plugin's functionalities
 - **websocket-server/**: A development Node.js WebSocket server
-- **build/**: Compiled JavaScript assets (generated)
+- **yjs-inspector/**: A development inspector for visualizing Yjs documents and updates
 
 ## Setup Instructions
 
 ### Prerequisites
 
 - WordPress 6.7+
-- Gutenberg 18.6+
+- Gutenberg 21.5+
 - PHP 8.2+
 - Node.js and npm
 
@@ -48,7 +48,7 @@ The `sync-engine` is based on the work done by Kevin Jahns that can be found in 
 
 ### Custom Gutenberg Development
 
-This plugin is built on top of the `add/experimental-collaborative-editing` branch, from the Gutenberg fork [here](https://github.com/Automattic/gutenberg/tree/add/experimental-collaborative-editing).
+This plugin is built on top of [the `release/vip-rtc-0.1.0` branch of Automattic's Gutenberg fork](https://github.com/Automattic/gutenberg/tree/release/vip-rtc-0.1.0).
 
 If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
 
