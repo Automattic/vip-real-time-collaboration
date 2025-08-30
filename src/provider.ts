@@ -8,8 +8,7 @@ import {
 	getPersistedCrdtDocFromEntityMeta,
 	type EntityMetaRecord,
 } from '@/utilities/crdt';
-import { generateHash } from '@/utilities/crypto';
-import { getHashInputForEntityRecord, getMetaFromEntityRecord } from '@/utilities/entity';
+import { getHashForEntityRecord, getMetaFromEntityRecord } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
@@ -72,15 +71,13 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return {};
 		}
 
-		const hashInput = getHashInputForEntityRecord( { ...record, ...changes } );
-		const contentHash = await generateHash( hashInput, 'SHA-256' );
+		const contentHash = await getHashForEntityRecord( { ...record, ...changes } );
 		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash );
 
 		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
 			objectType,
 			objectId,
 			entityMeta,
-			hashInput,
 		} );
 
 		return entityMeta;
@@ -102,8 +99,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const entityMeta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const hashInput = getHashInputForEntityRecord( record );
-		const expectedHash = await generateHash( hashInput, 'SHA-256' );
+		const expectedHash = await getHashForEntityRecord( record );
 		const persistedDoc = getPersistedCrdtDocFromEntityMeta(
 			entityMeta,
 			expectedHash,
@@ -117,7 +113,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			objectType,
 			objectId,
 			persistedDoc,
-			hashInput,
 			version: persistedDoc ? getCrdtDocVersion( persistedDoc ) : null,
 		} );
 

@@ -1,6 +1,8 @@
 import { store as coreStore } from '@wordpress/core-data';
 import { select } from '@wordpress/data';
 
+import { generateHash } from '@/utilities/crypto';
+
 import type { WordPressUserInfo } from '@/store/awareness-store';
 import type { ObjectData } from '@wordpress/sync';
 
@@ -18,14 +20,15 @@ export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	return { avatarUrl, id, name };
 }
 
-export function getHashInputForEntityRecord( record: ObjectData ): string {
+export async function getHashForEntityRecord( record: ObjectData ): Promise< string > {
 	const content = getRawValueFromEntityRecord( record, 'content' ) ?? '';
 	const title = getRawValueFromEntityRecord( record, 'title' ) ?? '';
 
 	// Add more record fields that should invalidate a persisted CRDT doc here. In
 	// the future, this should be controlled by the entity's sync config.
 
-	return JSON.stringify( { content, title } );
+	const hashInput = JSON.stringify( { content, title } );
+	return await generateHash( hashInput, 'SHA-256' );
 }
 
 /**
