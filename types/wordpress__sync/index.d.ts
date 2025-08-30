@@ -23,9 +23,8 @@ declare module '@wordpress/sync' {
 
 	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
 
+	// Only include what we actually use from SyncConfig.
 	interface SyncConfig {
-		applyChangesToDoc: ( ydoc: Y.Doc, data: Partial< ObjectData > ) => void;
-		fromCRDTDoc: ( ydoc: Y.Doc ) => ObjectData;
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
 		supportsAwareness?: boolean;
@@ -43,7 +42,8 @@ declare module '@wordpress/sync' {
 		public bootstrap(
 			syncConfig: SyncConfig,
 			record: ObjectData,
-			handleChanges: ( data: Partial< ObjectData > ) => void
+			handleChangesToRecord: ( data: Partial< ObjectData > ) => void,
+			getCurrentRecord: () => Promise< ObjectData >
 		): Promise< void >;
 		public configs: Map< ObjectType, SyncConfig >;
 		public discard( type: ObjectType, id: ObjectID ): void;

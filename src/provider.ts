@@ -32,9 +32,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public async bootstrap(
 		syncConfig: SyncConfig,
 		record: ObjectData,
-		handleChanges: ( data: Partial< ObjectData > ) => void
+		handleChangesToRecord: ( data: Partial< ObjectData > ) => void,
+		getCurrentRecord: () => Promise< ObjectData >
 	): Promise< void > {
-		await super.bootstrap( syncConfig, record, handleChanges );
+		await super.bootstrap( syncConfig, record, handleChangesToRecord, getCurrentRecord );
 
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
