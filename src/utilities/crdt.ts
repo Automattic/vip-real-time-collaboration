@@ -9,7 +9,7 @@ import * as Y from 'yjs';
  * Internal dependencies
  */
 import { isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config';
-import { generateHash } from '@/utilities/crypto';
+import { Logger } from '@/utilities/logger';
 
 export interface EntityMetaRecord {
 	[ PERSISTED_STATE_POST_META_KEY ]?: string; // serialized PersistedCrdtDocMetaValue
@@ -17,17 +17,19 @@ export interface EntityMetaRecord {
 
 interface PersistedCrdtDocMetaValue {
 	/**
-	 * IMPORTANT: The content hash is *not* used to invalidate the CRDT document, because:
+	 * This content hash is used to invalidate the CRDT document in case the record
+	 * has meaningfully changed "out-of-band" (example: via a WP-CLI command that
+	 * mutates content).
 	 *
-	 * 1. We can always merge the latest content into the CRDT document without conflicts.
-	 *
-	 * 2. Client-side code changes (e.g., to applyChangesToDoc) may change mean that we
-	 *    don't "trust" the CRDT document even if the underlying content hasn't changed.
+	 * Client-side code changes (e.g., to applyChangesToDoc) may also require
+	 * invalidation, but that should happen via an incremented `version` number.
 	 */
 	contentHash: string;
 	crdtDoc: string;
 	version: number;
 }
+
+const logger = new Logger( 'crdt' );
 
 function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
@@ -46,25 +48,37 @@ function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
 
 /**
  * Type predicate to check the deserialized entity meta value shape. This does
- * not validate the CRDT document itself.
+ * not validate the CRDT document itself, but it does validate the content hash
+ * and document version.
  */
 function isValidCrdtDocMetaValueShape(
 	metaValue: unknown,
+	expectedContentHash: string,
 	expectedVersion: number
 ): metaValue is PersistedCrdtDocMetaValue {
 	if ( 'object' !== typeof metaValue || null === metaValue ) {
+		logger.debug( 'Persisted CRDT document was not found', { metaValue } );
 		return false;
 	}
 
 	if ( ! ( 'contentHash' in metaValue && 'crdtDoc' in metaValue && 'version' in metaValue ) ) {
+		logger.error( 'Persisted CRDT document is missing expected properties', { metaValue } );
 		return false;
 	}
 
-	if ( 'string' !== typeof metaValue.contentHash || ! metaValue.contentHash ) {
+	if (
+		'string' !== typeof metaValue.contentHash ||
+		metaValue.contentHash !== expectedContentHash
+	) {
+		logger.warn( 'Persisted CRDT document content hash mismatch', {
+			expectedContentHash,
+			metaValue,
+		} );
 		return false;
 	}
 
 	if ( 'string' !== typeof metaValue.crdtDoc || ! metaValue.crdtDoc ) {
+		logger.error( 'Persisted CRDT document is empty', { metaValue } );
 		return false;
 	}
 
@@ -72,6 +86,7 @@ function isValidCrdtDocMetaValueShape(
 	// version, it should be ignored. @TODO: If the client is behind, we may want
 	// to notify the user to refresh.
 	if ( 'number' !== typeof metaValue.version || metaValue.version !== expectedVersion ) {
+		logger.warn( 'Persisted CRDT document version mismatch', { expectedVersion, metaValue } );
 		return false;
 	}
 
@@ -81,12 +96,12 @@ function isValidCrdtDocMetaValueShape(
 /**
  * Create the unserialized entity meta value object.
  */
-async function createCrdtDocMetaValue(
+function createCrdtDocMetaValue(
 	crdtDoc: CRDTDoc,
-	rawContent: string
-): Promise< PersistedCrdtDocMetaValue > {
+	contentHash: string
+): PersistedCrdtDocMetaValue {
 	return {
-		contentHash: await generateHash( rawContent, 'SHA-256' ),
+		contentHash,
 		crdtDoc: serializeCrdtDoc( crdtDoc ),
 		version: getCrdtDocVersion( crdtDoc ),
 	};
@@ -96,11 +111,11 @@ async function createCrdtDocMetaValue(
  * Create a serialized entity meta record that is ready to pass to the `meta`
  * field of the WP REST API.
  */
-export async function createPersistedCrdtDocMetaRecord(
+export function createPersistedCrdtDocMetaRecord(
 	crdtDoc: CRDTDoc,
-	rawContent: string
-): Promise< EntityMetaRecord > {
-	const metaValue = await createCrdtDocMetaValue( crdtDoc, rawContent );
+	contentHash: string
+): EntityMetaRecord {
+	const metaValue = createCrdtDocMetaValue( crdtDoc, contentHash );
 
 	return {
 		[ PERSISTED_STATE_POST_META_KEY ]: JSON.stringify( metaValue ),
@@ -123,6 +138,7 @@ export function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
  */
 export function getPersistedCrdtDocFromEntityMeta(
 	entityMeta: Record< string, unknown >,
+	expectedContentHash: string,
 	expectedVersion: number
 ): CRDTDoc | null {
 	try {
@@ -135,7 +151,7 @@ export function getPersistedCrdtDocFromEntityMeta(
 
 		const metaValue: unknown = JSON.parse( rawMetaValue );
 
-		if ( ! isValidCrdtDocMetaValueShape( metaValue, expectedVersion ) ) {
+		if ( ! isValidCrdtDocMetaValueShape( metaValue, expectedContentHash, expectedVersion ) ) {
 			return null;
 		}
 
