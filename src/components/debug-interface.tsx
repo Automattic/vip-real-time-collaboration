@@ -214,7 +214,7 @@ export function DebugInterface( { iframeDocument }: DebugInterfaceProps ) {
 					</div>
 					<input
 						type="range"
-						min="20"
+						min="50"
 						max="1000"
 						value={ typingSpeed }
 						onChange={ handleSpeedChange }
