@@ -2,12 +2,10 @@ import { useSelect } from '@wordpress/data';
 import { useRef } from '@wordpress/element';
 
 import { Avatars } from '@/components/avatars';
-import { DebugInterface } from '@/components/debug-interface';
 import { PostLockedModal } from '@/components/post-locked-modal';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
-import { isDevelopment } from '@/utilities/config';
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
@@ -37,7 +35,6 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 				Good for floating elements like awareness avatars */ }
 			<div className="vip-real-time-collaboration-overlay-fixed">
 				{ isAvatarsEnabled && <Avatars /> }
-				{ isDevelopment() && <DebugInterface iframeDocument={ iframeDocument } /> }
 			</div>
 
 			<PostLockedModal />
