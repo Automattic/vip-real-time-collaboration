@@ -93,11 +93,12 @@ function createConnect(
 				1000 * 2 ** reconnectAttempts,
 				WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS
 			);
-			const backoffDelayInS = Math.floor( backoffDelayInMs / 1000 );
 
-			logger.warn( `Attempting to reconnect to WebSocket in ${ backoffDelayInS }s...` );
+			logger.warn(
+				`Attempting to reconnect to WebSocket in ${ Math.floor( backoffDelayInMs / 1000 ) }s...`
+			);
 
-			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs * 1000 ) );
+			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs ) );
 		}
 
 		reconnectAttempts += 1;
