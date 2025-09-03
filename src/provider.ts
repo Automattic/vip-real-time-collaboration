@@ -12,7 +12,7 @@ import { getHashForEntityRecord, getMetaFromEntityRecord } from '@/utilities/ent
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
-import type { CRDTDoc, ObjectData, SyncConfig } from '@wordpress/sync';
+import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
@@ -32,10 +32,9 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public async bootstrap(
 		syncConfig: SyncConfig,
 		record: ObjectData,
-		handleChangesToRecord: ( data: Partial< ObjectData > ) => void,
-		getCurrentRecord: () => Promise< ObjectData >
+		handlers: RecordHandlers
 	): Promise< void > {
-		await super.bootstrap( syncConfig, record, handleChangesToRecord, getCurrentRecord );
+		await super.bootstrap( syncConfig, record, handlers );
 
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();

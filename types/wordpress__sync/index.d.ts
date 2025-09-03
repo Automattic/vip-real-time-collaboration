@@ -35,6 +35,12 @@ declare module '@wordpress/sync' {
 		ydoc: CRDTDoc;
 	}
 
+	interface RecordHandlers {
+		editRecord: ( data: Partial< ObjectData > ) => void;
+		getEditedRecord: () => Promise< ObjectData >;
+		refetchPersistedRecord: () => void;
+	}
+
 	class SyncProvider {
 		protected connections: Map< EntityID, ConnectDocResult[] >;
 
@@ -42,8 +48,7 @@ declare module '@wordpress/sync' {
 		public bootstrap(
 			syncConfig: SyncConfig,
 			record: ObjectData,
-			handleChangesToRecord: ( data: Partial< ObjectData > ) => void,
-			getCurrentRecord: () => Promise< ObjectData >
+			handlers: RecordHandlers
 		): Promise< void >;
 		public configs: Map< ObjectType, SyncConfig >;
 		public discard( type: ObjectType, id: ObjectID ): void;
