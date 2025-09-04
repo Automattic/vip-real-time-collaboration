@@ -35,7 +35,9 @@ export async function getHashForEntityRecord( record: ObjectData ): Promise< str
  * Extract the meta object from an entity record.
  */
 export function getMetaFromEntityRecord( record: ObjectData ): Record< string, unknown > {
-	return 'meta' in record && record.meta && 'object' === typeof record.meta ? record.meta : {};
+	return 'meta' in record && record.meta && 'object' === typeof record.meta
+		? ( record.meta as Record< string, unknown > )
+		: {};
 }
 
 /**

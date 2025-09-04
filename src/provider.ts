@@ -20,13 +20,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 	public constructor( config: WebSocketConnectionConfig ) {
 		// There is no local persistence, so we pass `null` for the first argument.
-		super(
-			null,
+		super( [
 			createWebSocketConnection( {
 				...config,
 				onStatusChange: ( ...args ) => this.onProviderStatusChange( ...args ),
-			} )
-		);
+			} ),
+		] );
 	}
 
 	public async bootstrap(
@@ -45,7 +44,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const connections = this.connections.get( entityId ) ?? [];
 
 		for ( const connection of connections ) {
-			if ( connection.awareness && syncConfig.supportsAwareness ) {
+			if ( connection.awareness && syncConfig.supports?.awareness ) {
 				// eslint-disable-next-line no-await-in-loop
 				await AwarenessManager.initialize( connection.awareness, entityId );
 			}
@@ -65,7 +64,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return {};
 		}
 
-		const ydoc = this.getEntityState( objectType, objectId )?.ydoc;
+		const ydoc = this.entityStates.get( this.getEntityId( objectType, objectId ) )?.ydoc;
 
 		if ( ! ydoc || 'auto-draft' === record.status ) {
 			return {};

@@ -11,10 +11,7 @@ declare module '@wordpress/sync' {
 	type ObjectType = string;
 	type UndoManager = Y.UndoManager;
 
-	interface ObjectData extends Record< string, unknown > {
-		meta?: Record< string, unknown >;
-		status?: string;
-	}
+	interface ObjectData extends Record< string, unknown > {}
 
 	interface ConnectDocResult {
 		awareness?: Awareness;
@@ -27,11 +24,18 @@ declare module '@wordpress/sync' {
 	interface SyncConfig {
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
-		supportsAwareness?: boolean;
+		supports?: {
+			awareness?: boolean;
+			undo?: boolean;
+		};
 	}
 
 	interface EntityState {
-		destroy: () => void;
+		discard: () => void;
+		handlers: RecordHandlers;
+		lastPersistedAt: number;
+		syncConfig: SyncConfig;
+		undoManager?: UndoManager;
 		ydoc: CRDTDoc;
 	}
 
@@ -43,21 +47,14 @@ declare module '@wordpress/sync' {
 
 	class SyncProvider {
 		protected connections: Map< EntityID, ConnectDocResult[] >;
+		protected entityStates: Map< EntityID, EntityState >;
 
-		public constructor( connectLocal: ConnectDoc | null, connectRemote: ConnectDoc | null ): void;
+		public constructor( connectionCreators: ConnectDoc[] ): void;
 		public bootstrap(
 			syncConfig: SyncConfig,
 			record: ObjectData,
 			handlers: RecordHandlers
 		): Promise< void >;
-		public configs: Map< ObjectType, SyncConfig >;
-		public discard( type: ObjectType, id: ObjectID ): void;
-		public update(
-			type: ObjectType,
-			record: ObjectData,
-			changes: Partial< ObjectData >,
-			origin: string
-		): void;
 
 		public createEntityMeta(
 			syncConfig: SyncConfig,
@@ -66,7 +63,6 @@ declare module '@wordpress/sync' {
 		): Promise< Record< string, any > >;
 
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
-		protected getEntityState( type: ObjectType, id: ObjectID ): EntityState | null;
 		protected getPersistedCRDTDoc(
 			syncConfig: SyncConfig,
 			record: ObjectData,
@@ -74,5 +70,3 @@ declare module '@wordpress/sync' {
 		): Promise< CRDTDoc | null >;
 	}
 }
-
-export {};
