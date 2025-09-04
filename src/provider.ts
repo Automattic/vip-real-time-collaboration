@@ -12,7 +12,7 @@ import { getHashForEntityRecord, getMetaFromEntityRecord } from '@/utilities/ent
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
-import type { CRDTDoc, ObjectData, SyncConfig } from '@wordpress/sync';
+import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
@@ -20,21 +20,20 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 	public constructor( config: WebSocketConnectionConfig ) {
 		// There is no local persistence, so we pass `null` for the first argument.
-		super(
-			null,
+		super( [
 			createWebSocketConnection( {
 				...config,
 				onStatusChange: ( ...args ) => this.onProviderStatusChange( ...args ),
-			} )
-		);
+			} ),
+		] );
 	}
 
 	public async bootstrap(
 		syncConfig: SyncConfig,
 		record: ObjectData,
-		handleChanges: ( data: Partial< ObjectData > ) => void
+		handlers: RecordHandlers
 	): Promise< void > {
-		await super.bootstrap( syncConfig, record, handleChanges );
+		await super.bootstrap( syncConfig, record, handlers );
 
 		const objectId = syncConfig.getObjectId( record ).toString();
 		const objectType = syncConfig.objectType.toString();
@@ -45,7 +44,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const connections = this.connections.get( entityId ) ?? [];
 
 		for ( const connection of connections ) {
-			if ( connection.awareness && syncConfig.supportsAwareness ) {
+			if ( connection.awareness && syncConfig.supports?.awareness ) {
 				// eslint-disable-next-line no-await-in-loop
 				await AwarenessManager.initialize( connection.awareness, entityId );
 			}
@@ -65,7 +64,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return {};
 		}
 
-		const ydoc = this.getEntityState( objectType, objectId )?.ydoc;
+		const ydoc = this.entityStates.get( this.getEntityId( objectType, objectId ) )?.ydoc;
 
 		if ( ! ydoc || 'auto-draft' === record.status ) {
 			return {};
