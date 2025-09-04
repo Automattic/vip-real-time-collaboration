@@ -1,6 +1,7 @@
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { loadFromLocalStorage, saveToLocalStorage } from '../utilities/local-storage';
+import { isDevelopment } from '@/utilities/config';
+import { loadFromLocalStorage, saveToLocalStorage } from '@/utilities/local-storage';
 
 const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
@@ -9,6 +10,7 @@ interface SettingsState {
 	isAwarenessAvatarsEnabled: boolean;
 	isAwarenessHighlightsEnabled: boolean;
 	isAwarenessCursorsEnabled: boolean;
+	isDebugToolsEnabled: boolean;
 	isSelfAwarenessEnabled: boolean;
 }
 
@@ -16,6 +18,7 @@ const DEFAULT_STATE: SettingsState = {
 	isAwarenessAvatarsEnabled: true,
 	isAwarenessHighlightsEnabled: true,
 	isAwarenessCursorsEnabled: true,
+	isDebugToolsEnabled: false,
 	isSelfAwarenessEnabled: false,
 };
 
@@ -30,6 +33,10 @@ const actions = {
 	} ),
 	setAwarenessCursorsEnabled: ( enabled: boolean ): SettingsAction => ( {
 		type: 'SET_AWARENESS_CURSORS_ENABLED',
+		payload: enabled,
+	} ),
+	setDebugToolsEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_DEBUG_TOOLS_ENABLED',
 		payload: enabled,
 	} ),
 	setSelfAwarenessEnabled: ( enabled: boolean ): SettingsAction => ( {
@@ -70,6 +77,15 @@ const reducer = (
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
 		}
+		case 'SET_DEBUG_TOOLS_ENABLED': {
+			const newState = {
+				...state,
+				isDebugToolsEnabled: action.payload,
+			};
+
+			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
+			return newState;
+		}
 		case 'SET_SELF_AWARENESS_ENABLED': {
 			const newState = {
 				...state,
@@ -89,13 +105,16 @@ const selectors = {
 		const { isAwarenessAvatarsEnabled } = state;
 		return isAwarenessAvatarsEnabled;
 	},
+	isAwarenessCursorsEnabled( state: SettingsState ) {
+		const { isAwarenessCursorsEnabled } = state;
+		return isAwarenessCursorsEnabled;
+	},
 	isAwarenessHighlightsEnabled( state: SettingsState ) {
 		const { isAwarenessHighlightsEnabled } = state;
 		return isAwarenessHighlightsEnabled;
 	},
-	isAwarenessCursorsEnabled( state: SettingsState ) {
-		const { isAwarenessCursorsEnabled } = state;
-		return isAwarenessCursorsEnabled;
+	isDebugToolsEnabled( state: SettingsState ) {
+		return isDevelopment() ? state.isDebugToolsEnabled : false;
 	},
 	isSelfAwarenessEnabled( state: SettingsState ) {
 		const { isSelfAwarenessEnabled } = state;
@@ -108,6 +127,7 @@ type SettingsAction = {
 		| 'SET_AWARENESS_AVATARS_ENABLED'
 		| 'SET_AWARENESS_HIGHLIGHTS_ENABLED'
 		| 'SET_AWARENESS_CURSORS_ENABLED'
+		| 'SET_DEBUG_TOOLS_ENABLED'
 		| 'SET_SELF_AWARENESS_ENABLED';
 	payload: boolean;
 };
@@ -126,6 +146,7 @@ export type SettingsStoreActions = {
 	setAwarenessAvatarsEnabled: ( enabled: boolean ) => void;
 	setAwarenessHighlightsEnabled: ( enabled: boolean ) => void;
 	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
+	setDebugToolsEnabled: ( enabled: boolean ) => void;
 	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
 };
 
@@ -133,5 +154,6 @@ export type SettingsStoreSelectors = {
 	isAwarenessAvatarsEnabled: () => boolean;
 	isAwarenessHighlightsEnabled: () => boolean;
 	isAwarenessCursorsEnabled: () => boolean;
+	isDebugToolsEnabled: () => boolean;
 	isSelfAwarenessEnabled: () => boolean;
 };
