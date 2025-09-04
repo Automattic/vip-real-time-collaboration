@@ -4,9 +4,7 @@ namespace VIPRealTimeCollaboration\Overrides;
 
 defined( 'ABSPATH' ) || exit();
 
-use function add_action;
 use function add_filter;
-use function remove_filter;
 
 /**
  * Class to handle overrides for the Block Editor functionality.
