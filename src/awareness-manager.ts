@@ -159,9 +159,10 @@ export class AwarenessManager {
 		let selectionStart = getSelectionStart();
 		let selectionEnd = getSelectionEnd();
 
-		// Use timeouts to debounce state changes, local and remote.
-		let awarenessCursorTimeout: NodeJS.Timeout;
+		// Use timeouts to debounce local updates and throttle awareness updates.
+		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
 		let localCursorTimeout: NodeJS.Timeout;
+		let pendingEditorState: { selection: ReturnType< typeof getSelectionState > } | null = null;
 
 		subscribe( () => {
 			const newSelectionStart = getSelectionStart();
@@ -178,21 +179,37 @@ export class AwarenessManager {
 				selection: getSelectionState( selectionStart, selectionEnd ),
 			};
 
-			clearTimeout( awarenessCursorTimeout );
-			clearTimeout( localCursorTimeout );
+			// Store the most recent editor state for awareness throttle
+			pendingEditorState = editorState;
 
+			// Ensure we update the local controlled selection right away
+			// to avoid cursor changes from other users making block updates.
+			void updateSelectionInEntityRecord(
+				selectionStart,
+				selectionEnd,
+				getSelectedBlocksInitialCaretPosition()
+			);
+
+			// We usually receive two selection changes in quick succession
+			// from local selection events:
+			//   { clientId: "123...", attributeKey: "content", offset: undefined }
+			//   { clientId: "123...", attributeKey: "content", offset: 554 }
+			// Add a short debounce to avoid sending the first selection change.
+			clearTimeout( localCursorTimeout );
 			localCursorTimeout = setTimeout( () => {
-				void updateSelectionInEntityRecord(
-					selectionStart,
-					selectionEnd,
-					getSelectedBlocksInitialCaretPosition()
-				);
 				void patchUser( this.awareness.clientID, { editorState } );
 			}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 
-			awarenessCursorTimeout = setTimeout( () => {
-				this.setLocalStateField( 'editorState', editorState );
-			}, AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS );
+			// Throttle awareness updates - only set timeout if one isn't already running
+			if ( ! awarenessCursorTimeout ) {
+				awarenessCursorTimeout = setTimeout( () => {
+					if ( pendingEditorState ) {
+						this.setLocalStateField( 'editorState', pendingEditorState );
+						pendingEditorState = null;
+					}
+					awarenessCursorTimeout = null;
+				}, AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS );
+			}
 		} );
 	}
 
