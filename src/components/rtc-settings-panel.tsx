@@ -17,30 +17,39 @@ import {
 } from '../store/settings-store';
 import { useOverlayFrame } from '@/hooks/use-frame-overlay';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
+import { isDevelopment } from '@/utilities/config';
 
 export function RTCSettingsPanel() {
-	const { isAvatarsEnabled, isHighlightsEnabled, isCursorsEnabled, isSelfAwarenessEnabled } =
-		useSelect<
-			SettingsStoreSelectors,
-			{
-				isAvatarsEnabled: boolean;
-				isHighlightsEnabled: boolean;
-				isCursorsEnabled: boolean;
-				isSelfAwarenessEnabled: boolean;
-			}
-		>( select => {
-			return {
-				isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-				isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
-				isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-				isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
-			};
-		} );
+	const {
+		isAvatarsEnabled,
+		isCursorsEnabled,
+		isDebugToolsEnabled,
+		isHighlightsEnabled,
+		isSelfAwarenessEnabled,
+	} = useSelect<
+		SettingsStoreSelectors,
+		{
+			isAvatarsEnabled: boolean;
+			isCursorsEnabled: boolean;
+			isDebugToolsEnabled: boolean;
+			isHighlightsEnabled: boolean;
+			isSelfAwarenessEnabled: boolean;
+		}
+	>( select => {
+		return {
+			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
+			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
+			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
+			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+		};
+	} );
 
 	const {
 		setAwarenessAvatarsEnabled,
 		setAwarenessHighlightsEnabled,
 		setAwarenessCursorsEnabled,
+		setDebugToolsEnabled,
 		setSelfAwarenessEnabled,
 	} = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
@@ -59,6 +68,10 @@ export function RTCSettingsPanel() {
 
 	const handleToggleCursors = ( enabled: boolean ) => {
 		setAwarenessCursorsEnabled( enabled );
+	};
+
+	const handleToggleDebugTools = ( enabled: boolean ) => {
+		setDebugToolsEnabled( enabled );
 	};
 
 	const handleToggleSelfAwareness = ( enabled: boolean ) => {
@@ -103,6 +116,16 @@ export function RTCSettingsPanel() {
 						handleToggleSelfAwareness( enabled );
 					} }
 				/>
+
+				{ isDevelopment() && (
+					<ToggleControl
+						label="Show debug tools"
+						checked={ isDebugToolsEnabled }
+						onChange={ ( enabled: boolean ) => {
+							handleToggleDebugTools( enabled );
+						} }
+					/>
+				) }
 			</div>
 
 			<Heading level={ 3 } style={ { marginTop: '24px' } }>

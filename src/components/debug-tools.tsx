@@ -1,11 +1,13 @@
-import { store as blockEditorStore } from '@wordpress/block-editor';
+import {
+	store as blockEditorStore,
+	type BlockEditorStoreSelectors,
+	type BlockEditorStoreActions,
+} from '@wordpress/block-editor';
 import { createBlock } from '@wordpress/blocks';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useState, useEffect, useRef } from '@wordpress/element';
 
-import type { BlockEditorStoreSelectors, BlockEditorStoreActions } from '@wordpress/block-editor';
-
-interface DebugInterfaceProps {
+interface DebugToolsProps {
 	iframeDocument: Document;
 }
 
@@ -53,10 +55,10 @@ function typeCharacter(
 	}
 }
 
-export function DebugInterface( { iframeDocument }: DebugInterfaceProps ) {
+export function DebugTools( { iframeDocument }: DebugToolsProps ) {
 	const [ isTyping, setIsTyping ] = useState( false );
 	const [ lastSelectedBlock, setLastSelectedBlock ] = useState< string | null >( null );
-	const [ typingSpeed, setTypingSpeed ] = useState( 100 ); // Default 100ms per character
+	const [ typingSpeed, setTypingSpeed ] = useState< number >( 100 ); // Default 100ms per character
 	const typingIntervalRef = useRef< NodeJS.Timeout | null >( null );
 
 	const getSelectedBlockClientId = useSelect< BlockEditorStoreSelectors, () => string | null >(
@@ -181,8 +183,8 @@ export function DebugInterface( { iframeDocument }: DebugInterfaceProps ) {
 		};
 	}, [ isTyping, typingSpeed, iframeDocument, selectBlock, insertBlock ] );
 
-	const handleCheckboxChange = ( event: React.ChangeEvent< HTMLInputElement > ) => {
-		setIsTyping( event.target.checked );
+	const toggleTyping = () => {
+		setIsTyping( ! isTyping );
 	};
 
 	const handleSpeedChange = ( event: React.ChangeEvent< HTMLInputElement > ) => {
@@ -196,10 +198,13 @@ export function DebugInterface( { iframeDocument }: DebugInterfaceProps ) {
 	return (
 		<div className="vip-real-time-collaboration-debug-interface">
 			<div className="vip-real-time-collaboration-debug-header">Debug Tools</div>
-			<label>
-				<input type="checkbox" checked={ isTyping } onChange={ handleCheckboxChange } />
-				<span>Start typing</span>
-			</label>
+			<button
+				type="button"
+				onClick={ toggleTyping }
+				className="vip-real-time-collaboration-debug-reset"
+			>
+				{ isTyping ? 'Stop typing' : 'Start typing' }
+			</button>
 			{ isTyping && (
 				<div className="vip-real-time-collaboration-debug-speed">
 					<div className="vip-real-time-collaboration-debug-speed-header">

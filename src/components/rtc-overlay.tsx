@@ -2,12 +2,11 @@ import { useSelect } from '@wordpress/data';
 import { useRef } from '@wordpress/element';
 
 import { Avatars } from '@/components/avatars';
-import { DebugInterface } from '@/components/debug-interface';
+import { DebugTools } from '@/components/debug-tools';
 import { PostLockedModal } from '@/components/post-locked-modal';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
-import { isDevelopment } from '@/utilities/config';
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
@@ -20,8 +19,14 @@ interface RTCOverlayProps {
 export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement | null >( null );
 
-	const isAvatarsEnabled = useSelect< SettingsStoreSelectors, boolean >( select => {
-		return select( rtcSettingsStore ).isAwarenessAvatarsEnabled();
+	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
+		SettingsStoreSelectors,
+		{ isAvatarsEnabled: boolean; isDebugToolsEnabled: boolean }
+	>( select => {
+		return {
+			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
+		};
 	} );
 
 	useBlockHighlighting( iframeDocument );
@@ -37,7 +42,7 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 				Good for floating elements like awareness avatars */ }
 			<div className="vip-real-time-collaboration-overlay-fixed">
 				{ isAvatarsEnabled && <Avatars /> }
-				{ isDevelopment() && <DebugInterface iframeDocument={ iframeDocument } /> }
+				{ isDebugToolsEnabled && <DebugTools iframeDocument={ iframeDocument } /> }
 			</div>
 
 			<PostLockedModal />
