@@ -21,5 +21,12 @@ declare module '@wordpress/block-editor' {
 			startOffset?: number,
 			endOffset?: number
 		) => void;
+		insertBlock: (
+			block: BlockInstance,
+			index?: number,
+			rootClientId?: string,
+			updateSelection?: boolean,
+			meta?: Record< string, any >
+		) => Record< string, any >;
 	}
 }
