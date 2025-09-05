@@ -28,6 +28,13 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 	return new SyncProviderWithAwareness( webSocketConnectionConfig );
 } );
 
+function replacePostLockedModal() {
+	// Returning nothing removes the default post locked modal.
+	return function () {};
+}
+
+addFilter( 'editor.PostLockedModal', 'vip-rtc', replacePostLockedModal );
+
 registerPlugin( 'vip-real-time-collaboration', {
 	render: RTCSettingsPanel,
 } );
