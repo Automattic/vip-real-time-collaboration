@@ -5,6 +5,17 @@ import { generateHash } from '@/utilities/crypto';
 
 import type { WordPressUserInfo } from '@/store/awareness-store';
 import type { ObjectData } from '@wordpress/sync';
+import { BlockInstance, parse } from '@wordpress/blocks';
+
+interface BlockAttributes {
+	[ key: string ]: unknown;
+}
+
+interface Block {
+	attributes: BlockAttributes;
+	innerBlocks: Block[];
+	name: string;
+}
 
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	const { avatar_urls: avatarUrls, id, name } = select( coreStore ).getCurrentUser() ?? {};
@@ -21,14 +32,35 @@ export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 }
 
 export async function getHashForEntityRecord( record: ObjectData ): Promise< string > {
+	// console.debug( 'Calculating hash for record', record );
+
 	const content = getRawValueFromEntityRecord( record, 'content' ) ?? '';
 	const title = getRawValueFromEntityRecord( record, 'title' ) ?? '';
+	// const blocks: Block[] = removeClientIdsFromBlocks( 	parse( content ) );
+
+	// console.log( 'Blocks after removing client IDs: ', blocks );
+
+	// console.debug( 'Calculating hash using', { content, title /**, blocks */ } );
 
 	// Add more record fields that should invalidate a persisted CRDT doc here. In
 	// the future, this should be controlled by the entity's sync config.
 
-	const hashInput = JSON.stringify( { content, title } );
+	const hashInput = JSON.stringify( { content, title /**, blocks */ } );
 	return await generateHash( hashInput, 'SHA-256' );
+}
+
+function removeClientIdsFromBlocks( blocks: BlockInstance[] ): Block[] {
+	if ( ! blocks || 0 === blocks.length ) {
+		return [];
+	}
+
+	return blocks.map( ( block ) => {
+		const { clientId, innerBlocks, ...rest } = block;
+		return {
+			...rest,
+			innerBlocks: removeClientIdsFromBlocks( innerBlocks ),
+		};
+	} );
 }
 
 /**
