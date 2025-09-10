@@ -28,6 +28,7 @@ declare module '@wordpress/sync' {
 			awareness?: boolean;
 			undo?: boolean;
 		};
+		syncedProperties: Set< string >;
 	}
 
 	interface EntityState {
