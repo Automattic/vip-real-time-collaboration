@@ -17,18 +17,18 @@ export function useDocumentReady( document?: Document | null ): boolean {
 			return;
 		}
 
-		const ready = ( readyCallback: () => void ) => {
-			if ( document.readyState !== 'loading' ) {
-				readyCallback();
-				return;
-			}
+		const onReady = (): void => setIsReady( true );
 
-			document.addEventListener( 'DOMContentLoaded', readyCallback );
-		};
+		if ( 'loading' !== document.readyState ) {
+			onReady();
+			return;
+		}
 
-		ready( () => {
-			setIsReady( true );
-		} );
+		setIsReady( false );
+
+		document.addEventListener( 'DOMContentLoaded', onReady );
+
+		return () => document.removeEventListener( 'DOMContentLoaded', onReady );
 	}, [ document ] );
 
 	return isReady;
