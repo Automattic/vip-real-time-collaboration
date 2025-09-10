@@ -150,7 +150,16 @@ export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
 export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
 	return async function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
 		try {
-			const roomName = `${ objectType }-${ objectId }`;
+			/**
+			 * Some entities like posts aren't unique across all sites in a multisite setup.
+			 * To avoid conflicts, we add the blog ID to the room name.
+			 *
+			 * This might not be required for entities like sites which are unique across the
+			 * multisite. We don't entities like those yet. When we do, we'll need to revisit
+			 * adding the blog ID to the room name as that won't be needed.
+			 */
+			const roomNamePrefix = window.VIP_RTC.blogId ? `${ window.VIP_RTC.blogId }/` : '';
+			const roomName = `${ roomNamePrefix }${ objectType }-${ objectId }`;
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
 			const connect = createConnect( provider, objectType, objectId );
 
