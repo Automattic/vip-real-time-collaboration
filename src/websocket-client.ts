@@ -158,7 +158,7 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
-			const roomNamePrefix = window.VIP_RTC.blogId ? `${ window.VIP_RTC.blogId }/` : '';
+			const roomNamePrefix = `site-${ getVipConfigFromWindow( 'blogId' ) }/`;
 			const roomName = `${ roomNamePrefix }${ objectType }-${ objectId }`;
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
 			const connect = createConnect( provider, objectType, objectId );
