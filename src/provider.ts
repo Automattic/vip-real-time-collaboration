@@ -73,7 +73,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return {};
 		}
 
-		const contentHash = await getHashForEntityRecord( { ...record, ...changes } );
+		const contentHash = await getHashForEntityRecord(
+			{ ...record, ...changes },
+			syncConfig.syncedProperties
+		);
 		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash );
 
 		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
@@ -108,7 +111,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const entityMeta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const expectedHash = await getHashForEntityRecord( record );
+		const expectedHash = await getHashForEntityRecord( record, syncConfig.syncedProperties );
 		const persistedDoc = getPersistedCrdtDocFromEntityMeta(
 			entityMeta,
 			expectedHash,

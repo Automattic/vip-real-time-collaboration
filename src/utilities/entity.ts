@@ -5,7 +5,6 @@ import { generateHash } from '@/utilities/crypto';
 
 import type { WordPressUserInfo } from '@/store/awareness-store';
 import type { ObjectData } from '@wordpress/sync';
-import { BlockInstance, parse } from '@wordpress/blocks';
 
 interface BlockAttributes {
 	[ key: string ]: unknown;
@@ -31,36 +30,20 @@ export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	return { avatarUrl, id, name };
 }
 
-export async function getHashForEntityRecord( record: ObjectData ): Promise< string > {
-	// console.debug( 'Calculating hash for record', record );
+export async function getHashForEntityRecord(
+	record: ObjectData,
+	syncedProperties: Set< string >
+): Promise< string > {
+	// Get a string representation of the record that includes only the properties
+	// that are synced. This is used to determine if the record has changed in a
+	// meaningful way that should invalidate a persisted CRDT document.
+	const hashInput: string = JSON.stringify(
+		Object.fromEntries(
+			[ ...syncedProperties ].map( key => [ key, getRawStringValue( record, key ) ] )
+		)
+	);
 
-	const content = getRawValueFromEntityRecord( record, 'content' ) ?? '';
-	const title = getRawValueFromEntityRecord( record, 'title' ) ?? '';
-	// const blocks: Block[] = removeClientIdsFromBlocks( 	parse( content ) );
-
-	// console.log( 'Blocks after removing client IDs: ', blocks );
-
-	// console.debug( 'Calculating hash using', { content, title /**, blocks */ } );
-
-	// Add more record fields that should invalidate a persisted CRDT doc here. In
-	// the future, this should be controlled by the entity's sync config.
-
-	const hashInput = JSON.stringify( { content, title /**, blocks */ } );
 	return await generateHash( hashInput, 'SHA-256' );
-}
-
-function removeClientIdsFromBlocks( blocks: BlockInstance[] ): Block[] {
-	if ( ! blocks || 0 === blocks.length ) {
-		return [];
-	}
-
-	return blocks.map( ( block ) => {
-		const { clientId, innerBlocks, ...rest } = block;
-		return {
-			...rest,
-			innerBlocks: removeClientIdsFromBlocks( innerBlocks ),
-		};
-	} );
 }
 
 /**
@@ -73,14 +56,10 @@ export function getMetaFromEntityRecord( record: ObjectData ): Record< string, u
 }
 
 /**
- * Extract the raw value from an entity record like content or title that
- * may be a string or an object with a `raw` property.
+ * Extract the raw string value from an entity property that may be a string or
+ * an object with a `raw` property.
  */
-export function getRawValueFromEntityRecord(
-	record: ObjectData,
-	key: 'content' | 'title'
-): string | null {
-	// Value may be a string property or a nested object with a `raw` property.
+function getRawStringValue( record: ObjectData, key: string ): string {
 	// eslint-disable-next-line security/detect-object-injection
 	const value = key in record ? record[ key ] : null;
 
@@ -90,5 +69,5 @@ export function getRawValueFromEntityRecord(
 
 	return value && 'object' === typeof value && 'raw' in value && 'string' === typeof value.raw
 		? value.raw
-		: null;
+		: '';
 }
