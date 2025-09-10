@@ -62,7 +62,7 @@ final class WebSocketAuth {
 		$payload = [
 			'user_id' => $current_user->ID,
 			'username' => $current_user->user_login,
-			'room_name' => sprintf( '%s/%s-%s', $blog_id, $sync_object_type, $sync_object_id ),
+			'room_name' => sprintf( 'site-%d/%s-%s', $blog_id, $sync_object_type, $sync_object_id ),
 			'blog_id' => $blog_id,
 			'connection_id' => $connection_id,
 			'iat' => time(), // Issued at
