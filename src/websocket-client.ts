@@ -7,6 +7,7 @@ import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
 import {
 	isDevelopment,
+	BLOG_ID,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
@@ -158,8 +159,7 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
-			const roomNamePrefix = `site-${ getVipConfigFromWindow( 'blogId' ) }/`;
-			const roomName = `${ roomNamePrefix }${ objectType }-${ objectId }`;
+			const roomName = `site-${ BLOG_ID }/${ objectType }-${ objectId }`;
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
 			const connect = createConnect( provider, objectType, objectId );
 
