@@ -3,6 +3,13 @@ import { describe, it, before, beforeEach, after, afterEach, mock, type Mock } f
 
 import { generateHash, generateUUID } from './crypto';
 
+function getMockWindow( overrides: Partial< typeof global.window > = {} ): typeof global.window {
+	return {
+		isSecureContext: true,
+		...overrides,
+	} as typeof global.window;
+}
+
 describe( 'crypto utilities', () => {
 	let originalProcess: string | undefined;
 	let originalWindow: typeof global.window;
@@ -36,14 +43,13 @@ describe( 'crypto utilities', () => {
 						Promise.resolve( new TextEncoder().encode( 'mock generated hash' ).buffer )
 				);
 
-				global.window = {
-					isSecureContext: true,
+				global.window = getMockWindow( {
 					crypto: {
 						subtle: {
 							digest: cryptoMock,
 						},
-					},
-				} as unknown as typeof global.window;
+					} as unknown as Crypto,
+				} );
 			} );
 
 			it( 'should return mock hash', async () => {
@@ -66,7 +72,7 @@ describe( 'crypto utilities', () => {
 
 		describe( 'in insecure context', () => {
 			beforeEach( () => {
-				global.window = { isSecureContext: false } as unknown as typeof global.window;
+				global.window = getMockWindow( { isSecureContext: false } );
 				process.env.NODE_ENV = 'development';
 			} );
 
@@ -102,7 +108,7 @@ describe( 'crypto utilities', () => {
 
 		describe( 'in insecure context (non-development)', () => {
 			beforeEach( () => {
-				global.window = { isSecureContext: false } as unknown as typeof global.window;
+				global.window = getMockWindow( { isSecureContext: false } );
 				process.env.NODE_ENV = 'production';
 			} );
 
@@ -116,16 +122,18 @@ describe( 'crypto utilities', () => {
 	} );
 
 	describe( 'generateUUID', () => {
-		const uuidMock = mock.fn( () => '12345678-1234-4abc-8def-123456789abc' );
+		const uuidMock = mock.fn(
+			(): `${ string }-${ string }-${ string }-${ string }-${ string }` =>
+				'12345678-1234-4abc-8def-123456789abc'
+		);
 
 		describe( 'in secure context', () => {
 			beforeEach( () => {
-				global.window = {
-					isSecureContext: true,
+				global.window = getMockWindow( {
 					crypto: {
 						randomUUID: uuidMock,
-					},
-				} as unknown as typeof global.window;
+					} as unknown as Crypto,
+				} );
 			} );
 
 			it( 'should return mock UUID', () => {
@@ -138,7 +146,7 @@ describe( 'crypto utilities', () => {
 
 		describe( 'in insecure context', () => {
 			beforeEach( () => {
-				global.window = { isSecureContext: false } as unknown as typeof global.window;
+				global.window = getMockWindow( { isSecureContext: false } );
 				process.env.NODE_ENV = 'development';
 			} );
 
@@ -168,7 +176,7 @@ describe( 'crypto utilities', () => {
 
 		describe( 'in insecure context (non-development)', () => {
 			beforeEach( () => {
-				global.window = { isSecureContext: false } as unknown as typeof global.window;
+				global.window = getMockWindow( { isSecureContext: false } );
 				process.env.NODE_ENV = 'production';
 			} );
 
