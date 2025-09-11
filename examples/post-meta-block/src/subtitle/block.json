@@ -1,0 +1,16 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "example/subtitle",
+	"version": "0.1.0",
+	"title": "Subtitle",
+	"category": "text",
+	"icon": "text",
+	"description": "An optional subtitle, persisted as post meta",
+	"example": {},
+	"supports": {
+		"html": false
+	},
+	"textdomain": "example-subtitle",
+	"editorScript": "file:./index.js"
+}
