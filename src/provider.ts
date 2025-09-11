@@ -15,7 +15,7 @@ import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/web
 import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
-import { store as coreStore } from '@wordpress/core-data';
+import { store as editorStore } from '@wordpress/editor';
 import { select } from '@wordpress/data';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
@@ -77,7 +77,10 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			{ ...record, ...changes },
 			syncConfig.syncedProperties
 		);
-		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash );
+
+		const lastRevisionId = select( editorStore ).getCurrentPostLastRevisionId() ?? 0;
+
+		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash, lastRevisionId );
 
 		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
 			objectType,
@@ -101,13 +104,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			return Promise.resolve( null );
 		}
 
-		// try {
-		// 	const editedRecord = select( coreStore ).getEditedEntityRecord( 'postType', 'post', record.id as number );
-		// 	this.logger.debug( 'Fetched edited entity record', { editedRecord } );
-		// } catch ( error ) {
-		// 	this.logger.error( 'Error getting edited entity record', { error } );
-		// }
-
 		const entityMeta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
@@ -117,13 +113,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			expectedHash,
 			expectedVersion
 		);
-
-		// if ( ! persistedDoc ) {
-		// 	console.log( record.content );
-		// } else {
-		// 	const ymap = persistedDoc.getMap( 'document' );
-		// 	console.debug( 'Loaded persisted CRDT doc', ymap.toJSON() );
-		// }
 
 		const logMessage = persistedDoc
 			? 'Found persisted CRDT doc in entity meta'

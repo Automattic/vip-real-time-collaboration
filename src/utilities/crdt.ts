@@ -27,6 +27,7 @@ interface PersistedCrdtDocMetaValue {
 	contentHash: string;
 	crdtDoc: string;
 	version: number;
+	lastRevisionId: number;
 }
 
 const logger = new Logger( 'crdt' );
@@ -98,12 +99,14 @@ function isValidCrdtDocMetaValueShape(
  */
 function createCrdtDocMetaValue(
 	crdtDoc: CRDTDoc,
-	contentHash: string
+	contentHash: string,
+	lastRevisionId: number
 ): PersistedCrdtDocMetaValue {
 	return {
 		contentHash,
 		crdtDoc: serializeCrdtDoc( crdtDoc ),
 		version: getCrdtDocVersion( crdtDoc ),
+		lastRevisionId,
 	};
 }
 
@@ -113,9 +116,10 @@ function createCrdtDocMetaValue(
  */
 export function createPersistedCrdtDocMetaRecord(
 	crdtDoc: CRDTDoc,
-	contentHash: string
+	contentHash: string,
+	lastRevisionId: number
 ): EntityMetaRecord {
-	const metaValue = createCrdtDocMetaValue( crdtDoc, contentHash );
+	const metaValue = createCrdtDocMetaValue( crdtDoc, contentHash, lastRevisionId );
 
 	return {
 		[ PERSISTED_STATE_POST_META_KEY ]: JSON.stringify( metaValue ),
@@ -145,7 +149,7 @@ export function getPersistedCrdtDocFromEntityMeta(
 		// eslint-disable-next-line security/detect-object-injection
 		const rawMetaValue: unknown = entityMeta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
 
-		if ( 'string' !== typeof rawMetaValue ) {
+		if ( 'string' !== typeof rawMetaValue || rawMetaValue === '' ) {
 			return null;
 		}
 
