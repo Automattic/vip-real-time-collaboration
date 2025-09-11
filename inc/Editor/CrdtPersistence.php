@@ -7,7 +7,6 @@ use function add_action;
 use function post_type_supports;
 use function register_meta;
 
-
 defined( 'ABSPATH' ) || exit();
 
 /**

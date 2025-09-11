@@ -6,16 +6,6 @@ import { generateHash } from '@/utilities/crypto';
 import type { WordPressUserInfo } from '@/store/awareness-store';
 import type { ObjectData } from '@wordpress/sync';
 
-interface BlockAttributes {
-	[ key: string ]: unknown;
-}
-
-interface Block {
-	attributes: BlockAttributes;
-	innerBlocks: Block[];
-	name: string;
-}
-
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	const { avatar_urls: avatarUrls, id, name } = select( coreStore ).getCurrentUser() ?? {};
 
