@@ -18,7 +18,7 @@ registerBlockType( metadata.name, {
 } );
 
 // Filter the synced meta properties to include our meta field.
-addFilter( 'sync.metaProperties', 'vip-rtc-examples', ( metaProperties ) => {
-	metaProperties.push( META_FIELD_KEY );
-	return metaProperties;
-} );
+addFilter( 'sync.metaProperties', 'vip-rtc-examples', ( metaProperties ) => [
+	...metaProperties,
+	META_FIELD_KEY,
+] );
