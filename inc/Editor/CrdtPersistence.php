@@ -6,12 +6,7 @@ use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use function add_action;
 use function post_type_supports;
 use function register_meta;
-use function get_post;
-use function get_post_meta;
 
-use WP_Post;
-use WP_REST_Request;
-use WP_REST_Response;
 
 defined( 'ABSPATH' ) || exit();
 
