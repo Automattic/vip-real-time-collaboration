@@ -56,14 +56,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		record: ObjectData,
 		changes: Partial< ObjectData >
 	): Promise< EntityMetaRecord > {
-		const objectId = syncConfig.getObjectId( record ).toString();
-		const objectType = syncConfig.objectType.toString();
-
-		// CRDT persistence is currently only supported for post types.
-		if ( ! objectType.startsWith( 'postType/' ) ) {
+		if ( ! syncConfig.supports?.crdtPersistence ) {
 			return {};
 		}
 
+		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectType = syncConfig.objectType.toString();
 		const ydoc = this.entityStates.get( this.getEntityId( objectType, objectId ) )?.ydoc;
 
 		if ( ! ydoc || 'auto-draft' === record.status ) {
@@ -90,14 +88,12 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		record: ObjectData,
 		expectedVersion: number
 	): Promise< CRDTDoc | null > {
-		const objectId = syncConfig.getObjectId( record ).toString();
-		const objectType = syncConfig.objectType.toString();
-
-		// CRDT persistence is currently only supported for post types.
-		if ( ! objectType.startsWith( 'postType/' ) ) {
+		if ( ! syncConfig.supports?.crdtPersistence ) {
 			return Promise.resolve( null );
 		}
 
+		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectType = syncConfig.objectType.toString();
 		const entityMeta = getMetaFromEntityRecord( record );
 
 		// Attempt to load the initial CRDT document from post meta.
