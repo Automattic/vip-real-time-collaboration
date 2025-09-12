@@ -23,6 +23,7 @@ function register_example_subtitle_block(): void {
 		'show_in_rest' => true, // required for syncing
 		'single' => true,
 		'type' => 'string',
+		'revisions_enabled' = true, // recommended to track via revision history.
 	] );
 
 	// Register the block using the metadata loaded from the block manifest.
