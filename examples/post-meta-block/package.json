@@ -23,7 +23,6 @@
 		"@wordpress/components": "30.3.0",
 		"@wordpress/core-data": "7.30.0",
 		"@wordpress/data": "10.30.0",
-		"@wordpress/hooks": "4.30.0",
 		"@wordpress/i18n": "6.3.0"
 	}
 }
