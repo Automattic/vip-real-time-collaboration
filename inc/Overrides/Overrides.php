@@ -8,7 +8,6 @@ use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use function add_action;
 use function add_filter;
 use function remove_filter;
-use function get_post;
 
 /**
  * Class to handle overrides for the Block Editor functionality.
@@ -47,26 +46,14 @@ final class Overrides {
 	 * @return mixed the filtered meta value.
 	 */
 	public function filter_post_meta( mixed $value, int $object_id, string $meta_key ): mixed {
-		// get the post using the object_id
-		$post = get_post( $object_id );
+		global $post, $pagenow;
 
-		// Ensure that the post is a valid WP_Post object, and it exists.
-		if ( ! $post instanceof \WP_Post ) {
-			return $value;
-		}
-
-		// Ensure collaboration is enabled for this post type.
 		$supported_post_types = Compatibility::get_supported_post_types();
-		if ( ! in_array( $post->post_type, $supported_post_types, true ) ) {
+		if ( ! $post || $post->ID !== $object_id || '_edit_lock' !== $meta_key || 'revision.php' !== $pagenow || ! in_array( $post->post_type, $supported_post_types, true ) ) {
 			return $value;
 		}
 
-		// If the meta key is _edit_lock, return false to disable the lock.
-		if ( '_edit_lock' === $meta_key ) {
-			return false;
-		}
-
-		// For all other meta keys, return the original value.
-		return $value;
+		// If it's the revisions page, the meta key is the edit_lock and we have the post then this is good to go.
+		return false;
 	}
 }
