@@ -72,8 +72,7 @@ final class Compatibility {
 	/**
 	 * Check if the Gutenberg plugin is active.
 	 *
-	 * TODO: Check GUTENBERG_VERSION in production to ensure it is running a
-	 * compatible version.
+	 * TODO: Check GUTENBERG_VERSION in production to ensure it is running a compatible version.
 	 */
 	private static function is_gutenberg_plugin_active(): bool {
 		return defined( 'IS_GUTENBERG_PLUGIN' ) && constant( 'IS_GUTENBERG_PLUGIN' );
