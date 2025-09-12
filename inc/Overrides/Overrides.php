@@ -24,6 +24,9 @@ final class Overrides {
 
 		// Force the removal of refreshing the post lock, runs on admin_init as that is after the filter is set.
 		add_action( 'admin_init', [ $this, 'remove_heartbeat_post_lock' ] );
+
+		// Ensure that the _edit_lock meta key is never returned, effectively disabling the post lock functionality.
+		add_filter( 'get_post_metadata', [ $this, 'filter_post_meta' ], 10, 3 );
 	}
 
 	/**
@@ -31,5 +34,28 @@ final class Overrides {
 	 */
 	public function remove_heartbeat_post_lock(): void {
 		remove_filter( 'heartbeat_received', 'wp_refresh_post_lock' );
+	}
+
+	/**
+	 * Set the _edit_lock meta key to false, to disable post locking.
+	 *
+	 * @param mixed $value the current meta value.
+	 * @param int   $object_id the object ID.
+	 * @param string $meta_key the meta key.
+	 * @return mixed the filtered meta value.
+	 */
+	public function filter_post_meta( $value, $object_id, $meta_key ) {
+		// get the post using the object_id
+		$post = get_post( $object_id );
+
+		if ( ! $post instanceof \WP_Post ) {
+			return $value;
+		}
+
+		if ( '_edit_lock' === $meta_key ) {
+			return false;
+		}
+
+		return $value;
 	}
 }
