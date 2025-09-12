@@ -47,13 +47,14 @@ final class Overrides {
 	 */
 	public function filter_post_meta( mixed $value, int $object_id, string $meta_key ): mixed {
 		global $post, $pagenow;
-
 		$supported_post_types = Compatibility::get_supported_post_types();
-		if ( ! $post || $post->ID !== $object_id || '_edit_lock' !== $meta_key || 'revision.php' !== $pagenow || ! in_array( $post->post_type, $supported_post_types, true ) ) {
-			return $value;
+
+		// If it's the revisions page, the meta key is the edit_lock and we have the post then we want to give back false.
+		// This is to avoid the issue where the revision screen shows the post as locked for collaborators.
+		if ( $post && $post->ID === $object_id && '_edit_lock' === $meta_key && 'revision.php' === $pagenow && in_array( $post->post_type, $supported_post_types, true ) ) {
+			return false;
 		}
 
-		// If it's the revisions page, the meta key is the edit_lock and we have the post then this is good to go.
-		return false;
+		return $value;
 	}
 }
