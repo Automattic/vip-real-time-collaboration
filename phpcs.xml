@@ -116,6 +116,7 @@
 	<!-- Exclude PSR12.Files.FileHeader.IncorrectOrder for specific files -->
 	<rule ref="PSR12.Files.FileHeader.IncorrectOrder">
 		<exclude-pattern>vip-real-time-collaboration.php</exclude-pattern>
+		<exclude-pattern>examples/local-updates-block/local-updates-block.php</exclude-pattern>
 		<exclude-pattern>examples/post-meta-block/post-meta-block.php</exclude-pattern>
 	</rule>
 
