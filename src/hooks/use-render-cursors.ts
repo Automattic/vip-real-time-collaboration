@@ -23,7 +23,7 @@ const logger = new Logger( 'use-render-cursors' );
  * @param awareness - The awareness instance
  */
 export function useRenderCursors(
-	overlayRef: MutableRefObject< HTMLElement >,
+	overlayRef: MutableRefObject< HTMLElement | null >,
 	renderCursorsRef: MutableRefObject< ( () => void ) | undefined >,
 	blockEditorDocument: Document | null
 ) {

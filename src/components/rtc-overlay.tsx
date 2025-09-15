@@ -31,8 +31,8 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 		};
 	} );
 
-	// Detect layout changes on overlay (e.g. turning on "Show Template")
-	// and fire an event that components inside of the overlay can listen to.
+	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
+	// resizes, and re-render the cursors.
 	const resizeObserverRef = useResizeObserver( () => {
 		renderCursorsRef.current?.();
 	} );
