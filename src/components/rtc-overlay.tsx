@@ -18,7 +18,8 @@ interface RTCOverlayProps {
  * This component is responsible for rendering awareness components within the editor iframe.
  */
 export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
-	const overlayRef = useRef< HTMLDivElement | null >( null );
+	const overlayRef = useRef< HTMLDivElement >( null );
+	const renderCursorsRef = useRef< () => void >();
 
 	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
 		SettingsStoreSelectors,
@@ -33,16 +34,14 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	// Detect layout changes on overlay (e.g. turning on "Show Template")
 	// and fire an event that components inside of the overlay can listen to.
 	const resizeObserverRef = useResizeObserver( () => {
-		if ( overlayRef.current ) {
-			overlayRef.current.dispatchEvent( new CustomEvent( 'redrawCursors' ) );
-		}
+		renderCursorsRef.current?.();
 	} );
 
 	// Merge the refs to use the same element for both overlay and resize observation
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
 	useBlockHighlighting( iframeDocument );
-	useRenderCursors( overlayRef, iframeDocument );
+	useRenderCursors( overlayRef, renderCursorsRef, iframeDocument );
 
 	return (
 		<>

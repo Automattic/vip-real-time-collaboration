@@ -1,11 +1,10 @@
 import { useSelect } from '@wordpress/data';
-import { useEffect, useRef } from '@wordpress/element';
+import { useEffect } from '@wordpress/element';
 
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
-import { throttleByAnimationFrame } from '@/utilities/throttle';
 
 import type { MutableRefObject } from 'react';
 
@@ -24,7 +23,8 @@ const logger = new Logger( 'use-render-cursors' );
  * @param awareness - The awareness instance
  */
 export function useRenderCursors(
-	overlayRef: MutableRefObject< HTMLElement | null >,
+	overlayRef: MutableRefObject< HTMLElement >,
+	renderCursorsRef: MutableRefObject< ( () => void ) | undefined >,
 	blockEditorDocument: Document | null
 ) {
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
@@ -41,9 +41,6 @@ export function useRenderCursors(
 	} );
 
 	const sortedUsers = useSortedAwarenessUsers();
-
-	// Use a ref to store the current render function to avoid stale closures
-	const renderCursorsRef = useRef< () => void >();
 
 	// Draw user cursors in the overlay.
 	useEffect( () => {
@@ -62,40 +59,6 @@ export function useRenderCursors(
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
 	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
-
-	// Also re-render cursors on resize
-	useEffect( () => {
-		const handleResize = () => {
-			if ( renderCursorsRef.current ) {
-				renderCursorsRef.current();
-			}
-		};
-
-		const throttledHandleResize = throttleByAnimationFrame( handleResize );
-
-		window.addEventListener( 'resize', throttledHandleResize );
-		return () => {
-			window.removeEventListener( 'resize', throttledHandleResize );
-		};
-	}, [] );
-
-	// Listen for layout changes from ResizeObserver
-	useEffect( () => {
-		const overlay = overlayRef.current;
-		if ( ! overlay ) {
-			return;
-		}
-
-		const handleRedrawCursors = () => {
-			// ResizeObserver detected a layout change - redraw cursors
-			if ( renderCursorsRef.current ) {
-				renderCursorsRef.current();
-			}
-		};
-
-		overlay.addEventListener( 'redrawCursors', handleRedrawCursors );
-		return () => overlay.removeEventListener( 'redrawCursors', handleRedrawCursors );
-	}, [ overlayRef.current ] );
 }
 
 /**
