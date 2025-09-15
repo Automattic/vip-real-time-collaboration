@@ -1,6 +1,7 @@
 import { createElement, createRoot, useEffect, useRef } from '@wordpress/element';
 
 import { RTCOverlay } from '@/components/rtc-overlay';
+import { useDocumentReady } from '@/hooks/use-document-ready';
 import { useWaitForSelector } from '@/hooks/use-wait-for-selector';
 
 /**
@@ -10,11 +11,13 @@ import { useWaitForSelector } from '@/hooks/use-wait-for-selector';
 export function useOverlayFrame() {
 	const iframeElement = useWaitForSelector< HTMLIFrameElement >( 'iframe[name="editor-canvas"]' );
 	const iframeOverlayRootRef = useRef< ReturnType< typeof createRoot > | null >( null );
+
 	const editorDocument = iframeElement?.contentDocument;
+	const isDocumentReady = useDocumentReady( editorDocument );
 
 	useEffect( () => {
 		// When the iframe is loaded, set blockEditorDocument for modifying block editor contents.
-		if ( editorDocument ) {
+		if ( editorDocument && editorDocument.body && isDocumentReady ) {
 			// Remove existing overlay, if present
 			editorDocument.querySelector( '.vip-real-time-collaboration-overlay' )?.remove();
 
@@ -38,5 +41,5 @@ export function useOverlayFrame() {
 				iframeOverlayRootRef.current = null;
 			}
 		};
-	}, [ editorDocument ] );
+	}, [ editorDocument, isDocumentReady ] );
 }

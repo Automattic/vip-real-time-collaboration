@@ -17,6 +17,8 @@
         <directory name="*"/>
         <ignoreFiles allowMissingFiles="true">
             <directory name="build/"/>
+            <directory name="examples/**/build/"/>
+            <directory name="examples/**/node_modules/"/>
             <directory name="node_modules/"/>
             <directory name="vendor/"/>
             <directory name="yjs-inspector/"/>

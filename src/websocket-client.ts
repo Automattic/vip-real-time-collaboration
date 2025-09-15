@@ -7,6 +7,7 @@ import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
 import {
 	isDevelopment,
+	BLOG_ID,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
@@ -58,11 +59,10 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 /**
  * Log a link to inspect the Yjs provider using Yjs inspector.
  */
-function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken: string ): void {
-	const roomName = `${ syncObjectType }-${ syncObjectId }`;
+function logInspectUrl( provider: WebsocketProvider ): void {
 	const connectionConfig = {
 		createNewDoc: false,
-		room: `${ roomName }?auth=${ authToken }`,
+		room: `${ provider.roomname }?auth=${ provider.params?.auth }`,
 		provider: 'y-websocket',
 		url: WEBSOCKET_URL,
 	};
@@ -72,7 +72,7 @@ function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken:
 		JSON.stringify( connectionConfig )
 	) }`;
 
-	logger.info( `Yjs inspector for ${ roomName }: ${ inspectUrl }` );
+	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
 }
 
 /**
@@ -116,7 +116,7 @@ function createConnect(
 			// When provider.connect() runs it updates provider#shouldConnect to true.
 			provider.shouldConnect = false;
 
-			logInspectUrl( syncObjectType, syncObjectId, authToken );
+			logInspectUrl( provider );
 		} catch ( error: unknown ) {
 			logger.error(
 				`${ __(
@@ -128,9 +128,9 @@ function createConnect(
 	};
 }
 
-export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
+export function getWebSocketConnectionConfig( serverUrl: string ): WebSocketConnectionConfig {
 	return {
-		serverUrl: WEBSOCKET_URL,
+		serverUrl,
 		options: {
 			/**
 			 * Disable automatic connection to prevent websocket from attempting to connect
@@ -150,7 +150,15 @@ export function getWebSocketConnectionConfig(): WebSocketConnectionConfig {
 export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
 	return async function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
 		try {
-			const roomName = `${ objectType }-${ objectId }`;
+			/**
+			 * Some entities like posts aren't unique across all sites in a multisite setup.
+			 * To avoid conflicts, we add the blog ID to the room name.
+			 *
+			 * This might not be desired for entities like sites which are unique across the
+			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
+			 * adding the blog ID to the room name as that won't be needed.
+			 */
+			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId }`;
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
 			const connect = createConnect( provider, objectType, objectId );
 

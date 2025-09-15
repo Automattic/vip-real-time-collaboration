@@ -12,7 +12,7 @@ import { isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config
 import { Logger } from '@/utilities/logger';
 
 export interface EntityMetaRecord {
-	[ PERSISTED_STATE_POST_META_KEY ]?: string; // serialized PersistedCrdtDocMetaValue
+	string?: string; // serialized PersistedCrdtDocMetaValue
 }
 
 interface PersistedCrdtDocMetaValue {
@@ -119,6 +119,11 @@ export function createPersistedCrdtDocMetaRecord(
 	contentHash: string,
 	lastRevisionId: number
 ): EntityMetaRecord {
+	if ( ! PERSISTED_STATE_POST_META_KEY ) {
+		logger.error( 'Persisted post meta key is undefined' );
+		return {};
+	}
+
 	const metaValue = createCrdtDocMetaValue( crdtDoc, contentHash, lastRevisionId );
 
 	return {
@@ -146,6 +151,11 @@ export function getPersistedCrdtDocFromEntityMeta(
 	expectedVersion: number
 ): CRDTDoc | null {
 	try {
+		if ( ! PERSISTED_STATE_POST_META_KEY ) {
+			logger.error( 'Persisted post meta key is undefined' );
+			return null;
+		}
+
 		// eslint-disable-next-line security/detect-object-injection
 		const rawMetaValue: unknown = entityMeta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
 
