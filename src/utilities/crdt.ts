@@ -260,7 +260,7 @@ export function getRawCRDTDocMetaValue(
 		// eslint-disable-next-line security/detect-object-injection
 		const rawMetaValue: unknown = entityMeta[ PERSISTED_STATE_POST_META_KEY ] ?? null;
 
-		if ( 'string' !== typeof rawMetaValue || rawMetaValue === '' ) {
+		if ( 'string' !== typeof rawMetaValue ) {
 			return null;
 		}
 

@@ -9,6 +9,8 @@ use function add_action;
 use function add_filter;
 use function remove_filter;
 
+use WP_Post;
+
 /**
  * Class to handle overrides for the Block Editor functionality.
  *
@@ -38,20 +40,25 @@ final class Overrides {
 	}
 
 	/**
-	 * Set the _edit_lock meta key to false, to disable post locking.
+	 * Set the _edit_lock meta key to false, to disable post locking on revisions.php only.
 	 *
 	 * @param mixed $value the current meta value.
 	 * @param int   $object_id the object ID.
 	 * @param string $meta_key the meta key.
 	 * @return mixed the filtered meta value.
+	 * @psalm-suppress PossiblyUnusedReturnValue
 	 */
 	public function filter_post_meta( mixed $value, int $object_id, string $meta_key ): mixed {
 		global $post, $pagenow;
+
+		if ( 'revision.php' !== $pagenow || '_edit_lock' !== $meta_key ) {
+			return $value;
+		}
+
 		$supported_post_types = Compatibility::get_supported_post_types();
 
-		// If it's the revisions page, the meta key is the edit_lock and we have the post then we want to give back false.
-		// This is to avoid the issue where the revision screen shows the post as locked for collaborators.
-		if ( $post && $post->ID === $object_id && '_edit_lock' === $meta_key && 'revision.php' === $pagenow && in_array( $post->post_type, $supported_post_types, true ) ) {
+		/** @var WP_Post|null $post */
+		if ( $post && $post->ID === $object_id && in_array( $post->post_type, $supported_post_types, true ) ) {
 			return false;
 		}
 
