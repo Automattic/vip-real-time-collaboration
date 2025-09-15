@@ -1,7 +1,6 @@
 /**
  * External dependencies
  */
-import { type CRDTDoc } from '@wordpress/sync';
 import * as buffer from 'lib0/buffer';
 import * as Y from 'yjs';
 
@@ -10,6 +9,25 @@ import * as Y from 'yjs';
  */
 import { isDevelopment, PERSISTED_STATE_POST_META_KEY } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
+
+/**
+ * WordPress dependencies
+ */
+
+import { type CRDTDoc, type SyncConfig } from '@wordpress/sync';
+
+type YBlock = Y.Map<
+	/* name, clientId, and originalContent are strings. */
+	| string
+	/* validationIssues? is an array of strings. */
+	| string[]
+	/* attributes is a Y.Map< unknown >. */
+	| YBlockAttributes
+	/* innerBlocks is a Y.Array< YBlock >. */
+	| Y.Array< YBlock >
+>;
+
+type YBlockAttributes = Y.Map< Y.Text | unknown >;
 
 export interface EntityMetaRecord {
 	string?: string; // serialized PersistedCrdtDocMetaValue
@@ -49,28 +67,55 @@ function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
 
 /**
  * Type predicate to check the deserialized entity meta value shape. This does
- * not validate the CRDT document itself, but it does validate the content hash
- * and document version.
+ * not validate the CRDT document itself or the contents of the entity meta value.
+ * That's done by isValidCrdtDocMetaContent().
  */
-function isValidCrdtDocMetaValueShape(
-	metaValue: unknown,
-	expectedContentHash: string,
-	expectedVersion: number
-): metaValue is PersistedCrdtDocMetaValue {
+function isValidCrdtDocMetaShape( metaValue: unknown ): metaValue is PersistedCrdtDocMetaValue {
 	if ( 'object' !== typeof metaValue || null === metaValue ) {
 		logger.debug( 'Persisted CRDT document was not found', { metaValue } );
 		return false;
 	}
 
-	if ( ! ( 'contentHash' in metaValue && 'crdtDoc' in metaValue && 'version' in metaValue ) ) {
+	if (
+		! (
+			'contentHash' in metaValue &&
+			'crdtDoc' in metaValue &&
+			'version' in metaValue &&
+			'lastRevisionId' in metaValue
+		)
+	) {
 		logger.error( 'Persisted CRDT document is missing expected properties', { metaValue } );
 		return false;
 	}
 
 	if (
 		'string' !== typeof metaValue.contentHash ||
-		metaValue.contentHash !== expectedContentHash
+		'string' !== typeof metaValue.crdtDoc ||
+		'number' !== typeof metaValue.version ||
+		'number' !== typeof metaValue.lastRevisionId
 	) {
+		logger.error( 'Persisted CRDT document has invalid property types', { metaValue } );
+		return false;
+	}
+
+	if ( ! metaValue.crdtDoc ) {
+		logger.error( 'Persisted CRDT document is empty', { metaValue } );
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * This validates the contents of the deserialized entity meta value shape. That
+ * includes validating the content hash and document version.
+ */
+function isValidCrdtDocMetaContent(
+	metaValue: PersistedCrdtDocMetaValue,
+	expectedContentHash: string,
+	expectedVersion: number
+): boolean {
+	if ( metaValue.contentHash !== expectedContentHash ) {
 		logger.warn( 'Persisted CRDT document content hash mismatch', {
 			expectedContentHash,
 			metaValue,
@@ -78,15 +123,10 @@ function isValidCrdtDocMetaValueShape(
 		return false;
 	}
 
-	if ( 'string' !== typeof metaValue.crdtDoc || ! metaValue.crdtDoc ) {
-		logger.error( 'Persisted CRDT document is empty', { metaValue } );
-		return false;
-	}
-
 	// Version is an incrementing integer. If the client is ahead of the persisted
 	// version, it should be ignored. @TODO: If the client is behind, we may want
 	// to notify the user to refresh.
-	if ( 'number' !== typeof metaValue.version || metaValue.version !== expectedVersion ) {
+	if ( metaValue.version !== expectedVersion ) {
 		logger.warn( 'Persisted CRDT document version mismatch', { expectedVersion, metaValue } );
 		return false;
 	}
@@ -151,6 +191,67 @@ export function getPersistedCrdtDocFromEntityMeta(
 	expectedVersion: number
 ): CRDTDoc | null {
 	try {
+		const metaValue: PersistedCrdtDocMetaValue | null = getRawCRDTDocMetaValue( entityMeta );
+
+		if (
+			! metaValue ||
+			! isValidCrdtDocMetaContent( metaValue, expectedContentHash, expectedVersion )
+		) {
+			return null;
+		}
+
+		return deserializeCrdtDoc( metaValue.crdtDoc, metaValue.version );
+	} catch {
+		return null;
+	}
+}
+
+export function overrideFromCRDTDocStringToCRDTDoc(
+	sourceCrdtDocString: string,
+	destinationCrdtDoc: CRDTDoc,
+	syncConfig: SyncConfig
+): void {
+	// Properties that could cause footguns if copied over.
+	const propertiesToSkip = [ 'slug', 'generated_slug', '_links', 'meta' ];
+	const sourceCrdtDoc = deserializeCrdtDoc( sourceCrdtDocString );
+	const sourceYMap = sourceCrdtDoc.getMap( 'document' );
+	const destinationYMap = destinationCrdtDoc.getMap( 'document' );
+
+	syncConfig.syncedProperties.forEach( property => {
+		if ( propertiesToSkip.includes( property ) ) {
+			return;
+		}
+
+		if ( property === 'blocks' ) {
+			const currentBlocks = ( sourceYMap.get( 'blocks' ) as Y.Array< YBlock > ).clone();
+			destinationYMap.set( 'blocks', currentBlocks );
+		} else if ( property === 'title' ) {
+			// ToDo: Title sometimes doesn't get updated correctly. Need to investigate this further
+			const currentTitle = sourceYMap.get( 'title' ) as string;
+			logger.debug( 'Setting title from restored revision', { property, currentTitle } );
+			destinationYMap.set( 'title', currentTitle );
+		} else if ( destinationYMap.has( property ) && ! sourceYMap.has( property ) ) {
+			// This for properties that have been added in the future.
+			destinationYMap.delete( property );
+		} else if ( sourceYMap.has( property ) && sourceYMap.get( property ) !== undefined ) {
+			// This is for properties that have been deleted in the future or have updated.
+			const propertyValue = sourceYMap.get( property );
+			destinationYMap.set( property, propertyValue );
+		}
+	} );
+
+	sourceCrdtDoc.destroy();
+}
+
+/**
+ * Extract the raw PersistedCrdtDocMetaValue from entity meta, and validate its shape.
+ *
+ * This does not validate the contents of the meta value, like the content hash or version.
+ */
+export function getRawCRDTDocMetaValue(
+	entityMeta: Record< string, unknown >
+): PersistedCrdtDocMetaValue | null {
+	try {
 		if ( ! PERSISTED_STATE_POST_META_KEY ) {
 			logger.error( 'Persisted post meta key is undefined' );
 			return null;
@@ -165,11 +266,11 @@ export function getPersistedCrdtDocFromEntityMeta(
 
 		const metaValue: unknown = JSON.parse( rawMetaValue );
 
-		if ( ! isValidCrdtDocMetaValueShape( metaValue, expectedContentHash, expectedVersion ) ) {
+		if ( ! isValidCrdtDocMetaShape( metaValue ) ) {
 			return null;
 		}
 
-		return deserializeCrdtDoc( metaValue.crdtDoc, metaValue.version );
+		return metaValue;
 	} catch {
 		return null;
 	}

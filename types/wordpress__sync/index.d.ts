@@ -1,6 +1,7 @@
 /**
  * External dependencies
  */
+import { promise } from 'lib0';
 import type { Awareness } from 'y-protocols/awareness';
 import type * as Y from 'yjs';
 
@@ -70,5 +71,10 @@ declare module '@wordpress/sync' {
 			record: ObjectData,
 			expectedVersion: number
 		): Promise< CRDTDoc | null >;
+		protected overrideInitialRemoteUpdates(
+			syncConfig: SyncConfig,
+			record: ObjectData,
+			initialYDoc: CRDTDoc
+		): Promise< void >;
 	}
 }

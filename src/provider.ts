@@ -1,4 +1,9 @@
 /**
+ * External dependencies
+ */
+import type { WebsocketProvider } from 'y-websocket';
+
+/**
  * Internal dependencies
  */
 import { AwarenessManager } from '@/awareness-manager';
@@ -8,13 +13,18 @@ import {
 	getPersistedCrdtDocFromEntityMeta,
 	type EntityMetaRecord,
 } from '@/utilities/crdt';
-import { getHashForEntityRecord, getMetaFromEntityRecord } from '@/utilities/entity';
+import {
+	getHashForEntityRecord,
+	getMetaFromEntityRecord,
+	updateEntityFromRevisionIfRestored,
+} from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
+/**
+ * WordPress dependencies
+ */
 import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
-import type { WebsocketProvider } from 'y-websocket';
-
 import { store as editorStore } from '@wordpress/editor';
 import { select } from '@wordpress/data';
 
@@ -121,6 +131,14 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		} );
 
 		return Promise.resolve( persistedDoc );
+	}
+
+	protected async overrideInitialRemoteUpdates(
+		syncConfig: SyncConfig,
+		record: ObjectData,
+		initialYDoc: CRDTDoc
+	): Promise< void > {
+		updateEntityFromRevisionIfRestored( record, initialYDoc, syncConfig );
 	}
 
 	private onProviderStatusChange(

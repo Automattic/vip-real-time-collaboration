@@ -1,10 +1,19 @@
+/**
+ * Internal dependencies
+ */
+import { Logger } from '@/utilities/logger';
+import { generateHash } from '@/utilities/crypto';
+import type { WordPressUserInfo } from '@/store/awareness-store';
+
+/**
+ * WordPress dependencies
+ */
 import { store as coreStore } from '@wordpress/core-data';
 import { select } from '@wordpress/data';
+import type { ObjectData, CRDTDoc, SyncConfig } from '@wordpress/sync';
+import { getRawCRDTDocMetaValue, overrideFromCRDTDocStringToCRDTDoc } from './crdt';
 
-import { generateHash } from '@/utilities/crypto';
-
-import type { WordPressUserInfo } from '@/store/awareness-store';
-import type { ObjectData } from '@wordpress/sync';
+const logger = new Logger( 'entity' );
 
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	const { avatar_urls: avatarUrls, id, name } = select( coreStore ).getCurrentUser() ?? {};
@@ -34,6 +43,57 @@ export async function getHashForEntityRecord(
 	);
 
 	return await generateHash( hashInput, 'SHA-256' );
+}
+
+function getLastRevisionIDFromEntityRecord( record: ObjectData ): number | null {
+	if (
+		'_links' in record &&
+		record._links &&
+		'object' === typeof record._links &&
+		'predecessor-version' in record._links &&
+		Array.isArray( record._links[ 'predecessor-version' ] ) &&
+		record._links[ 'predecessor-version' ].length > 0 &&
+		'id' in record._links[ 'predecessor-version' ][ 0 ]
+	) {
+		return record._links[ 'predecessor-version' ][ 0 ].id;
+	}
+
+	return null;
+}
+
+export function updateEntityFromRevisionIfRestored(
+	record: ObjectData,
+	crdtDoc: CRDTDoc,
+	syncConfig: SyncConfig
+): void {
+	const currentLastRevisionId = getLastRevisionIDFromEntityRecord( record );
+	if ( ! currentLastRevisionId ) {
+		return;
+	}
+
+	const entityMeta = getMetaFromEntityRecord( record );
+
+	const vipMeta = getRawCRDTDocMetaValue( entityMeta );
+
+	if ( ! vipMeta || ! vipMeta.lastRevisionId ) {
+		return;
+	}
+
+	const expectedLastRevisionId = vipMeta.lastRevisionId;
+
+	// The difference should be at least more than 1 to be a revision.
+	// A difference of 1 or 0 means it's not a revision, and/or an auto-save just occurred.
+	// In either case, it's to be ignored.
+	if ( Math.abs( expectedLastRevisionId - currentLastRevisionId ) <= 1 ) {
+		return;
+	}
+
+	logger.debug( 'Entity has been restored from revision, overriding initial remote updates.', {
+		expectedLastRevisionId,
+		currentLastRevisionId,
+	} );
+
+	overrideFromCRDTDocStringToCRDTDoc( vipMeta.crdtDoc, crdtDoc, syncConfig );
 }
 
 /**
