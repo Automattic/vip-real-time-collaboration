@@ -19,7 +19,6 @@ interface RTCOverlayProps {
  */
 export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
-	const renderCursorsRef = useRef< () => void >();
 
 	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
 		SettingsStoreSelectors,
@@ -31,6 +30,8 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 		};
 	} );
 
+	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
+
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.
 	const resizeObserverRef = useResizeObserver( () => {
@@ -41,7 +42,6 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
 	useBlockHighlighting( iframeDocument );
-	useRenderCursors( overlayRef, renderCursorsRef, iframeDocument );
 
 	return (
 		<>

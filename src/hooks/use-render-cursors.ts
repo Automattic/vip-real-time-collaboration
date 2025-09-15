@@ -1,5 +1,5 @@
 import { useSelect } from '@wordpress/data';
-import { useEffect } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
@@ -20,13 +20,14 @@ const logger = new Logger( 'use-render-cursors' );
  * Custom hook for rendering cursors for each user in the editor.
  * @param overlayRef - The ref to the overlay element
  * @param blockEditorDocument - The block editor document
- * @param awareness - The awareness instance
+ * @returns A ref to the render function. Can be used by parent to trigger a re-render.
  */
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
-	renderCursorsRef: MutableRefObject< ( () => void ) | undefined >,
 	blockEditorDocument: Document | null
 ) {
+	const renderCursorsRef = useRef< () => void >();
+
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
 		if ( isAwarenessCursorsEnabled() ) {
@@ -59,6 +60,8 @@ export function useRenderCursors(
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
 	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
+
+	return renderCursorsRef;
 }
 
 /**
