@@ -78,6 +78,24 @@ export function useRenderCursors(
 			window.removeEventListener( 'resize', throttledHandleResize );
 		};
 	}, [] );
+
+	// Listen for layout changes from ResizeObserver
+	useEffect( () => {
+		const overlay = overlayRef.current;
+		if ( ! overlay ) {
+			return;
+		}
+
+		const handleRedrawCursors = () => {
+			// ResizeObserver detected a layout change - redraw cursors
+			if ( renderCursorsRef.current ) {
+				renderCursorsRef.current();
+			}
+		};
+
+		overlay.addEventListener( 'redrawCursors', handleRedrawCursors );
+		return () => overlay.removeEventListener( 'redrawCursors', handleRedrawCursors );
+	}, [ overlayRef.current ] );
 }
 
 /**

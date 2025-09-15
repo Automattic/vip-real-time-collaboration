@@ -1,3 +1,4 @@
+import { useResizeObserver, useMergeRefs } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { useRef } from '@wordpress/element';
 
@@ -29,6 +30,17 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 		};
 	} );
 
+	// Detect layout changes on overlay (e.g. turning on "Show Template")
+	// and fire an event that components inside of the overlay can listen to.
+	const resizeObserverRef = useResizeObserver( () => {
+		if ( overlayRef.current ) {
+			overlayRef.current.dispatchEvent( new CustomEvent( 'redrawCursors' ) );
+		}
+	} );
+
+	// Merge the refs to use the same element for both overlay and resize observation
+	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
+
 	useBlockHighlighting( iframeDocument );
 	useRenderCursors( overlayRef, iframeDocument );
 
@@ -36,7 +48,7 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 		<>
 			{ /* This is a full overlay that covers the entire iframe document.
 				Good for scrollable elements like cursor indicators */ }
-			<div className="vip-real-time-collaboration-overlay-full" ref={ overlayRef } />
+			<div className="vip-real-time-collaboration-overlay-full" ref={ mergedRef } />
 
 			{ /* This is a fixed overlay that covers the iframe window.
 				Good for floating elements like awareness avatars */ }
