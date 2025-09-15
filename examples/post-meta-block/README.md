@@ -11,4 +11,20 @@ This code example registers a "Subtitle" block, which allows someone who places 
 There are two primary mechanisms that enable post meta syncing:
 
 1. The post meta must be [registered](https://developer.wordpress.org/reference/functions/register_meta/) with the `show_in_rest` argument set to `true`. This makes the meta available in the REST API, which is used by the block editor. See `post-meta-block.php`.
-2. The `sync.metaProperties` filter must be used to add the meta key to the list of synced meta properties. See `src/subtitle/index.js`.
+2. The post meta key must not start with an underscore. WordPress treats meta keys starting with an underscore as private.
+
+If you wish to override the default behavior of point 2 above, you may use the `sync.shouldSyncMeta` filter to allow syncing of "private" meta:
+
+```js
+wp.hooks.addFilter(
+    'sync.shouldSyncMeta',
+    'your-namespace/your-plugin',
+    ( shouldSync, metaKey ) => {
+        if ( metaKey === '_your_private_meta_key' ) {
+            return true;
+        }
+
+        return shouldSync;
+    }
+);
+```
