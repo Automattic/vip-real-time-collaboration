@@ -1,0 +1,27 @@
+name: Test
+on:
+  pull_request:
+  push:
+    branches:
+      - trunk
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: js-unit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: Automattic/vip-actions/nodejs-setup@trunk
+        with:
+          node-version-file: .nvmrc
+          ignore-scripts: true
+
+      - name: Run JS unit tests
+        run: npm run test:js:unit
