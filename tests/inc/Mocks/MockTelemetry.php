@@ -2,6 +2,6 @@
 
 namespace VIPRealTimeCollaboration\Tests\Mocks;
 
-final class MockTelemetry {
+class MockTelemetry {
 	public function record_event( string $_name, array $_props ): void {}
 }
