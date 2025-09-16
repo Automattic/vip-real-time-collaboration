@@ -5,7 +5,6 @@ import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
-import { throttleByAnimationFrame } from '@/utilities/throttle';
 
 import type { MutableRefObject } from 'react';
 
@@ -21,12 +20,14 @@ const logger = new Logger( 'use-render-cursors' );
  * Custom hook for rendering cursors for each user in the editor.
  * @param overlayRef - The ref to the overlay element
  * @param blockEditorDocument - The block editor document
- * @param awareness - The awareness instance
+ * @returns A ref to the render function. Can be used by parent to trigger a re-render.
  */
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null
 ) {
+	const renderCursorsRef = useRef< () => void >();
+
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
 		if ( isAwarenessCursorsEnabled() ) {
@@ -41,9 +42,6 @@ export function useRenderCursors(
 	} );
 
 	const sortedUsers = useSortedAwarenessUsers();
-
-	// Use a ref to store the current render function to avoid stale closures
-	const renderCursorsRef = useRef< () => void >();
 
 	// Draw user cursors in the overlay.
 	useEffect( () => {
@@ -63,21 +61,7 @@ export function useRenderCursors(
 		renderCursorsRef.current();
 	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
 
-	// Also re-render cursors on resize
-	useEffect( () => {
-		const handleResize = () => {
-			if ( renderCursorsRef.current ) {
-				renderCursorsRef.current();
-			}
-		};
-
-		const throttledHandleResize = throttleByAnimationFrame( handleResize );
-
-		window.addEventListener( 'resize', throttledHandleResize );
-		return () => {
-			window.removeEventListener( 'resize', throttledHandleResize );
-		};
-	}, [] );
+	return renderCursorsRef;
 }
 
 /**

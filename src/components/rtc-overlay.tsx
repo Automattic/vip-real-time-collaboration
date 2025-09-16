@@ -1,3 +1,4 @@
+import { useResizeObserver, useMergeRefs } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
 import { useRef } from '@wordpress/element';
 
@@ -17,7 +18,7 @@ interface RTCOverlayProps {
  * This component is responsible for rendering awareness components within the editor iframe.
  */
 export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
-	const overlayRef = useRef< HTMLDivElement | null >( null );
+	const overlayRef = useRef< HTMLDivElement >( null );
 
 	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
 		SettingsStoreSelectors,
@@ -29,14 +30,24 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 		};
 	} );
 
+	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
+
+	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
+	// resizes, and re-render the cursors.
+	const resizeObserverRef = useResizeObserver( () => {
+		renderCursorsRef.current?.();
+	} );
+
+	// Merge the refs to use the same element for both overlay and resize observation
+	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
+
 	useBlockHighlighting( iframeDocument );
-	useRenderCursors( overlayRef, iframeDocument );
 
 	return (
 		<>
 			{ /* This is a full overlay that covers the entire iframe document.
 				Good for scrollable elements like cursor indicators */ }
-			<div className="vip-real-time-collaboration-overlay-full" ref={ overlayRef } />
+			<div className="vip-real-time-collaboration-overlay-full" ref={ mergedRef } />
 
 			{ /* This is a fixed overlay that covers the iframe window.
 				Good for floating elements like awareness avatars */ }
