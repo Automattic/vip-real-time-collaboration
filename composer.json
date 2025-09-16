@@ -15,7 +15,8 @@
     "phpcs": "phpcs",
     "phpcs-fix": "phpcbf",
     "psalm": "psalm.phar --no-cache",
-    "testwp": "TEST_VIP_RTC_WS_URL=\"\" phpunit --no-coverage -c phpunit-integration.xml --filter=CompatibilityTest && phpunit --no-coverage --order-by=random -c phpunit-integration.xml"
+    "testwp": "TEST_VIP_RTC_WS_URL=\"\" phpunit --no-coverage -c phpunit-integration.xml --filter=CompatibilityTest && phpunit --no-coverage --order-by=random -c phpunit-integration.xml",
+    "testwp-coverage": "phpunit -c phpunit-integration.xml -v"
   },
   "require": {
     "php": ">=8.1",
