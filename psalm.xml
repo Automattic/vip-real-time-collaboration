@@ -36,9 +36,14 @@
                 <file name="tests/Traits/ReflectionUtils.php" />
             </errorLevel>
         </PossiblyUnusedParam>
+        <UndefinedClass>
+            <errorLevel type="suppress">
+                <file name="inc/Telemetry/Telemetry.php" />
+            </errorLevel>
+        </UndefinedClass>
         <UnusedClass>
             <errorLevel type="suppress">
-                <directory name="tests/Integration" />
+                <directory name="tests/" />
             </errorLevel>
         </UnusedClass>
     </issueHandlers>
