@@ -31,6 +31,11 @@
         <file name="vip-real-time-collaboration.php"/>
     </stubs>
     <issueHandlers>
+        <PossiblyUnusedMethod>
+            <errorLevel type="suppress">
+                <file name="inc/Telemetry/Telemetry.php" />
+            </errorLevel>
+        </PossiblyUnusedMethod>
         <PossiblyUnusedParam>
             <errorLevel type="suppress">
                 <file name="tests/Traits/ReflectionUtils.php" />
