@@ -59,11 +59,10 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 /**
  * Log a link to inspect the Yjs provider using Yjs inspector.
  */
-function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken: string ): void {
-	const roomName = `${ syncObjectType }-${ syncObjectId }`;
+function logInspectUrl( provider: WebsocketProvider ): void {
 	const connectionConfig = {
 		createNewDoc: false,
-		room: `${ roomName }?auth=${ authToken }`,
+		room: `${ provider.roomname }?auth=${ provider.params?.auth }`,
 		provider: 'y-websocket',
 		url: WEBSOCKET_URL,
 	};
@@ -73,7 +72,7 @@ function logInspectUrl( syncObjectType: string, syncObjectId: string, authToken:
 		JSON.stringify( connectionConfig )
 	) }`;
 
-	logger.info( `Yjs inspector for ${ roomName }: ${ inspectUrl }` );
+	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
 }
 
 /**
@@ -117,7 +116,7 @@ function createConnect(
 			// When provider.connect() runs it updates provider#shouldConnect to true.
 			provider.shouldConnect = false;
 
-			logInspectUrl( syncObjectType, syncObjectId, authToken );
+			logInspectUrl( provider );
 		} catch ( error: unknown ) {
 			logger.error(
 				`${ __(

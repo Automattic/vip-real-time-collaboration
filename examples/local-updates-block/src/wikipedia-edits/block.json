@@ -1,0 +1,22 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "example/wikipedia-edits",
+	"version": "0.1.0",
+	"title": "Wikipedia Edits",
+	"category": "text",
+	"icon": "text",
+	"description": "A block that displays recent Wikipedia edits",
+	"example": {},
+	"attributes": {
+		"lastUpdated": {
+			"type": "string",
+			"default": ""
+		}
+	},
+	"supports": {
+		"html": false
+	},
+	"textdomain": "example-wikipedia-edits",
+	"editorScript": "file:./index.js"
+}

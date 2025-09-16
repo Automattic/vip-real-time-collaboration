@@ -35,6 +35,10 @@ define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION', '0.1.0' );
 // Autoloader
 require_once __DIR__ . '/vendor/autoload.php';
 
+// Examples (must be manually built):
+// require_once __DIR__ . '/examples/local-updates-block/local-updates-block.php';
+// require_once __DIR__ . '/examples/post-meta-block/post-meta-block.php';
+
 add_action( 'plugins_loaded', static function (): void {
 	// If the plugin cannot load, return early.
 	if ( ! Compatibility::should_plugin_load() ) {

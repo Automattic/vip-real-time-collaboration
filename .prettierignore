@@ -1,4 +1,5 @@
 /build/
+/examples/
 /node_modules/
 /vendor/
 /yjs-inspector/
