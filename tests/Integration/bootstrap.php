@@ -30,6 +30,16 @@ if ( false !== $_phpunit_polyfills_path ) {
 require_once "{$_tests_dir}/includes/functions.php";
 require_once __DIR__ . '/../../vendor/yoast/wp-test-utils/src/WPIntegration/bootstrap-functions.php';
 
+// Define required constants for testing.
+$test_ws_url = getenv( 'TEST_VIP_RTC_WS_URL' );
+if ( false !== $test_ws_url ) {
+	// If the environment variable is set (even if empty), use its value.
+	define( 'VIP_RTC_WS_URL', $test_ws_url );
+} else {
+	define( 'VIP_RTC_WS_URL', 'ws://localhost:1234' );
+}
+define( 'VIP_RTC_WS_AUTH_SECRET', 'test-secret-key' );
+
 // Manually load the plugin being tested.
 tests_add_filter( 'muplugins_loaded', function (): void {
 	require __DIR__ . '/../../vip-real-time-collaboration.php';
