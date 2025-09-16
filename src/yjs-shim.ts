@@ -26,3 +26,4 @@ export const encodeStateVector = window.wp.sync.Y.encodeStateVector;
 export const encodeStateAsUpdate = window.wp.sync.Y.encodeStateAsUpdate;
 export const encodeStateAsUpdateV2 = window.wp.sync.Y.encodeStateAsUpdateV2;
 export const Doc = window.wp.sync.Y.Doc;
+export const Text = window.wp.sync.Y.Text;

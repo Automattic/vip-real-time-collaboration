@@ -45,7 +45,7 @@ export async function getHashForEntityRecord(
 	return await generateHash( hashInput, 'SHA-256' );
 }
 
-function getLastRevisionIDFromEntityRecord( record: ObjectData ): number | null {
+export function getLastRevisionIDFromEntityRecord( record: ObjectData ): number | null {
 	if (
 		'_links' in record &&
 		record._links &&
@@ -65,10 +65,10 @@ export function updateEntityFromRevisionIfRestored(
 	record: ObjectData,
 	crdtDoc: CRDTDoc,
 	syncConfig: SyncConfig
-): void {
+): boolean {
 	const currentLastRevisionId = getLastRevisionIDFromEntityRecord( record );
 	if ( ! currentLastRevisionId ) {
-		return;
+		return false;
 	}
 
 	const entityMeta = getMetaFromEntityRecord( record );
@@ -76,7 +76,7 @@ export function updateEntityFromRevisionIfRestored(
 	const vipMeta = getRawCRDTDocMetaValue( entityMeta );
 
 	if ( ! vipMeta || ! vipMeta.lastRevisionId ) {
-		return;
+		return false;
 	}
 
 	const expectedLastRevisionId = vipMeta.lastRevisionId;
@@ -85,7 +85,7 @@ export function updateEntityFromRevisionIfRestored(
 	// A difference of 1 or 0 means it's not a revision, and/or an auto-save just occurred.
 	// In either case, it's to be ignored.
 	if ( Math.abs( expectedLastRevisionId - currentLastRevisionId ) <= 1 ) {
-		return;
+		return false;
 	}
 
 	logger.debug( 'Entity has been restored from revision, overriding initial remote updates.', {
@@ -93,7 +93,10 @@ export function updateEntityFromRevisionIfRestored(
 		currentLastRevisionId,
 	} );
 
+	// Override the CRDT document with the content from the restored revision.
 	overrideFromCRDTDocStringToCRDTDoc( vipMeta.crdtDoc, crdtDoc, syncConfig );
+
+	return true;
 }
 
 /**

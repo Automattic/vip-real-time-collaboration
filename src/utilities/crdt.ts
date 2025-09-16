@@ -212,7 +212,7 @@ export function overrideFromCRDTDocStringToCRDTDoc(
 	syncConfig: SyncConfig
 ): void {
 	// Properties that could cause footguns if copied over.
-	const propertiesToSkip = [ 'slug', 'generated_slug', '_links', 'meta' ];
+	const propertiesToSkip = [ '_links', 'meta' ];
 	const sourceCrdtDoc = deserializeCrdtDoc( sourceCrdtDocString );
 	const sourceYMap = sourceCrdtDoc.getMap( 'document' );
 	const destinationYMap = destinationCrdtDoc.getMap( 'document' );
@@ -227,8 +227,9 @@ export function overrideFromCRDTDocStringToCRDTDoc(
 			destinationYMap.set( 'blocks', currentBlocks );
 		} else if ( property === 'title' ) {
 			// ToDo: Title sometimes doesn't get updated correctly. Need to investigate this further
-			const currentTitle = sourceYMap.get( 'title' ) as string;
+			const currentTitle = sourceYMap.get( 'title' );
 			logger.debug( 'Setting title from restored revision', { property, currentTitle } );
+			destinationYMap.delete( 'title' );
 			destinationYMap.set( 'title', currentTitle );
 		} else if ( destinationYMap.has( property ) && ! sourceYMap.has( property ) ) {
 			// This for properties that have been added in the future.

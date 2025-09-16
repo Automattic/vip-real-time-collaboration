@@ -17,6 +17,7 @@ import {
 	getHashForEntityRecord,
 	getMetaFromEntityRecord,
 	updateEntityFromRevisionIfRestored,
+	getLastRevisionIDFromEntityRecord,
 } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
@@ -27,6 +28,7 @@ import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/web
 import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
 import { store as editorStore } from '@wordpress/editor';
 import { select } from '@wordpress/data';
+import { PERSISTED_STATE_POST_META_KEY } from './utilities/config';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	private logger: Logger = new Logger( 'provider' );
@@ -67,7 +69,7 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 	public async createEntityMeta(
 		syncConfig: SyncConfig,
 		record: ObjectData,
-		changes: Partial< ObjectData >
+		changes: Partial< ObjectData > = {}
 	): Promise< EntityMetaRecord > {
 		if ( ! syncConfig.supports?.crdtPersistence ) {
 			return {};
@@ -86,7 +88,11 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			syncConfig.syncedProperties
 		);
 
-		const lastRevisionId = select( editorStore ).getCurrentPostLastRevisionId() ?? 0;
+		let lastRevisionId = getLastRevisionIDFromEntityRecord( record );
+
+		if ( ! lastRevisionId ) {
+			lastRevisionId = select( editorStore ).getCurrentPostLastRevisionId() ?? 0;
+		}
 
 		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash, lastRevisionId );
 
@@ -138,7 +144,26 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		record: ObjectData,
 		initialYDoc: CRDTDoc
 	): Promise< void > {
-		updateEntityFromRevisionIfRestored( record, initialYDoc, syncConfig );
+		const isDocUpdated = updateEntityFromRevisionIfRestored( record, initialYDoc, syncConfig );
+
+		// Update the lastRevisionId in the meta if we restored from a revision.
+		// This prevents multiple restorations if the user saves without making any changes.
+		// The meta will be updated on the next save.
+		if ( isDocUpdated ) {
+			this.logger.debug( 'Updating meta after restoring from revision' );
+
+			const updatedEntityMeta = await this.createEntityMeta( syncConfig, record );
+
+			// Ensure we skip the update if there is no meta available.
+			if ( Object.keys( updatedEntityMeta ).length > 0 ) {
+				// This is to stop the typescript errors that come up with the record.meta not being defined potentially.
+				record.meta = { ...( record.meta ?? {} ), ...updatedEntityMeta };
+
+				this.logger.debug( 'Updated record meta after restoring from revision', {
+					recordMeta: record.meta,
+				} );
+			}
+		}
 	}
 
 	private onProviderStatusChange(
