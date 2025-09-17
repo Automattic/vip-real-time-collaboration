@@ -71,13 +71,13 @@ jobs:
           name: gutenberg
           path: plugins/gutenberg
 
-      - name: Go to the plugins folder
-        run: cd plugins/vip-real-time-collaboration
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
+
+      - name: Go to the plugins folder
+        run: cd plugins/vip-real-time-collaboration
 
       - name: Setup Node.js
         uses: Automattic/vip-actions/nodejs-setup@trunk
@@ -86,16 +86,16 @@ jobs:
           ignore-scripts: true
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: ls -la && composer install --prefer-dist --no-progress
 
       - name: Copy wp-env config
-        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
+        run: ls -la && cp .wp-env.override.gutenberg-dev.json .wp-env.json
 
       - name: Call custom start script
-        run: npm run dev
+        run: ls -la && npm run dev
 
       - name: Run PHP tests
-        run: npm run test:integration
+        run: ls -la && npm run test:integration
 
   e2e-tests:
     needs: setup
@@ -130,16 +130,16 @@ jobs:
           ignore-scripts: true
 
       - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
+        run: ls -la && composer install --prefer-dist --no-progress
 
       - name: Install dependencies
-        run: npx playwright install --with-deps
+        run: ls -la && npx playwright install --with-deps
 
       - name: Copy wp-env config
-        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
+        run: ls -la && cp .wp-env.override.gutenberg-dev.json .wp-env.json
 
       - name: Call custom start script
-        run: npm run dev
+        run: ls -la && npm run dev
 
       - name: Run Playwright tests
-        run: npm run test:e2e
+        run: ls -la && npm run test:e2e
