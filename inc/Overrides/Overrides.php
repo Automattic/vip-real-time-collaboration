@@ -52,6 +52,7 @@ final class Overrides {
 			return $response;
 		}
 
+		// Check if a post lock exists.
 		$post_lock = get_post_meta( $post_id, '_edit_lock', true );
 
 		if ( false !== $post_lock ) {
@@ -59,11 +60,13 @@ final class Overrides {
 			$user = $post_lock_elements[1];
 			$timestamp = $post_lock_elements[0];
 
-			if ( $user == get_current_user_id() ) {
+			// Make sure the lock gets refreshed, otherwise it looks like it is not locked.
+			if ( $user == get_current_user_id() && ( time() - $timestamp ) < apply_filters('wp_check_post_lock_window', 150 ) ) {
+				$response['lock-update'] = false;
 				return $response;
 			}
 
-			// Reset the post lock to the first current user.
+			// Set the post lock to the first current user.
 			wp_set_post_lock( $post_id );
 			$response['lock-update'] = true;
 
