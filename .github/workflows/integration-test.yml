@@ -107,15 +107,15 @@ jobs:
 
       - name: Copy wp-env config
         run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Call custom start script
-        run: npm run dev
-	        working-directory: plugins/vip-real-time-collaboration
+        run: npm run dev &
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Run PHP tests
         run: npm run test:integration
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
 
   e2e-tests:
     needs: setup
@@ -153,16 +153,16 @@ jobs:
 
       - name: Install Playwright dependencies
         run: npx playwright install --with-deps
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Copy wp-env config
         run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Call custom start script
         run: npm run dev &
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Run Playwright tests
         run: npm run test:e2e
-	        working-directory: plugins/vip-real-time-collaboration
+        working-directory: plugins/vip-real-time-collaboration
