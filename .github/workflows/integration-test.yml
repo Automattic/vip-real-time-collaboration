@@ -18,16 +18,16 @@ jobs:
     outputs:
       cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
     steps:
-      - name: Checkout main repo
-        uses: actions/checkout@v4
+      - name: Create plugins folder
+        run: mkdir -p plugins
 
       # Cache the large repo to avoid repeated clones
       - name: Cache dependency repo
         id: cache-deps
         uses: actions/cache@v4
         with:
-          path: ../gutenberg/
-          key: deps-${{ github.sha }}-${{ hashFiles('.gitmodules', 'composer.lock') }}
+          path: plugins/gutenberg
+          key: deps-${{ github.sha }}-${{ hashFiles('.package-lock.json', 'composer.lock') }}
           restore-keys: |
             deps-${{ github.sha }}-
             deps-
@@ -37,35 +37,40 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Automattic/gutenberg
-          path: ../gutenberg
+          path: plugins/gutenberg
+          ref: release/vip-rtc-0.1.0
 
       - name: Setup dependency repo
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
-          cd ../gutenberg
-          npm install
+          cd plugins/gutenberg
+          npm ci
           npm run build
-          # Setup commands here
 
       - name: Upload dependency repo as artifact
         uses: actions/upload-artifact@v4
         with:
           name: gutenberg
-          path: ../gutenberg/
+          path: plugins/gutenberg
           retention-days: 1
 
   integration-tests:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Create plugins folder
+        run: mkdir -p plugins
+
       - name: Checkout main repo
         uses: actions/checkout@v4
+        with:
+          path: plugins/vip-real-time-collaboration
 
       - name: Download dependency repo
         uses: actions/download-artifact@v4
         with:
           name: gutenberg
-          path: ../gutenberg/
+          path: plugins/gutenberg/
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -94,14 +99,19 @@ jobs:
     needs: setup
     runs-on: ubuntu-latest
     steps:
+      - name: Create plugins folder
+        run: mkdir -p plugins
+
       - name: Checkout main repo
         uses: actions/checkout@v4
+        with:
+          path: plugins/vip-real-time-collaboration
 
       - name: Download dependency repo
         uses: actions/download-artifact@v4
         with:
           name: gutenberg
-          path: ../gutenberg/
+          path: plugins/gutenberg/
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
