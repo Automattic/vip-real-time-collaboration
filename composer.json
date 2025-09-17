@@ -16,7 +16,7 @@
     "phpcs-fix": "phpcbf",
     "prepare-ci": "bash bin/install-wp-tests wordpress_test root root localhost",
     "psalm": "psalm.phar --no-cache",
-    "testwp": "TEST_VIP_RTC_WS_URL=\"\" phpunit --no-coverage -c phpunit-integration.xml --filter=CompatibilityTest && phpunit --no-coverage --order-by=random -c phpunit-integration.xml"
+    "testwp": "phpunit --no-coverage --order-by=random -c phpunit-integration.xml"
   },
   "require": {
     "php": ">=8.1",
