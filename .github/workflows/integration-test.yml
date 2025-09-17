@@ -44,6 +44,7 @@ jobs:
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           cd plugins/gutenberg
+          npm ci
           npm run build:plugin-zip
 
       - name: Upload dependency repo as artifact
@@ -73,7 +74,7 @@ jobs:
 
       - name: Go to the plugins folder
         run: |
-          cd plugins
+          cd plugins && ls -la
           unzip gutenberg.zip -d gutenberg/
           cd vip-real-time-collaboration
 
@@ -120,7 +121,7 @@ jobs:
 
       - name: Go to the plugins folder
         run: |
-          cd plugins
+          cd plugins && ls -la
           unzip gutenberg.zip -d gutenberg/
           cd vip-real-time-collaboration
 
