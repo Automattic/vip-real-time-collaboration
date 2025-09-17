@@ -44,7 +44,7 @@ jobs:
             # coverage: none
             # experimental: true
       fail-fast: false
-    continue-on-error: ${{ matrix.experimental }}
+    # continue-on-error: ${{ matrix.experimental }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
