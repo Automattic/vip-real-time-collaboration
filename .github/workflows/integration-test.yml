@@ -44,7 +44,7 @@ jobs:
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           cd plugins/gutenberg
-					npm run build:plugin-zip
+          npm run build:plugin-zip
 
       - name: Upload dependency repo as artifact
         uses: actions/upload-artifact@v4
@@ -71,8 +71,8 @@ jobs:
           name: gutenberg
           path: plugins/gutenberg/gutenberg.zip
 
-			- name: Unzip dependency repo
-				run: unzip plugins/gutenberg/gutenberg.zip
+      - name: Unzip dependency repo
+        run: unzip plugins/gutenberg/gutenberg.zip
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
