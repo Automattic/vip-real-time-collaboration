@@ -16,21 +16,33 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+      cache-hit: ${{ steps.cache-workspace.outputs.cache-hit }}
+      dependency-sha: ${{ steps.get-dependency-sha.outputs.sha }}
     steps:
+      - name: Get dependency repo SHA
+        id: get-dependency-sha
+        run: |
+          # Use git ls-remote to get the SHA without cloning
+          DEPENDENCY_SHA=$(git ls-remote https://github.com/Automattic/gutenberg.git release/vip-rtc-0.1.0 | cut -f1)
+          if [ -z "$DEPENDENCY_SHA" ]; then
+            echo "❌ Failed to get dependency SHA"
+            exit 1
+          fi
+
+          echo "sha=$DEPENDENCY_SHA" >> $GITHUB_OUTPUT
+          echo "✅ Dependency repo SHA: $DEPENDENCY_SHA"
+
       - name: Create plugins folder
         run: mkdir -p plugins
 
-      # Cache the large repo to avoid repeated clones
       - name: Cache dependency repo
         id: cache-deps
         uses: actions/cache@v4
         with:
           path: plugins/gutenberg
-          key: workspace-${{ github.sha }}-${{ hashFiles('.package-lock.json', 'composer.lock') }}
+          key: gutenberg-${{ steps.get-dependency-sha.outputs.sha }}
           restore-keys: |
-            workspace-${{ github.sha }}-
-            workspace-
+            gutenberg-
 
       - name: Checkout dependency repo
         if: steps.cache-deps.outputs.cache-hit != 'true'
@@ -52,6 +64,12 @@ jobs:
           name: gutenberg
           path: plugins/gutenberg/gutenberg.zip
           retention-days: 1
+
+      - name: Cache hit notification
+        if: steps.cache-workspace.outputs.cache-hit == 'true'
+        run: |
+          echo "✅ Cache hit! Using cached workspace with dependency SHA: ${{ steps.get-dependency-sha.outputs.sha }}"
+          echo "⚡ Skipped cloning and building gutenberg"
 
   integration-tests:
     needs: setup
@@ -81,7 +99,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           ignore-scripts: true
-          path: plugins/vip-real-time-collaboration
+          working-directory: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
@@ -123,7 +141,7 @@ jobs:
         with:
           node-version-file: .nvmrc
           ignore-scripts: true
-          path: plugins/vip-real-time-collaboration
+          working-directory: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
