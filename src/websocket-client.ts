@@ -164,6 +164,8 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 
 			provider.on( 'connection-close', connect );
 			provider.on( 'connection-error', () => {
+				// eslint-disable-next-line prefer-rest-params
+				console.log( 'connection-error with arguments:', arguments );
 				// The provider does not change status on connection error, so we
 				// manually trigger a synthetic status change.
 				config.onStatusChange?.( { status: 'connection-error' }, provider );
