@@ -13,10 +13,7 @@ export const BLOG_ID = getVipConfigFromWindow( 'blogId' );
 
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {
-	// return 'development' === process.env.NODE_ENV;
-
-	// For the demo, we'll turn this on.
-	return true;
+	return 'development' === process.env.NODE_ENV;
 }
 
 function getVipConfigFromWindow< Key extends keyof VIPRTCConfig >(
