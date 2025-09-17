@@ -1,0 +1,130 @@
+name: Integration Test
+on:
+  pull_request:
+  push:
+    branches:
+      - trunk
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      # Cache the large repo to avoid repeated clones
+      - name: Cache dependency repo
+        id: cache-deps
+        uses: actions/cache@v4
+        with:
+          path: ../gutenberg/
+          key: deps-${{ github.sha }}-${{ hashFiles('.gitmodules', 'composer.lock') }}
+          restore-keys: |
+            deps-${{ github.sha }}-
+            deps-
+
+      - name: Checkout dependency repo
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: Automattic/gutenberg
+          path: ../gutenberg
+
+      - name: Setup dependency repo
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: |
+          cd ../gutenberg
+          npm install
+          npm run build
+          # Setup commands here
+
+      - name: Upload dependency repo as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: gutenberg
+          path: ../gutenberg/
+          retention-days: 1
+
+  integration-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Download dependency repo
+        uses: actions/download-artifact@v4
+        with:
+          name: gutenberg
+          path: ../gutenberg/
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Setup Node.js
+        uses: Automattic/vip-actions/nodejs-setup@trunk
+        with:
+          node-version-file: .nvmrc
+          ignore-scripts: true
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Copy wp-env config
+        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
+
+      - name: Call custom start script
+        run: npm run dev
+
+      - name: Run PHP tests
+        run: npm run test:integration
+
+  e2e-tests:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main repo
+        uses: actions/checkout@v4
+
+      - name: Download dependency repo
+        uses: actions/download-artifact@v4
+        with:
+          name: gutenberg
+          path: ../gutenberg/
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      - name: Setup Node.js
+        uses: Automattic/vip-actions/nodejs-setup@trunk
+        with:
+          node-version-file: .nvmrc
+          ignore-scripts: true
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress
+
+      - name: Install dependencies
+        run: npx playwright install --with-deps
+
+      - name: Copy wp-env config
+        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
+
+      - name: Call custom start script
+        run: npm run dev
+
+      - name: Run Playwright tests
+        run: npm run test:e2e
