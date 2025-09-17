@@ -4,7 +4,6 @@
 import { AwarenessManager } from '@/awareness-manager';
 import {
 	createPersistedCrdtDocMetaRecord,
-	getCrdtDocVersion,
 	getPersistedCrdtDocFromEntityMeta,
 	type EntityMetaRecord,
 } from '@/utilities/crdt';
@@ -53,25 +52,21 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 	public async createEntityMeta(
 		syncConfig: SyncConfig,
-		record: ObjectData,
-		changes: Partial< ObjectData >
+		rawRecord: ObjectData
 	): Promise< EntityMetaRecord > {
 		if ( ! syncConfig.supports?.crdtPersistence ) {
 			return {};
 		}
 
-		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectId = syncConfig.getObjectId( rawRecord ).toString();
 		const objectType = syncConfig.objectType.toString();
 		const ydoc = this.entityStates.get( this.getEntityId( objectType, objectId ) )?.ydoc;
 
-		if ( ! ydoc || 'auto-draft' === record.status ) {
+		if ( ! ydoc || 'auto-draft' === rawRecord.status ) {
 			return {};
 		}
 
-		const contentHash = await getHashForEntityRecord(
-			{ ...record, ...changes },
-			syncConfig.syncedProperties
-		);
+		const contentHash = await getHashForEntityRecord( rawRecord, syncConfig );
 		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash );
 
 		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
@@ -85,24 +80,19 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 
 	protected async getPersistedCRDTDoc(
 		syncConfig: SyncConfig,
-		record: ObjectData,
-		expectedVersion: number
+		rawRecord: ObjectData
 	): Promise< CRDTDoc | null > {
 		if ( ! syncConfig.supports?.crdtPersistence ) {
 			return Promise.resolve( null );
 		}
 
-		const objectId = syncConfig.getObjectId( record ).toString();
+		const objectId = syncConfig.getObjectId( rawRecord ).toString();
 		const objectType = syncConfig.objectType.toString();
-		const entityMeta = getMetaFromEntityRecord( record );
+		const entityMeta = getMetaFromEntityRecord( rawRecord );
 
 		// Attempt to load the initial CRDT document from post meta.
-		const expectedHash = await getHashForEntityRecord( record, syncConfig.syncedProperties );
-		const persistedDoc = getPersistedCrdtDocFromEntityMeta(
-			entityMeta,
-			expectedHash,
-			expectedVersion
-		);
+		const expectedHash = await getHashForEntityRecord( rawRecord, syncConfig );
+		const persistedDoc = getPersistedCrdtDocFromEntityMeta( entityMeta, expectedHash );
 
 		const logMessage = persistedDoc
 			? 'Found persisted CRDT doc in entity meta'
@@ -111,7 +101,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			objectType,
 			objectId,
 			persistedDoc,
-			version: persistedDoc ? getCrdtDocVersion( persistedDoc ) : null,
 		} );
 
 		return Promise.resolve( persistedDoc );
