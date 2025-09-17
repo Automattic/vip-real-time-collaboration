@@ -95,11 +95,15 @@ jobs:
           php-version: '8.2'
 
       - name: Setup Node.js
-        uses: Automattic/vip-actions/nodejs-setup@trunk
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          ignore-scripts: true
-          working-directory: plugins/vip-real-time-collaboration
+          node-version-file: plugins/vip-real-time-collaboration/.nvmrc
+          cache: 'npm'
+          cache-dependency-path: plugins/vip-real-time-collaboration/package-lock.json
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
@@ -137,16 +141,20 @@ jobs:
           php-version: '8.2'
 
       - name: Setup Node.js
-        uses: Automattic/vip-actions/nodejs-setup@trunk
+        uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
-          ignore-scripts: true
-          working-directory: plugins/vip-real-time-collaboration
+          node-version-file: plugins/vip-real-time-collaboration/.nvmrc
+          cache: 'npm'
+          cache-dependency-path: plugins/vip-real-time-collaboration/package-lock.json
+
+      - name: Install Node.js dependencies
+        run: npm ci
+        working-directory: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Install dependencies
+      - name: Install Playwright dependencies
         run: npx playwright install --with-deps
 
       - name: Copy wp-env config
