@@ -27,10 +27,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: plugins/gutenberg
-          key: deps-${{ github.sha }}-${{ hashFiles('.package-lock.json', 'composer.lock') }}
+          key: workspace-${{ github.sha }}-${{ hashFiles('.package-lock.json', 'composer.lock') }}
           restore-keys: |
-            deps-${{ github.sha }}-
-            deps-
+            workspace-${{ github.sha }}-
+            workspace-
 
       - name: Checkout dependency repo
         if: steps.cache-deps.outputs.cache-hit != 'true'
@@ -44,8 +44,6 @@ jobs:
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           cd plugins/gutenberg
-          git status
-          npm ci
           npm run build:plugin-zip
 
       - name: Upload dependency repo as artifact
