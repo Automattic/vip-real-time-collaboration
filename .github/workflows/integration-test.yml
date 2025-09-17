@@ -72,7 +72,7 @@ jobs:
           path: plugins/gutenberg
 
       - name: Go to the plugins folder
-        run: cd vip-real-time-collaboration
+        run: cd plugins/vip-real-time-collaboration
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -116,7 +116,7 @@ jobs:
           path: plugins/gutenberg
 
       - name: Go to the plugins folder
-        run: cd vip-real-time-collaboration
+        run: cd plugins/vip-real-time-collaboration
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
