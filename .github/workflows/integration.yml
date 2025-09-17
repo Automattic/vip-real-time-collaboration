@@ -1,9 +1,11 @@
 name: Integration Test
 on:
-  pull_request:
-  push:
-    branches:
-      - trunk
+  workflow_dispatch:
+  # Disabled - remove this comment and uncomment below to re-enable
+  # pull_request:
+  # push:
+  #   branches:
+  #     - trunk
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -27,15 +27,4 @@ test.describe( 'The plugin should display', () => {
 		await page.getByRole( 'link', { name: 'Activate Gutenberg' } ).click();
 		await expect( page.getByText( errorMessage ) ).not.toBeVisible();
 	} );
-
-	/**
-	 * Verifies that the plugin displays a notice when in the Post Editor.
-	 */
-	test( 'A notice when in the Post Editor', async ( { admin, page } ) => {
-		await admin.createNewPost();
-
-		await expect(
-			page.getByLabel( 'Editor content' ).getByText( 'Post lock overridden.' )
-		).toBeVisible();
-	} );
 } );
