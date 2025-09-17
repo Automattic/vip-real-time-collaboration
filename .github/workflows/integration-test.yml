@@ -69,13 +69,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gutenberg
-          path: plugins/gutenberg.zip
+          path: plugins/gutenberg
 
       - name: Go to the plugins folder
-        run: |
-          cd plugins && ls -la
-          unzip gutenberg.zip -d gutenberg/
-          cd vip-real-time-collaboration
+        run: cd vip-real-time-collaboration
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -116,13 +113,10 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: gutenberg
-          path: plugins/gutenberg.zip
+          path: plugins/gutenberg
 
       - name: Go to the plugins folder
-        run: |
-          cd plugins && ls -la
-          unzip gutenberg.zip -d gutenberg/
-          cd vip-real-time-collaboration
+        run: cd vip-real-time-collaboration
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
