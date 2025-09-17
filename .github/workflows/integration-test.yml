@@ -89,6 +89,11 @@ jobs:
           name: gutenberg
           path: plugins/gutenberg
 
+      - name: Check if gutenberg plugin exists
+        run: |
+          ls -la plugins
+          ls -la plugins/gutenberg
+
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -138,6 +143,11 @@ jobs:
         with:
           name: gutenberg
           path: plugins/gutenberg
+
+      - name: Check if gutenberg plugin exists
+        run: |
+          ls -la plugins
+          ls -la plugins/gutenberg
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
