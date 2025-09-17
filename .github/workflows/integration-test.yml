@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   setup:
@@ -40,11 +40,11 @@ jobs:
           path: plugins/gutenberg
           ref: release/vip-rtc-0.1.0
 
-      - name: Setup dependency repo
+      - name: Build Gutenberg plugin ZIP file
         if: steps.cache-deps.outputs.cache-hit != 'true'
-        run: |
-          cd plugins/gutenberg
-          npm run build:plugin-zip
+        run: cd plugins/gutenberg && npm run build:plugin-zip
+        env:
+          NO_CHECKS: 'true'
 
       - name: Upload dependency repo as artifact
         uses: actions/upload-artifact@v4
