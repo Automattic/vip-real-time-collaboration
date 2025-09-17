@@ -17,7 +17,7 @@ final class Overrides {
 	 * Constructor to initialize the overrides.
 	 */
 	public function __construct() {
-		// Allow multiple users to see the edit post screen. There is a bug with this however, when autosave kicks in, see: https://core.trac.wordpress.org/ticket/63598.
+		// Allow multiple users to see the edit post screen. An additional dialogue is overridden in /src/index.ts (editor.PostLockedModal) also.
 		add_filter( 'show_post_locked_dialog', '__return_false' );
 
 		add_filter( 'heartbeat_received', [ $this, 'refresh_post_lock' ], 10, 3 );
