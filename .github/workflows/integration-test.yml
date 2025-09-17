@@ -76,26 +76,24 @@ jobs:
         with:
           php-version: '8.2'
 
-      - name: Go to the plugins folder
-        run: cd plugins/vip-real-time-collaboration
-
       - name: Setup Node.js
         uses: Automattic/vip-actions/nodejs-setup@trunk
         with:
           node-version-file: .nvmrc
           ignore-scripts: true
+          path: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
-        run: ls -la && composer install --prefer-dist --no-progress
+        run: composer install --prefer-dist --no-progress
 
       - name: Copy wp-env config
-        run: ls -la && cp .wp-env.override.gutenberg-dev.json .wp-env.json
+        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
 
       - name: Call custom start script
-        run: ls -la && npm run dev
+        run: npm run dev
 
       - name: Run PHP tests
-        run: ls -la && npm run test:integration
+        run: npm run test:integration
 
   e2e-tests:
     needs: setup
@@ -115,9 +113,6 @@ jobs:
           name: gutenberg
           path: plugins/gutenberg
 
-      - name: Go to the plugins folder
-        run: cd plugins/vip-real-time-collaboration
-
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
@@ -128,18 +123,19 @@ jobs:
         with:
           node-version-file: .nvmrc
           ignore-scripts: true
+          path: plugins/vip-real-time-collaboration
 
       - name: Install dependencies
-        run: ls -la && composer install --prefer-dist --no-progress
+        run: composer install --prefer-dist --no-progress
 
       - name: Install dependencies
-        run: ls -la && npx playwright install --with-deps
+        run: npx playwright install --with-deps
 
       - name: Copy wp-env config
-        run: ls -la && cp .wp-env.override.gutenberg-dev.json .wp-env.json
+        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
 
       - name: Call custom start script
-        run: ls -la && npm run dev
+        run: npm run dev
 
       - name: Run Playwright tests
-        run: ls -la && npm run test:e2e
+        run: npm run test:e2e
