@@ -94,12 +94,15 @@ jobs:
         with:
           php-version: '8.2'
 
+      - name: Go into plugin directory
+        run: cd plugins/vip-real-time-collaboration
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: plugins/vip-real-time-collaboration/.nvmrc
+          node-version-file: .nvmrc
           cache: 'npm'
-          cache-dependency-path: plugins/vip-real-time-collaboration/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install Node.js dependencies
         run: npm ci
@@ -116,6 +119,10 @@ jobs:
       - name: Run PHP tests
         run: npm run test:integration
         working-directory: plugins/vip-real-time-collaboration
+
+      - name: Stop WordPress environment
+        run: |
+          npm run dev:stop
 
   e2e-tests:
     needs: setup
@@ -166,6 +173,10 @@ jobs:
       - name: Run Playwright tests
         run: npm run test:e2e
         working-directory: plugins/vip-real-time-collaboration
+
+      - name: Stop WordPress environment
+        run: |
+          npm run dev:stop
 
       - name: Archive E2E results
         uses: actions/upload-artifact@v4
