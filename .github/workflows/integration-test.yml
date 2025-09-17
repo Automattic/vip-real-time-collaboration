@@ -44,7 +44,7 @@ jobs:
         if: steps.cache-deps.outputs.cache-hit != 'true'
         run: |
           cd plugins/gutenberg
-          rm gutenberg.zip || true
+          git status
           npm ci
           npm run build:plugin-zip
 
