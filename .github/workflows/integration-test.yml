@@ -110,7 +110,7 @@ jobs:
         working-directory: plugins/vip-real-time-collaboration
 
       - name: Call custom start script
-        run: npm run dev &
+        run: npm run dev
         working-directory: plugins/vip-real-time-collaboration
 
       - name: Run PHP tests
@@ -160,9 +160,16 @@ jobs:
         working-directory: plugins/vip-real-time-collaboration
 
       - name: Call custom start script
-        run: npm run dev &
+        run: npm run dev
         working-directory: plugins/vip-real-time-collaboration
 
       - name: Run Playwright tests
         run: npm run test:e2e
         working-directory: plugins/vip-real-time-collaboration
+
+      - name: Archive E2E results
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: test-results
+          path: artifacts
