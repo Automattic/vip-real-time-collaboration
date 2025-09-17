@@ -9,6 +9,11 @@ test.describe( 'Simple changes by one user', () => {
 	 * Tests syncing changes in the same browser.
 	 */
 	test.describe( 'Fixed blocks sync in the same browser', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.activatePlugin( 'gutenberg' );
+			await requestUtils.activatePlugin( 'vip-real-time-collaboration' );
+		} );
+
 		test.beforeEach( async ( { admin } ) => {
 			await admin.createNewPost();
 		} );

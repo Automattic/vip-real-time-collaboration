@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 jobs:
-  lint:
+  test:
     name: js-unit
     runs-on: ubuntu-latest
     steps:
