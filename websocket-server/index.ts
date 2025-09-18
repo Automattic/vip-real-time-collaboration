@@ -171,7 +171,7 @@ function isRequestAuthenticated( request: http.IncomingMessage ): AuthResult {
 const server = http.createServer( async ( request, response ) => {
 	const pathname = getRequestPathname( request );
 
-	if ( pathname === '/health' || pathname === '/ready' ) {
+	if ( [ '/cache-healthcheck', '/health', '/ready' ].includes( pathname ) ) {
 		/**
 		 * Used by k8s for LivenessProbe and ReadinessProbe
 		 */
