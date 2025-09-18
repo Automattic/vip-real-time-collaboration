@@ -1,45 +1,60 @@
 <?xml version="1.0"?>
 <psalm
-    errorLevel="1"
-    resolveFromConfigFile="true"
-    phpVersion="8.1"
-    allConstantsGlobal="true"
-    allFunctionsGlobal="true"
-    findUnusedCode="true"
-    findUnusedBaselineEntry="true"
-    findUnusedPsalmSuppress="true"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xmlns="https://getpsalm.org/schema/config"
-    xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
+	errorLevel="1"
+	resolveFromConfigFile="true"
+	phpVersion="8.1"
+	allConstantsGlobal="true"
+	allFunctionsGlobal="true"
+	findUnusedCode="true"
+	findUnusedBaselineEntry="true"
+	findUnusedPsalmSuppress="true"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns="https://getpsalm.org/schema/config"
+	xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
 >
-    <projectFiles>
-        <file name="*.php"/>
-        <directory name="*"/>
-        <ignoreFiles allowMissingFiles="true">
-            <directory name="build/"/>
-            <directory name="examples/**/build/"/>
-            <directory name="examples/**/node_modules/"/>
-            <directory name="node_modules/"/>
-            <directory name="vendor/"/>
-            <directory name="yjs-inspector/"/>
-        </ignoreFiles>
-    </projectFiles>
-    <stubs>
-        <file name="vendor/php-stubs/wordpress-globals/wordpress-globals.php"/>
-        <file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"/>
+	<projectFiles>
+		<file name="*.php"/>
+		<directory name="*"/>
+		<ignoreFiles allowMissingFiles="true">
+			<directory name="build/"/>
+			<directory name="examples/**/build/"/>
+			<directory name="examples/**/node_modules/"/>
+			<directory name="node_modules/"/>
+			<directory name="vendor/"/>
+			<directory name="yjs-inspector/"/>
+		</ignoreFiles>
+	</projectFiles>
+	<stubs>
+		<file name="vendor/php-stubs/wordpress-globals/wordpress-globals.php"/>
+		<file name="vendor/php-stubs/wordpress-stubs/wordpress-stubs.php"/>
 		<file name="vendor/php-stubs/wordpress-tests-stubs/wordpress-tests-stubs.php"/>
-        <file name="vip-real-time-collaboration.php"/>
-    </stubs>
-    <issueHandlers>
-        <PossiblyUnusedParam>
-            <errorLevel type="suppress">
-                <file name="tests/Traits/ReflectionUtils.php" />
-            </errorLevel>
-        </PossiblyUnusedParam>
-        <UnusedClass>
-            <errorLevel type="suppress">
-                <directory name="tests/Integration" />
-            </errorLevel>
-        </UnusedClass>
-    </issueHandlers>
+		<file name="vip-real-time-collaboration.php"/>
+	</stubs>
+	<issueHandlers>
+		<ClassMustBeFinal>
+			<errorLevel type="suppress">
+				<directory name="tests/inc/Mocks/" />
+			</errorLevel>
+		</ClassMustBeFinal>
+		<PossiblyUnusedMethod>
+			<errorLevel type="suppress">
+				<file name="inc/Telemetry/Telemetry.php" />
+			</errorLevel>
+		</PossiblyUnusedMethod>
+		<PossiblyUnusedParam>
+			<errorLevel type="suppress">
+				<file name="tests/Traits/ReflectionUtils.php" />
+			</errorLevel>
+		</PossiblyUnusedParam>
+		<UndefinedClass>
+			<errorLevel type="suppress">
+				<file name="inc/Telemetry/Telemetry.php" />
+			</errorLevel>
+		</UndefinedClass>
+		<UnusedClass>
+			<errorLevel type="suppress">
+				<directory name="tests/" />
+			</errorLevel>
+		</UnusedClass>
+	</issueHandlers>
 </psalm>
