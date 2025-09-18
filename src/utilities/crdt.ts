@@ -31,9 +31,12 @@ function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
 }
 
-function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc {
-	const docMeta = new Map< string, unknown >();
-	const ydoc = new Y.Doc( { meta: docMeta } );
+function deserializeCrdtDoc(
+	serializedCrdtDoc: string,
+	documentMeta: Record< string, unknown > = {}
+): CRDTDoc {
+	const metaMap = new Map< string, unknown >( Object.entries( documentMeta ) );
+	const ydoc = new Y.Doc( { meta: metaMap } );
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
@@ -44,11 +47,10 @@ function deserializeCrdtDoc( serializedCrdtDoc: string ): CRDTDoc {
 
 /**
  * Type predicate to check the deserialized entity meta value shape. This does
- * not validate the CRDT document itself, but it does validate the content hash.
+ * not validate the CRDT document itself or the content hash.
  */
-function isValidCrdtDocMetaValue(
-	metaValue: unknown,
-	expectedContentHash: string
+function isValidCrdtDocMetaValueShape(
+	metaValue: unknown
 ): metaValue is PersistedCrdtDocMetaValue {
 	if ( 'object' !== typeof metaValue || null === metaValue ) {
 		logger.debug( 'Persisted CRDT document was not found', { metaValue } );
@@ -60,14 +62,8 @@ function isValidCrdtDocMetaValue(
 		return false;
 	}
 
-	if (
-		'string' !== typeof metaValue.contentHash ||
-		metaValue.contentHash !== expectedContentHash
-	) {
-		logger.warn( 'Persisted CRDT document content hash mismatch', {
-			expectedContentHash,
-			metaValue,
-		} );
+	if ( 'string' !== typeof metaValue.contentHash || ! metaValue.contentHash ) {
+		logger.warn( 'Persisted CRDT content hash is empty', { metaValue } );
 		return false;
 	}
 
@@ -134,11 +130,20 @@ export function getPersistedCrdtDocFromEntityMeta(
 
 		const metaValue: unknown = JSON.parse( rawMetaValue );
 
-		if ( ! isValidCrdtDocMetaValue( metaValue, expectedContentHash ) ) {
+		if ( ! isValidCrdtDocMetaValueShape( metaValue ) ) {
 			return null;
 		}
 
-		return deserializeCrdtDoc( metaValue.crdtDoc );
+		const documentMeta: Record< string, unknown > = {};
+
+		// If the meta value content hash does not match the expected hash, mark the
+		// document as invalidated.
+		if ( expectedContentHash !== metaValue.contentHash ) {
+			logger.debug( 'Persisted CRDT content hash mismatch', { expectedContentHash, metaValue } );
+			documentMeta.invalidated = true;
+		}
+
+		return deserializeCrdtDoc( metaValue.crdtDoc, documentMeta );
 	} catch {
 		return null;
 	}
