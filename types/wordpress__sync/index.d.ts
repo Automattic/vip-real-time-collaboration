@@ -22,6 +22,7 @@ declare module '@wordpress/sync' {
 
 	// Only include what we actually use from SyncConfig.
 	interface SyncConfig {
+		getInitialObjectData: ( rawRecord: ObjectData ) => ObjectData;
 		getObjectId: ( data: ObjectData ) => ObjectID;
 		objectType: ObjectType;
 		supports?: {
@@ -54,21 +55,19 @@ declare module '@wordpress/sync' {
 		public constructor( connectionCreators: ConnectDoc[] ): void;
 		public bootstrap(
 			syncConfig: SyncConfig,
-			record: ObjectData,
+			rawRecord: ObjectData,
 			handlers: RecordHandlers
 		): Promise< void >;
 
 		public createEntityMeta(
 			syncConfig: SyncConfig,
-			record: ObjectData,
-			changes: Partial< ObjectData >
+			rawRecord: ObjectData
 		): Promise< Record< string, any > >;
 
 		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
 		protected getPersistedCRDTDoc(
 			syncConfig: SyncConfig,
-			record: ObjectData,
-			expectedVersion: number
+			rawRecord: ObjectData
 		): Promise< CRDTDoc | null >;
 	}
 }

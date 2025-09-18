@@ -20,13 +20,9 @@ interface PersistedCrdtDocMetaValue {
 	 * This content hash is used to invalidate the CRDT document in case the record
 	 * has meaningfully changed "out-of-band" (example: via a WP-CLI command that
 	 * mutates content).
-	 *
-	 * Client-side code changes (e.g., to applyChangesToDoc) may also require
-	 * invalidation, but that should happen via an incremented `version` number.
 	 */
 	contentHash: string;
 	crdtDoc: string;
-	version: number;
 }
 
 const logger = new Logger( 'crdt' );
@@ -35,9 +31,12 @@ function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
 	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
 }
 
-function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
-	const docMeta = new Map< string, unknown >( [ [ 'version', version ] ] );
-	const ydoc = new Y.Doc( { meta: docMeta } );
+function deserializeCrdtDoc(
+	serializedCrdtDoc: string,
+	documentMeta: Record< string, unknown > = {}
+): CRDTDoc {
+	const metaMap = new Map< string, unknown >( Object.entries( documentMeta ) );
+	const ydoc = new Y.Doc( { meta: metaMap } );
 	const yupdate = buffer.fromBase64( serializedCrdtDoc );
 	Y.applyUpdateV2( ydoc, yupdate );
 
@@ -48,45 +47,28 @@ function deserializeCrdtDoc( serializedCrdtDoc: string, version = 0 ): CRDTDoc {
 
 /**
  * Type predicate to check the deserialized entity meta value shape. This does
- * not validate the CRDT document itself, but it does validate the content hash
- * and document version.
+ * not validate the CRDT document itself or the content hash.
  */
 function isValidCrdtDocMetaValueShape(
-	metaValue: unknown,
-	expectedContentHash: string,
-	expectedVersion: number
+	metaValue: unknown
 ): metaValue is PersistedCrdtDocMetaValue {
 	if ( 'object' !== typeof metaValue || null === metaValue ) {
 		logger.debug( 'Persisted CRDT document was not found', { metaValue } );
 		return false;
 	}
 
-	if ( ! ( 'contentHash' in metaValue && 'crdtDoc' in metaValue && 'version' in metaValue ) ) {
+	if ( ! ( 'contentHash' in metaValue && 'crdtDoc' in metaValue ) ) {
 		logger.error( 'Persisted CRDT document is missing expected properties', { metaValue } );
 		return false;
 	}
 
-	if (
-		'string' !== typeof metaValue.contentHash ||
-		metaValue.contentHash !== expectedContentHash
-	) {
-		logger.warn( 'Persisted CRDT document content hash mismatch', {
-			expectedContentHash,
-			metaValue,
-		} );
+	if ( 'string' !== typeof metaValue.contentHash || ! metaValue.contentHash ) {
+		logger.warn( 'Persisted CRDT content hash is empty', { metaValue } );
 		return false;
 	}
 
 	if ( 'string' !== typeof metaValue.crdtDoc || ! metaValue.crdtDoc ) {
 		logger.error( 'Persisted CRDT document is empty', { metaValue } );
-		return false;
-	}
-
-	// Version is an incrementing integer. If the client is ahead of the persisted
-	// version, it should be ignored. @TODO: If the client is behind, we may want
-	// to notify the user to refresh.
-	if ( 'number' !== typeof metaValue.version || metaValue.version !== expectedVersion ) {
-		logger.warn( 'Persisted CRDT document version mismatch', { expectedVersion, metaValue } );
 		return false;
 	}
 
@@ -103,7 +85,6 @@ function createCrdtDocMetaValue(
 	return {
 		contentHash,
 		crdtDoc: serializeCrdtDoc( crdtDoc ),
-		version: getCrdtDocVersion( crdtDoc ),
 	};
 }
 
@@ -128,23 +109,11 @@ export function createPersistedCrdtDocMetaRecord(
 }
 
 /**
- * Get a CRDT document's version from document meta.
- */
-export function getCrdtDocVersion( crdtDoc: CRDTDoc ): number {
-	// Y.Doc.meta is untyped
-	const version: unknown = ( crdtDoc.meta as Map< string, unknown > | null )?.get( 'version' );
-	const fallbackVersion = 0;
-
-	return 'number' === typeof version ? version : fallbackVersion;
-}
-
-/**
  * Extract and validate a persisted CRDT document from entity meta.
  */
 export function getPersistedCrdtDocFromEntityMeta(
 	entityMeta: Record< string, unknown >,
-	expectedContentHash: string,
-	expectedVersion: number
+	expectedContentHash: string
 ): CRDTDoc | null {
 	try {
 		if ( ! PERSISTED_STATE_POST_META_KEY ) {
@@ -161,11 +130,20 @@ export function getPersistedCrdtDocFromEntityMeta(
 
 		const metaValue: unknown = JSON.parse( rawMetaValue );
 
-		if ( ! isValidCrdtDocMetaValueShape( metaValue, expectedContentHash, expectedVersion ) ) {
+		if ( ! isValidCrdtDocMetaValueShape( metaValue ) ) {
 			return null;
 		}
 
-		return deserializeCrdtDoc( metaValue.crdtDoc, metaValue.version );
+		const documentMeta: Record< string, unknown > = {};
+
+		// If the meta value content hash does not match the expected hash, mark the
+		// document as invalidated.
+		if ( expectedContentHash !== metaValue.contentHash ) {
+			logger.debug( 'Persisted CRDT content hash mismatch', { expectedContentHash, metaValue } );
+			documentMeta.invalidated = true;
+		}
+
+		return deserializeCrdtDoc( metaValue.crdtDoc, documentMeta );
 	} catch {
 		return null;
 	}
