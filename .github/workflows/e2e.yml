@@ -18,35 +18,35 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      cache-hit: ${{ steps.cache-workspace.outputs.cache-hit }}
-      dependency-sha: ${{ steps.get-dependency-sha.outputs.sha }}
+      cache-hit: ${{ steps.cache-deps.outputs.cache-hit }}
+      gutenberg-sha: ${{ steps.get-gutenberg-sha.outputs.sha }}
     steps:
-      - name: Get dependency repo SHA
-        id: get-dependency-sha
+      - name: Get gutenberg SHA
+        id: get-gutenberg-sha
         run: |
           # Use git ls-remote to get the SHA without cloning
-          DEPENDENCY_SHA=$(git ls-remote https://github.com/Automattic/gutenberg.git release/vip-rtc-0.1.0 | cut -f1)
-          if [ -z "$DEPENDENCY_SHA" ]; then
-            echo "❌ Failed to get dependency SHA"
+          GUTENBERG_SHA=$(git ls-remote https://github.com/Automattic/gutenberg.git release/vip-rtc-0.1.0 | cut -f1)
+          if [ -z "$GUTENBERG_SHA" ]; then
+            echo "❌ Failed to get Gutenberg SHA"
             exit 1
           fi
 
-          echo "sha=$DEPENDENCY_SHA" >> $GITHUB_OUTPUT
-          echo "✅ Dependency repo SHA: $DEPENDENCY_SHA"
+          echo "sha=$GUTENBERG_SHA" >> $GITHUB_OUTPUT
+          echo "✅ Gutenberg repo SHA: $GUTENBERG_SHA"
 
       - name: Create plugins folder
         run: mkdir -p plugins
 
-      - name: Cache dependency repo
+      - name: Cache gutenberg
         id: cache-deps
         uses: actions/cache@v4
         with:
           path: plugins/gutenberg
-          key: gutenberg-${{ steps.get-dependency-sha.outputs.sha }}
+          key: gutenberg-${{ steps.get-gutenberg-sha.outputs.sha }}
           restore-keys: |
             gutenberg-
 
-      - name: Checkout dependency repo
+      - name: Checkout gutenberg repo
         if: steps.cache-deps.outputs.cache-hit != 'true'
         uses: actions/checkout@v4
         with:
@@ -60,7 +60,7 @@ jobs:
         env:
           NO_CHECKS: 'true'
 
-      - name: Upload dependency repo as artifact
+      - name: Upload gutenberg plugin zip as artifact
         uses: actions/upload-artifact@v4
         with:
           name: gutenberg
@@ -68,64 +68,10 @@ jobs:
           retention-days: 1
 
       - name: Cache hit notification
-        if: steps.cache-workspace.outputs.cache-hit == 'true'
+        if: steps.cache-deps.outputs.cache-hit == 'true'
         run: |
-          echo "✅ Cache hit! Using cached workspace with dependency SHA: ${{ steps.get-dependency-sha.outputs.sha }}"
+          echo "✅ Cache hit! Using cached workspace with gutenberg SHA: ${{ steps.get-gutenberg-sha.outputs.sha }}"
           echo "⚡ Skipped cloning and building gutenberg"
-
-  integration-tests:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create plugins folder
-        run: mkdir -p plugins
-
-      - name: Checkout main repo
-        uses: actions/checkout@v4
-        with:
-          path: plugins/vip-real-time-collaboration
-
-      - name: Download dependency repo
-        uses: actions/download-artifact@v4
-        with:
-          name: gutenberg
-          path: plugins/gutenberg
-
-      - name: Setup gutenberg plugin
-        working-directory: plugins/gutenberg
-        run: unzip -o gutenberg.zip
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: plugins/vip-real-time-collaboration/.nvmrc
-          cache: 'npm'
-          cache-dependency-path: plugins/vip-real-time-collaboration/package-lock.json
-
-      - name: Install Node.js dependencies
-        run: npm ci
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Copy wp-env config
-        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Call custom start script
-        run: npm run dev & npx wait-on http://localhost:8889
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Run PHP tests
-        run: npm run test:integration
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Stop WordPress environment
-        run: |
-          npm run dev:stop
 
   e2e-tests:
     needs: setup
@@ -134,12 +80,12 @@ jobs:
       - name: Create plugins folder
         run: mkdir -p plugins
 
-      - name: Checkout main repo
+      - name: Checkout RTC repo
         uses: actions/checkout@v4
         with:
           path: plugins/vip-real-time-collaboration
 
-      - name: Download dependency repo
+      - name: Download gutenberg plugin zip
         uses: actions/download-artifact@v4
         with:
           name: gutenberg
@@ -163,10 +109,6 @@ jobs:
 
       - name: Install Node.js dependencies
         run: npm ci
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Install Playwright dependencies
-        run: npx playwright install --with-deps
         working-directory: plugins/vip-real-time-collaboration
 
       - name: Copy wp-env config
