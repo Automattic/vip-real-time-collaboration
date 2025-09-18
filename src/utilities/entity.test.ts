@@ -39,7 +39,7 @@ describe( 'getHashForEntityRecord', () => {
 		mockGenerateHash.mock.resetCalls();
 	} );
 
-	it( 'should ignore blocks property and include content from raw record', async () => {
+	it( 'should ignore blocks and date properties and include content from raw record', async () => {
 		const rawRecord = {
 			id: 1,
 			date: '2024-01-01T00:00:00',
@@ -55,15 +55,15 @@ describe( 'getHashForEntityRecord', () => {
 		const hashInput = mockGenerateHash.mock.calls[ 0 ]?.arguments[ 0 ];
 		const parsedInput = JSON.parse( hashInput ?? '{}' ) as Record< string, unknown >;
 
-		// Should not include blocks.
+		// Should not include blocks or date.
 		assert.strictEqual( parsedInput.blocks, undefined );
+		assert.strictEqual( parsedInput.date, undefined );
 
 		// Should include content from raw record.
 		assert.strictEqual( parsedInput.content, 'Raw content from record' );
 
 		// Should include other synced properties.
 		assert.strictEqual( parsedInput.id, 1 );
-		assert.strictEqual( parsedInput.date, '2024-01-01T00:00:00' );
 		assert.strictEqual( parsedInput.title, 'Test Post' );
 	} );
 

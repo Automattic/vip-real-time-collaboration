@@ -8,6 +8,9 @@
 	convertNoticesToExceptions="true"
 	convertWarningsToExceptions="true"
 	convertDeprecationsToExceptions="true"
+	forceCoversAnnotation="true"
+	beStrictAboutCoversAnnotation="true"
+	beStrictAboutTestsThatDoNotTestAnything="true"
 	>
 	<php>
 		<const name="INTEGRATION_TESTS_RUNNING" value="true"/>
@@ -17,4 +20,13 @@
 			<directory>./tests/Integration</directory>
 		</testsuite>
 	</testsuites>
+	<coverage>
+		<include>
+			<directory suffix=".php">src</directory>
+			<file>vip-real-time-collaboration.php</file>
+		</include>
+		<report>
+			<text outputFile="php://stdout"/>
+		</report>
+	</coverage>
 </phpunit>
