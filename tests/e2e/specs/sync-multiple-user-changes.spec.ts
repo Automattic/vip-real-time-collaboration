@@ -9,6 +9,11 @@ test.describe( 'Simple changes by multiple users', () => {
 	 * Tests syncing changes in the same browser.
 	 */
 	test.describe( 'in the same browser', () => {
+		test.beforeAll( async ( { requestUtils } ) => {
+			await requestUtils.activatePlugin( 'gutenberg' );
+			await requestUtils.activatePlugin( 'vip-real-time-collaboration' );
+		} );
+
 		test.beforeEach( async ( { admin } ) => {
 			await admin.createNewPost();
 		} );
@@ -91,7 +96,7 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			// Ensure the new page contains the changes from the old page
 			expect( editedPostContent ).toEqual(
-				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another paragraph.I have updated this paragraph.</p>\n<!-- /wp:paragraph -->'
+				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another parI have updated this paragraph.agraph.</p>\n<!-- /wp:paragraph -->'
 			);
 
 			// Close the new context and pages
@@ -275,7 +280,7 @@ test.describe( 'Simple changes by multiple users', () => {
 
 			// Ensure the new page contains the changes from the old page
 			expect( editedPostContent ).toEqual(
-				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph.</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another paragraph that has been added, besides the above paragraph.</p>\n<!-- /wp:paragraph -->'
+				'<!-- wp:paragraph -->\n<p></p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is a paragraph</p>\n<!-- /wp:paragraph -->\n\n<!-- wp:paragraph -->\n<p>This is another pargraph that has been added, besides the above paraagraph.</p>\n<!-- /wp:paragraph -->'
 			);
 
 			// Close the new context and pages

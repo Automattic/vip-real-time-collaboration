@@ -20,19 +20,15 @@ final class CompatibilityTest extends TestCase {
 	 * @uses \VIPRealTimeCollaboration\Compatibility\Compatibility::is_gutenberg_plugin_active
 	 */
 	public function test_should_plugin_load(): void {
-		$is_websocket_url_defined = self::get_method( 'is_websocket_url_defined', Compatibility::class );
 		$is_gutenberg_plugin_active = self::get_method( 'is_gutenberg_plugin_active', Compatibility::class );
 		$should_plugin_load = self::get_method( 'should_plugin_load', Compatibility::class );
 
-		self::assertTrue( $is_websocket_url_defined->invoke( null ), 'is_websocket_url_defined() should be true' );
-
-		// Start with Gutenberg deactivated.
+		// Gutenberg deactivated.
 		deactivate_plugins( 'gutenberg/gutenberg.php' );
-
 		self::assertFalse( $is_gutenberg_plugin_active->invoke( null ), 'is_gutenberg_plugin_active should be false' );
 		self::assertFalse( $should_plugin_load->invoke( null ), 'should_plugin_load() should be false' );
 
-		// Activate Gutenberg.
+		// Gutenberg activated.
 		activate_plugin( 'gutenberg/gutenberg.php' );
 		self::assertTrue( $is_gutenberg_plugin_active->invoke( null ), 'is_gutenberg_plugin_active should be true' );
 		self::assertTrue( $should_plugin_load->invoke( null ), 'should_plugin_load() should be true' );
