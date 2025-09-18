@@ -29,10 +29,13 @@ export async function getHashForEntityRecord(
 	// We remove the blocks and use the content as a proxy for the blocks, since
 	// blocks are a derived property with unstable identifiers (clientIds).
 	//
+	// We also remove the date since that is updated by the server on save and
+	// this hash must be computed before the record is saved.
+	//
 	// TODO: This should ideally be controlled by the SyncConfig, but since we
 	// don't yet want to introduce hashing utilities to Gutenberg, this logic will
 	// temporarily live here.
-	const { blocks: _discard, ...rest } = objectData;
+	const { blocks: _discard, date: _discard2, ...rest } = objectData;
 	const record = { ...rest, content: getRawStringValue( rawRecord, 'content' ) };
 
 	// Get a string representation of the object data. It should include only the
