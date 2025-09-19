@@ -82,7 +82,7 @@
     "lint-staged": "16.1.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
-    "typescript": "5.8.3",
+    "typescript": "5.9.2",
     "yjs": "13.6.27"
   },
   "dependencies": {
