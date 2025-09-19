@@ -3,6 +3,7 @@
  */
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
+import { store as noticesStore } from '@wordpress/notices';
 
 /**
  * Internal dependencies
@@ -21,14 +22,18 @@ import {
 import { getCurrentUserInfo } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
 import {
+	getPostRestoredNotificationContent,
+	getPostUpdatedNotificationContent,
+} from '@/utilities/notifications';
+import {
 	getSelectionState,
 	SelectionType,
 	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
-import type { EntityID } from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness';
+import type * as Y from 'yjs';
 
 type AwarenessClientID = number;
 
@@ -45,14 +50,15 @@ export class AwarenessManager {
 	private constructor( private awareness: Awareness, private userInfo: WordPressUserInfo ) {
 		this.setCurrentUserState();
 		this.refreshAwareness();
+		this.subscribeToCRDTChanges();
 		this.subscribeToSelectionChanges();
 		this.subscribeToUserChanges();
 	}
 
-	public static async initialize( awareness: Awareness, entityId: EntityID ): Promise< void > {
+	public static async initialize( awareness: Awareness ): Promise< void > {
 		if ( AwarenessManager.__instance ) {
 			AwarenessManager.__instance.logger.error(
-				`AwarenessManager was created more than once for entity ${ entityId }.`
+				`AwarenessManager was created more than once for client ID ${ awareness.clientID }.`
 			);
 			return;
 		}
@@ -145,6 +151,84 @@ export class AwarenessManager {
 			if ( ! clientIdsFromAwareness.has( clientId ) ) {
 				void removeUser( clientId );
 			}
+		} );
+	}
+
+	private subscribeToCRDTChanges(): void {
+		const now = Date.now();
+		const recordMap = this.awareness.doc.getMap( 'document' );
+		const stateMap = this.awareness.doc.getMap( 'state' );
+		const { createNotice } = dispatch( noticesStore );
+
+		stateMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
+			event.keysChanged.forEach( ( key: string ) => {
+				switch ( key ) {
+					// A remote user has persisted the document (saved).
+					case 'persistedAt': {
+						if ( transaction.local ) {
+							break;
+						}
+
+						const remoteClientId = stateMap.get( 'persistedBy' ) as number;
+						const userState = this.getStates().get( remoteClientId );
+						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
+							remoteClientId,
+							userState,
+							stateMap,
+						} );
+
+						if (
+							// Ignore if the persistedAt timestamp is older than our session
+							now > ( stateMap.get( 'persistedAt' ) as number ) ||
+							// Ignore if we don't have a user state for the client ID
+							! userState ||
+							// Ignore if this is our own persisted event (can happen on refresh or reconnect)
+							userState.id === this.userInfo.id
+						) {
+							break;
+						}
+
+						const status = recordMap.get( 'status' ) as string;
+						const content = getPostUpdatedNotificationContent( userState, status );
+						void createNotice( 'info', content, {
+							id: `remote-user-persisted-${ remoteClientId }`,
+							isDismissible: false,
+							type: 'snackbar',
+						} );
+
+						break;
+					}
+
+					// A remote user has restored the document (restored a revision or loaded newer content).
+					case 'restoredAt': {
+						const remoteClientId = stateMap.get( 'restoredBy' ) as number;
+						const userState = this.getStates().get( remoteClientId );
+						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
+							remoteClientId,
+							userState,
+							stateMap,
+						} );
+
+						if (
+							// Ignore if the restoredAt timestamp is older than our session
+							now > ( stateMap.get( 'restoredAt' ) as number ) ||
+							// Ignore if we don't have a user state for the client ID
+							! userState
+						) {
+							break;
+						}
+
+						const content = getPostRestoredNotificationContent( userState );
+						void createNotice( 'info', content, {
+							id: `remote-user-restored-${ remoteClientId }`,
+							isDismissible: false,
+							type: 'snackbar',
+						} );
+
+						break;
+					}
+				}
+			} );
 		} );
 	}
 
