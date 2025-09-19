@@ -8,7 +8,6 @@ const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
 interface SettingsState {
 	isAwarenessAvatarsEnabled: boolean;
-	isAwarenessHighlightsEnabled: boolean;
 	isAwarenessCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
 	isSelfAwarenessEnabled: boolean;
@@ -16,7 +15,6 @@ interface SettingsState {
 
 const DEFAULT_STATE: SettingsState = {
 	isAwarenessAvatarsEnabled: true,
-	isAwarenessHighlightsEnabled: true,
 	isAwarenessCursorsEnabled: true,
 	isDebugToolsEnabled: false,
 	isSelfAwarenessEnabled: false,
@@ -25,10 +23,6 @@ const DEFAULT_STATE: SettingsState = {
 const actions = {
 	setAwarenessAvatarsEnabled: ( enabled: boolean ): SettingsAction => ( {
 		type: 'SET_AWARENESS_AVATARS_ENABLED',
-		payload: enabled,
-	} ),
-	setAwarenessHighlightsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_AWARENESS_HIGHLIGHTS_ENABLED',
 		payload: enabled,
 	} ),
 	setAwarenessCursorsEnabled: ( enabled: boolean ): SettingsAction => ( {
@@ -54,15 +48,6 @@ const reducer = (
 			const newState = {
 				...state,
 				isAwarenessAvatarsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_AWARENESS_HIGHLIGHTS_ENABLED': {
-			const newState = {
-				...state,
-				isAwarenessHighlightsEnabled: action.payload,
 			};
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
@@ -109,10 +94,6 @@ const selectors = {
 		const { isAwarenessCursorsEnabled } = state;
 		return isAwarenessCursorsEnabled;
 	},
-	isAwarenessHighlightsEnabled( state: SettingsState ) {
-		const { isAwarenessHighlightsEnabled } = state;
-		return isAwarenessHighlightsEnabled;
-	},
 	isDebugToolsEnabled( state: SettingsState ) {
 		return isDevelopment() ? state.isDebugToolsEnabled : false;
 	},
@@ -125,7 +106,6 @@ const selectors = {
 type SettingsAction = {
 	type:
 		| 'SET_AWARENESS_AVATARS_ENABLED'
-		| 'SET_AWARENESS_HIGHLIGHTS_ENABLED'
 		| 'SET_AWARENESS_CURSORS_ENABLED'
 		| 'SET_DEBUG_TOOLS_ENABLED'
 		| 'SET_SELF_AWARENESS_ENABLED';
@@ -144,7 +124,6 @@ export type { SettingsState };
 
 export type SettingsStoreActions = {
 	setAwarenessAvatarsEnabled: ( enabled: boolean ) => void;
-	setAwarenessHighlightsEnabled: ( enabled: boolean ) => void;
 	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
 	setDebugToolsEnabled: ( enabled: boolean ) => void;
 	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
@@ -152,7 +131,6 @@ export type SettingsStoreActions = {
 
 export type SettingsStoreSelectors = {
 	isAwarenessAvatarsEnabled: () => boolean;
-	isAwarenessHighlightsEnabled: () => boolean;
 	isAwarenessCursorsEnabled: () => boolean;
 	isDebugToolsEnabled: () => boolean;
 	isSelfAwarenessEnabled: () => boolean;

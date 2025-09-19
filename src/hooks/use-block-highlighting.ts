@@ -19,12 +19,12 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 		return Array.from( select( awarenessStore ).getActiveUsers().values() );
 	} );
 
-	const { isHighlightsEnabled, isSelfAwarenessEnabled } = useSelect<
+	const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = useSelect<
 		SettingsStoreSelectors,
-		{ isHighlightsEnabled: boolean; isSelfAwarenessEnabled: boolean }
+		{ isAwarenessCursorsEnabled: boolean; isSelfAwarenessEnabled: boolean }
 	>( select => {
 		return {
-			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
+			isAwarenessCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
 			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
 		};
 	} );
@@ -68,7 +68,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			} )
 			.filter( block => block !== null );
 
-		if ( ! isHighlightsEnabled ) {
+		if ( ! isAwarenessCursorsEnabled ) {
 			// If the overlay is disabled, remove all highlights.
 			unhighlightBlocks( Array.from( highlightedBlockIds.current ) );
 			return;
@@ -97,7 +97,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );
-	}, [ userStates, isHighlightsEnabled, isSelfAwarenessEnabled, blockEditorDocument ] );
+	}, [ userStates, isAwarenessCursorsEnabled, isSelfAwarenessEnabled, blockEditorDocument ] );
 }
 
 const getBlockElementById = (
