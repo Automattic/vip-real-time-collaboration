@@ -10,6 +10,7 @@ Thank you for your interest in contributing to the VIP Real-Time Collaboration p
 - Gutenberg plugin (see [here](#custom-gutenberg-development))
 - PHP 8.2+
 - Node.js and npm
+- MySQL 8.0+ or MariaDB 10.6+ (for integration tests)
 
 ### Project Initialization
 
@@ -80,7 +81,10 @@ This section lists a selection of available commands. You may find additional co
 
 - `npm run test:e2e` - Run end-to-end tests
 - `npm run test:e2e:debug` - Debug end-to-end tests in Playwright UI
-- `npm run test:integration` - Run PHP integration tests
+- `composer testwp-install` - Install integration test files and database (needed to run the tests)
+- `composer testwp` - Run PHP integration tests
+- `composer testwp-coverage` - Run PHP integration tests with code coverage
+- `composer testwp-experimental` - Run PHP integration tests in experimental mode (ignores possible deprecation errors)
 
 ## Environment Variables
 
@@ -137,9 +141,8 @@ Monitor the console output for connection events, message counts, and error logs
 
 - Write tests for new functionality
 - Run the full test suite before submitting changes:
-  - `npm run test:e2e` for end-to-end tests
-  - `npm run test:integration` for PHP integration tests
-- Use `npm run test:e2e:debug` for interactive test debugging
+  - `npm run test:e2e` for end-to-end tests (use `npm run test:e2e:debug` for interactive debugging)
+  - `composer testwp` for PHP integration tests
 
 ## Troubleshooting
 
@@ -170,6 +173,12 @@ Monitor the console output for connection events, message counts, and error logs
   - `npm run lint:js` for JavaScript/TypeScript
   - `npm run lint:php` for PHP
 - Check that all dependencies are properly installed
+
+**Integration tests do not run:**
+
+- Make sure you have a database per the [Prerequisites](#prerequisites) section
+- before running `composer testwp`, you need to install the required files and database using `composer testwp-install`
+- `composer testwp-install` adds files to a temporary directory, so you may need to run it again if you have rebooted
 
 ## Technical Architecture
 
