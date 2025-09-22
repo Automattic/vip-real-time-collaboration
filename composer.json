@@ -11,14 +11,6 @@
       "VIPRealTimeCollaboration\\": "inc/"
     }
   },
-  "scripts": {
-    "phpcs": "phpcs",
-    "phpcs-fix": "phpcbf",
-    "prepare-ci": "bash bin/install-wp-tests wordpress_test root root localhost",
-    "psalm": "psalm.phar --no-cache",
-    "testwp": "phpunit --no-coverage --order-by=random -c phpunit-integration.xml",
-    "testwp-coverage": "phpunit -c phpunit-integration.xml -v"
-  },
   "require": {
     "php": ">=8.1",
     "adhocore/jwt": "^1.1"
@@ -46,5 +38,20 @@
     "classmap": [
       "tests/inc/"
     ]
+  },
+  "scripts": {
+    "phpcs": "phpcs",
+    "phpcs-fix": "phpcbf",
+    "psalm": "psalm.phar --no-cache",
+    "testwp": "phpunit --no-coverage --order-by=random -c phpunit-integration.xml",
+    "testwp-coverage": "phpunit -c phpunit-integration.xml -v",
+    "testwp-experimental": "phpunit --no-coverage --order-by=random -c phpunit-integration-experimental.xml",
+    "testwp-install": "bash bin/install-wp-tests wordpress_test root root localhost"
+  },
+  "scripts-descriptions": {
+    "testwp": "Run the integration tests and send results to stdout.",
+    "testwp-coverage": "Run integration tests with code coverage, and send results to stdout.",
+    "testwp-experimental": "Run integration tests without failing on deprecations, and send results to stdout.",
+    "testwp-install": "Install the files and setup a database needed to run integration tests."
   }
 }

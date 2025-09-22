@@ -29,22 +29,21 @@ jobs:
       # - coverage: Whether to run the tests with code coverage.
       # - experimental: Whether the build is "allowed to fail".
       matrix:
-        php: ['8.2']
+        php: ['8.1', '8.2', '8.3']
         wp: ['latest']
         coverage: [none]
         experimental: [false]
         include:
-          - php: '8.3'
-            # coverage: pcov
-            # extensions: pcov
-            # ini-values: pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
-            # experimental: false
           - php: '8.4'
+            coverage: pcov
+            extensions: pcov
+            ini-values: pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
+            experimental: false
+          - php: '8.5'
             wp: 'trunk'
-            # coverage: none
-            # experimental: true
+            experimental: true
       fail-fast: false
-    # continue-on-error: ${{ matrix.experimental }}
+    continue-on-error: ${{ matrix.experimental }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
@@ -77,20 +76,16 @@ jobs:
         run: sudo systemctl start mysql.service
 
       - name: Prepare environment for integration tests
-        run: composer prepare-ci --no-interaction
+        run: composer testwp-install --no-interaction
 
       - name: Run integration tests
         if: ${{ !matrix.experimental && matrix.coverage == 'none' }}
         run: composer testwp --no-interaction
 
-      # - name: Run integration tests (multisite)
-      # if: ${{ !matrix.experimental && matrix.coverage == 'none' }}
-      # run: composer testwp-ms --no-interaction
+      - name: Run integration tests (experimental)
+        if: ${{ matrix.experimental }}
+        run: composer testwp-experimental --no-interaction
 
-      # - name: Run integration tests (experimental)
-      # if: ${{ matrix.experimental }}
-      # run: composer testwp-experimental --no-interaction
-
-      # - name: Run integration tests (multisite with code coverage)
-      # if: ${{ matrix.coverage == 'pcov' }}
-      # run: composer coveragewp-ci --no-interaction
+      - name: Run integration tests (with code coverage)
+        if: ${{ matrix.coverage == 'pcov' }}
+        run: composer testwp-coverage --no-interaction
