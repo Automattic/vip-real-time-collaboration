@@ -1,4 +1,4 @@
-name: Integration Test
+name: End-to-end Tests
 on:
   workflow_dispatch:
   # Disabled - remove this comment and uncomment below to re-enable
@@ -72,60 +72,6 @@ jobs:
         run: |
           echo "✅ Cache hit! Using cached workspace with dependency SHA: ${{ steps.get-dependency-sha.outputs.sha }}"
           echo "⚡ Skipped cloning and building gutenberg"
-
-  integration-tests:
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - name: Create plugins folder
-        run: mkdir -p plugins
-
-      - name: Checkout main repo
-        uses: actions/checkout@v4
-        with:
-          path: plugins/vip-real-time-collaboration
-
-      - name: Download dependency repo
-        uses: actions/download-artifact@v4
-        with:
-          name: gutenberg
-          path: plugins/gutenberg
-
-      - name: Setup gutenberg plugin
-        working-directory: plugins/gutenberg
-        run: unzip -o gutenberg.zip
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version-file: plugins/vip-real-time-collaboration/.nvmrc
-          cache: 'npm'
-          cache-dependency-path: plugins/vip-real-time-collaboration/package-lock.json
-
-      - name: Install Node.js dependencies
-        run: npm ci
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Copy wp-env config
-        run: cp .wp-env.override.gutenberg-dev.json .wp-env.json
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Call custom start script
-        run: npm run dev & npx wait-on http://localhost:8889
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Run PHP tests
-        run: npm run test:integration
-        working-directory: plugins/vip-real-time-collaboration
-
-      - name: Stop WordPress environment
-        run: |
-          npm run dev:stop
 
   e2e-tests:
     needs: setup
