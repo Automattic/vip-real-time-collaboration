@@ -20,34 +20,26 @@ import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
 
 export function RTCSettingsPanel() {
-	const {
-		isAvatarsEnabled,
-		isCursorsEnabled,
-		isDebugToolsEnabled,
-		isHighlightsEnabled,
-		isSelfAwarenessEnabled,
-	} = useSelect<
-		SettingsStoreSelectors,
-		{
-			isAvatarsEnabled: boolean;
-			isCursorsEnabled: boolean;
-			isDebugToolsEnabled: boolean;
-			isHighlightsEnabled: boolean;
-			isSelfAwarenessEnabled: boolean;
-		}
-	>( select => {
-		return {
-			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
-			isHighlightsEnabled: select( rtcSettingsStore ).isAwarenessHighlightsEnabled(),
-			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
-		};
-	} );
+	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled, isSelfAwarenessEnabled } =
+		useSelect<
+			SettingsStoreSelectors,
+			{
+				isAvatarsEnabled: boolean;
+				isCursorsEnabled: boolean;
+				isDebugToolsEnabled: boolean;
+				isSelfAwarenessEnabled: boolean;
+			}
+		>( select => {
+			return {
+				isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+				isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
+				isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
+				isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+			};
+		} );
 
 	const {
 		setAwarenessAvatarsEnabled,
-		setAwarenessHighlightsEnabled,
 		setAwarenessCursorsEnabled,
 		setDebugToolsEnabled,
 		setSelfAwarenessEnabled,
@@ -60,10 +52,6 @@ export function RTCSettingsPanel() {
 
 	const handleToggleAvatars = ( enabled: boolean ) => {
 		setAwarenessAvatarsEnabled( enabled );
-	};
-
-	const handleToggleHighlights = ( enabled: boolean ) => {
-		setAwarenessHighlightsEnabled( enabled );
 	};
 
 	const handleToggleCursors = ( enabled: boolean ) => {
@@ -90,14 +78,6 @@ export function RTCSettingsPanel() {
 					checked={ isAvatarsEnabled }
 					onChange={ ( enabled: boolean ) => {
 						handleToggleAvatars( enabled );
-					} }
-				/>
-
-				<ToggleControl
-					label="Enable highlights"
-					checked={ isHighlightsEnabled }
-					onChange={ ( enabled: boolean ) => {
-						handleToggleHighlights( enabled );
 					} }
 				/>
 
