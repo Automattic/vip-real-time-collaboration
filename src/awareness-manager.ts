@@ -203,7 +203,7 @@ export class AwarenessManager {
 					case 'restoredAt': {
 						const remoteClientId = stateMap.get( 'restoredBy' ) as number;
 						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
+						this.logger.debug( `Document was restored by client ID ${ remoteClientId }.`, {
 							remoteClientId,
 							userState,
 							stateMap,
