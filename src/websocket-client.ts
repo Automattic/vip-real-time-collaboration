@@ -5,6 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
+import { AwarenessManager } from '@/awareness-manager';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -17,6 +18,7 @@ import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
 import type { ConnectDoc } from '@wordpress/sync';
+import type { Awareness } from 'y-protocols/awareness.js';
 import type * as Y from 'yjs';
 
 export interface WebSocketConnectionConfig {
@@ -148,7 +150,12 @@ export function getWebSocketConnectionConfig( serverUrl: string ): WebSocketConn
  * @return {ConnectDoc} A function that connects a Y.Doc to a WebSocket server.
  */
 export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
-	return async function ( objectId: string = 'unknown', objectType: string, doc: Y.Doc ) {
+	return async function (
+		objectId: string = 'unknown',
+		objectType: string,
+		doc: Y.Doc,
+		awareness?: Awareness
+	) {
 		try {
 			/**
 			 * Some entities like posts aren't unique across all sites in a multisite setup.
@@ -159,7 +166,8 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId }`;
-			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, config.options );
+			const options = { ...config.options, awareness };
+			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
 			const connect = createConnect( provider, objectType, objectId );
 
 			provider.on( 'connection-close', connect );
@@ -183,10 +191,14 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 				};
 			}
 
+			if ( awareness ) {
+				logger.debug( 'Initializing awareness for WebSocket connection', { objectType, objectId } );
+				await AwarenessManager.initialize( awareness );
+			}
+
 			await connect();
 
 			return {
-				awareness: provider.awareness,
 				destroy: () => provider.destroy(),
 			};
 		} catch {}
