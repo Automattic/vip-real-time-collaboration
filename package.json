@@ -79,7 +79,7 @@
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
     "jsonwebtoken": "9.0.2",
-    "lint-staged": "16.1.0",
+    "lint-staged": "16.2.0",
     "prettier": "npm:wp-prettier@2.8.5",
     "ts-loader": "9.5.2",
     "typescript": "5.8.3",
