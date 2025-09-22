@@ -51,7 +51,7 @@ final class Overrides {
 		$post = get_post( $object_id );
 
 		// If the post exists, and supports collaboration, return an empty string to disable the lock.
-		if ( $post && $post instanceof WP_Post && in_array( $post->post_type, $supported_post_types, true ) ) {
+		if ( $post && in_array( $post->post_type, $supported_post_types, true ) ) {
 			return '';
 		}
 
