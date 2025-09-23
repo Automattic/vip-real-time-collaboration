@@ -6,7 +6,6 @@ import { SyncProviderWithAwareness } from '@/provider';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { getWebSocketConnectionConfig } from '@/websocket-client';
-import type { ComponentType } from '@wordpress/element';
 
 import type { SyncProvider } from '@wordpress/sync';
 
@@ -29,13 +28,6 @@ addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) 
 
 	return new SyncProviderWithAwareness( webSocketConnectionConfig );
 } );
-
-function replacePostLockedModal(): ComponentType {
-	// Returning a no-op component disables the default post locked modal.
-	return () => null;
-}
-
-addFilter( 'editor.PostLockedModal', 'vip-rtc', replacePostLockedModal );
 
 registerPlugin( 'vip-real-time-collaboration', {
 	render: RTCSettingsPanel,
