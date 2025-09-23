@@ -6,8 +6,8 @@ import { SyncProviderWithAwareness } from '@/provider';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { getWebSocketConnectionConfig } from '@/websocket-client';
-import type { ComponentType } from '@wordpress/element';
 
+import type { ComponentType } from '@wordpress/element';
 import type { SyncProvider } from '@wordpress/sync';
 
 addFilter( 'core.getSyncProvider', 'vip-rtc', ( provider: SyncProvider | null ) => {
