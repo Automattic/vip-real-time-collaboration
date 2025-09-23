@@ -1,4 +1,5 @@
-import { setupWSConnection } from '@y/websocket-server/utils';
+//@ts-ignore
+import { setupWSConnection } from './utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
