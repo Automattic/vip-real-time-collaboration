@@ -14,11 +14,15 @@ declare module '@wordpress/sync' {
 	interface ObjectData extends Record< string, unknown > {}
 
 	interface ConnectDocResult {
-		awareness?: Awareness;
 		destroy: () => void;
 	}
 
-	type ConnectDoc = ( id: ObjectID, type: ObjectType, ydoc: Y.Doc ) => Promise< ConnectDocResult >;
+	type ConnectDoc = (
+		id: ObjectID,
+		type: ObjectType,
+		ydoc: Y.Doc,
+		awareness?: Awareness
+	) => Promise< ConnectDocResult >;
 
 	// Only include what we actually use from SyncConfig.
 	interface SyncConfig {
@@ -49,7 +53,6 @@ declare module '@wordpress/sync' {
 	}
 
 	class SyncProvider {
-		protected connections: Map< EntityID, ConnectDocResult[] >;
 		protected entityStates: Map< EntityID, EntityState >;
 
 		public constructor( connectionCreators: ConnectDoc[] ): void;
