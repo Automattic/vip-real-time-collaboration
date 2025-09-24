@@ -2,6 +2,10 @@
 
 Thank you for your interest in contributing to the VIP Real-Time Collaboration plugin! This document provides guidelines and information for developers who want to contribute to the project.
 
+## Reporting security issues
+
+Please see [SECURITY.md](SECURITY.md).
+
 ## Development Setup
 
 ### Prerequisites
