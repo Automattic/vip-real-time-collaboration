@@ -70,6 +70,7 @@ For development setup, contributing guidelines, and technical information, pleas
 
 - [CONTRIBUTING.md](docs/CONTRIBUTING.md) - Development setup and contribution guidelines
 - [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) - Technical architecture documentation
+- [SECURITY.md](docs/SECURITY.md) - Reporting security issues
 
 ## Support
 
