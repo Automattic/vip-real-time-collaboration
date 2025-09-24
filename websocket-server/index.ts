@@ -190,12 +190,10 @@ const server = http.createServer( async ( request, response ) => {
 
 const metricsServer = createMetricsServer();
 
-const noopPersistence = new NoopPersistenceProvider();
-setPersistence( {
-	bindState: ( docName, yDoc ) => noopPersistence.bindState( docName, yDoc ),
-	writeState: ( docName, yDoc ) => noopPersistence.writeState( docName, yDoc ),
-	provider: noopPersistence,
-} );
+// Use NoopPersistenceProvider to avoid persisting document updates to storage
+// while still allowing documents to be evicted from memory when there are
+// no active connections.
+setPersistence( new NoopPersistenceProvider() );
 
 /**
  * ------------------------------------------------------------

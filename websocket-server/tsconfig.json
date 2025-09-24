@@ -11,11 +11,11 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "typeRoots": [ "../types", "./node_modules/@types" ],
+    "typeRoots": [ "./node_modules/@types" ],
     "paths": {
       "@y/websocket-server/*": [ "./node_modules/@y/websocket-server/dist/src/*" ]
     }
   },
-  "include": [ "*.ts", "../types/*.d.ts" ],
+  "include": [ "*.ts" ],
   "exclude": [ "node_modules", "dist" ]
 }
