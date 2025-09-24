@@ -13,9 +13,6 @@
 	beStrictAboutCoversAnnotation="true"
 	beStrictAboutTestsThatDoNotTestAnything="true"
 	>
-	<php>
-		<const name="INTEGRATION_TESTS_RUNNING" value="true"/>
-	</php>
 	<testsuites>
 		<testsuite name="integration">
 			<directory>./tests/Integration</directory>
