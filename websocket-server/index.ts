@@ -1,5 +1,4 @@
-//@ts-ignore
-import { setupWSConnection } from './utils';
+import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
@@ -12,6 +11,7 @@ import {
 	getRequestPathname,
 	recordConnectionOpen,
 } from './metrics';
+import { NoopPersistenceProvider } from './noop-persistence-provider';
 
 const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
 if ( ! jwtSecret ) {
@@ -189,6 +189,13 @@ const server = http.createServer( async ( request, response ) => {
 } );
 
 const metricsServer = createMetricsServer();
+
+const noopPersistence = new NoopPersistenceProvider();
+setPersistence( {
+	bindState: ( docName, yDoc ) => noopPersistence.bindState( docName, yDoc ),
+	writeState: ( docName, yDoc ) => noopPersistence.writeState( docName, yDoc ),
+	provider: noopPersistence,
+} );
 
 /**
  * ------------------------------------------------------------
