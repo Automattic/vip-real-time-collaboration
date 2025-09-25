@@ -1,6 +1,6 @@
 # VIP Real-Time Collaboration
 
-VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same WordPress content simultaneously. Team members can collaborate on Posts, Pages, and Custom Post Types with instant updates, seeing each other's changes as they type.
+VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same WordPress content simultaneously, using the Block Editor. Team members can collaborate on Posts, Pages, and Custom Post Types with near-instant updates, seeing each other's changes as they type.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same Wo
 ## Features
 
 - **Real-Time Collaboration**: Multiple users can edit content simultaneously with instant updates
-- **Smart Conflict Resolution**: Automatically merges changes to prevent overwriting each other's work
+- **Smart Conflict Resolution**: Automatically merges changes to help prevent overwriting each other's work
 - **Visual Collaboration Indicators**: See live cursors, user avatars, and editing activity from team members
 - **Seamless WordPress Integration**: Uses existing WordPress permissions - no additional setup required
 - **Reliable Connection Management**: Graceful handling of network interruptions with automatic reconnection
@@ -40,7 +40,7 @@ The plugin works with:
 
 ## Installation
 
-The plugin is currently exclusively available to WordPress VIP customers. To enable VIP Real-Time Collaboration:
+The plugin is available to WordPress VIP customers. To enable VIP Real-Time Collaboration:
 
 1. Visit the [VIP Integrations Center](https://docs.wpvip.com/integrations/center/)
 2. Enable Real-Time Collaboration with a few clicks
@@ -62,7 +62,7 @@ The plugin shows live editing activity and user presence. For detailed change tr
 
 ### How does conflict resolution work?
 
-The plugin uses advanced algorithms to automatically merge changes from multiple users, preventing conflicts and ensuring no work is lost.
+The plugin uses advanced algorithms to automatically merge changes from multiple users, preventing conflicts.
 
 ## Development
 
