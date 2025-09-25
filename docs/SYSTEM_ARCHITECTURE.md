@@ -204,7 +204,6 @@ sequenceDiagram
 - **Sync Experiment**: Built on Gutenberg's sync experiment
 - **WordPress Sync API**: Extends [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/)
 - **Post Lock Override**: Disables WordPress native post locking for simultaneous editing
-- **Heartbeat Integration**: Removes WordPress heartbeat post lock refresh
 - **Site Editor Exclusion**: Automatically disables in Site Editor (FSE)
 - **Post Type Support**: Auto-detects post types with `collaborative-editing` and `editor` support
 
