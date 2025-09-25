@@ -56,7 +56,7 @@ To start a fully working development environment:
 
 ### Custom Gutenberg Development
 
-This plugin is built on top of the `add/experimental-collaborative-editing` branch, from the Gutenberg fork [here](https://github.com/Automattic/gutenberg/tree/add/experimental-collaborative-editing).
+This plugin is built on top of the `release/vip-rtc-0.1.0` branch, from the Gutenberg fork [here](https://github.com/Automattic/gutenberg/tree/release/vip-rtc-0.1.0).
 
 If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
 
