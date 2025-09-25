@@ -11,7 +11,6 @@
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
     "sourceMap": true,
-    "typeRoots": [ "./node_modules/@types" ],
     "paths": {
       "@y/websocket-server/*": [ "./node_modules/@y/websocket-server/dist/src/*" ]
     }
