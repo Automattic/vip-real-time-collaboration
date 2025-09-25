@@ -1,4 +1,4 @@
-import { setupWSConnection } from '@y/websocket-server/utils';
+import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
@@ -11,6 +11,7 @@ import {
 	getRequestPathname,
 	recordConnectionOpen,
 } from './metrics';
+import { NoopPersistenceProvider } from './noop-persistence-provider';
 
 const jwtSecret = process.env.VIP_RTC_WS_AUTH_SECRET;
 if ( ! jwtSecret ) {
@@ -188,6 +189,11 @@ const server = http.createServer( async ( request, response ) => {
 } );
 
 const metricsServer = createMetricsServer();
+
+// Use NoopPersistenceProvider to avoid persisting document updates to storage
+// while still allowing documents to be evicted from memory when there are
+// no active connections.
+setPersistence( new NoopPersistenceProvider() );
 
 /**
  * ------------------------------------------------------------
