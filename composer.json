@@ -34,10 +34,7 @@
   "autoload-dev": {
     "psr-4": {
       "VIPRealTimeCollaboration\\Tests\\": "tests/"
-    },
-    "classmap": [
-      "tests/inc/"
-    ]
+    }
   },
   "scripts": {
     "phpcs": "phpcs",

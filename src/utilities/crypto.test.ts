@@ -39,7 +39,7 @@ describe( 'crypto utilities', () => {
 
 			beforeEach( () => {
 				cryptoMock = mock.fn(
-					( _algorithm: string, _message: Uint8Array< ArrayBufferLike > ): Promise< ArrayBuffer > =>
+					( _algorithm: string, _data: BufferSource ): Promise< ArrayBuffer > =>
 						Promise.resolve( new TextEncoder().encode( 'mock generated hash' ).buffer )
 				);
 

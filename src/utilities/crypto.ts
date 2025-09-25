@@ -5,7 +5,10 @@ import type * as SHA256 from 'fast-sha256';
 
 const logger = new Logger( 'crypto' );
 
-function arrayBufferToHex( arrayBuffer: ArrayBuffer, hashBase = 16 ): string {
+function arrayBufferToHex(
+	arrayBuffer: ArrayBuffer | Uint8Array< ArrayBufferLike >,
+	hashBase = 16
+): string {
 	const hashArray = Array.from( new Uint8Array( arrayBuffer ) ); // convert buffer to byte array
 	const hash = hashArray.map( buf => buf.toString( hashBase ).padStart( 2, '0' ) ).join( '' ); // convert bytes to string
 	return hash;

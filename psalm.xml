@@ -33,7 +33,7 @@
 	<issueHandlers>
 		<ClassMustBeFinal>
 			<errorLevel type="suppress">
-				<directory name="tests/inc/Mocks/" />
+				<directory name="tests/Mocks/" />
 			</errorLevel>
 		</ClassMustBeFinal>
 		<PossiblyUnusedMethod>
