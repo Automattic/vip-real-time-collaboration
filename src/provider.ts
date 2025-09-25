@@ -9,9 +9,10 @@ import {
 } from '@/utilities/crdt';
 import { getHashForEntityRecord, getMetaFromEntityRecord } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
+import { getSessionDiagnostics } from '@/utilities/session-diagnostics';
 import { createWebSocketConnection, type WebSocketConnectionConfig } from '@/websocket-client';
 
-import type { CRDTDoc, ObjectData, SyncConfig } from '@wordpress/sync';
+import type { CRDTDoc, ObjectData, RecordHandlers, SyncConfig } from '@wordpress/sync';
 import type { WebsocketProvider } from 'y-websocket';
 
 export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
@@ -24,6 +25,30 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 				onStatusChange: ( ...args ) => this.onProviderStatusChange( ...args ),
 			} ),
 		] );
+	}
+
+	public async bootstrap(
+		syncConfig: SyncConfig,
+		rawRecord: ObjectData,
+		handlers: RecordHandlers
+	): Promise< void > {
+		// Call parent bootstrap first
+		await super.bootstrap( syncConfig, rawRecord, handlers );
+
+		// Then set up session diagnostics with the document
+		const objectId = syncConfig.getObjectId( rawRecord ).toString();
+		const objectType = syncConfig.objectType.toString();
+		const entityId = this.getEntityId( objectType, objectId );
+		const entityState = this.entityStates.get( entityId );
+
+		if ( entityState?.ydoc ) {
+			getSessionDiagnostics().setCRDTDoc( entityState.ydoc );
+			this.logger.debug( 'SessionDiagnostics connected to CRDT document', {
+				objectType,
+				objectId,
+				entityId,
+			} );
+		}
 	}
 
 	public async createEntityMeta(
@@ -78,6 +103,11 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 			objectId,
 			persistedDoc,
 		} );
+
+		// Set the CRDT document for session diagnostics
+		if ( persistedDoc ) {
+			getSessionDiagnostics().setCRDTDoc( persistedDoc );
+		}
 
 		return Promise.resolve( persistedDoc );
 	}

@@ -11,10 +11,16 @@ export const WEBSOCKET_URL = getVipConfigFromWindow( 'wsUrl' );
 
 export const BLOG_ID = getVipConfigFromWindow( 'blogId' );
 
+export const SESSION_DIAGNOSTICS_CRDT_RETENTION_MS = 600000; // 10 minutes
+export const SESSION_DIAGNOSTICS_CLEANUP_INTERVAL_MS = 5000; // 5 seconds
+export const SESSION_DIAGNOSTICS_CRDT_KEY = 'session_diagnostics';
+
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {
 	return 'development' === process.env.NODE_ENV;
 }
+
+export const SESSION_DIAGNOSTICS_ENABLED = true;
 
 function getVipConfigFromWindow< Key extends keyof VIPRTCConfig >(
 	key: Key
