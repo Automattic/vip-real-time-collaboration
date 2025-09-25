@@ -42,6 +42,7 @@
     "lint:psalm": "vendor/bin/psalm.phar",
     "packages-update": "wp-scripts packages-update",
     "plugin-zip": "npm run build && composer install --prefer-dist --optimize-autoloader --no-dev && wp-scripts plugin-zip",
+    "prepare": "npx simple-git-hooks",
     "postinstall": "composer install",
     "release": "./bin/release",
     "start": "wp-scripts start --experimental-modules --stats=minimal",
@@ -94,10 +95,18 @@
   "simple-git-hooks": {
     "pre-commit": "npx lint-staged"
   },
-	"lint-staged": {
-		"*.css": [ "npm run lint:css" ],
-		"*.{js,jsx,ts,tsx}": [ "npm run lint" ],
-		"*.php": [ "npm run lint:php" ],
-		"*.{js,json,jsx,md,ts,tsx,yml,yaml}": [ "npm run format:check" ]
-	}
+  "lint-staged": {
+    "*.css": [
+      "npm run lint:css"
+    ],
+    "*.{js,jsx,ts,tsx}": [
+      "npm run lint"
+    ],
+    "*.php": [
+      "npm run lint:php"
+    ],
+    "*.{js,json,jsx,md,ts,tsx,yml,yaml}": [
+      "npm run format:check"
+    ]
+  }
 }
