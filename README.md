@@ -1,69 +1,81 @@
 # VIP Real-Time Collaboration
 
-A real-time collaboration plugin made by VIP for enhancing the Block Editor experience with real-time collaborative editing capabilities.
+VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same WordPress content simultaneously, using the Block Editor. Team members can collaborate on Posts, Pages, and Custom Post Types with near-instant updates, seeing each other's changes as they type.
 
-The `sync-engine` is based on the work done by Kevin Jahns that can be found in [this PR](https://github.com/WordPress/gutenberg/pull/68483).
+## Table of Contents
 
-## What's in this repo
+- [Features](#features)
+- [Supported Content Types](#supported-content-types)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [FAQ](#faq)
+- [Development](#development)
+- [Support](#support)
+- [Credits](#credits)
 
-- **bin/**: Development scripts for starting/stopping the local environment
-- **inc/**: PHP includes and server-side functionality
-- **src/**: TypeScript source files for the frontend components
-- **tests/**: Tests for validating the plugin's functionalities
-- **websocket-server/**: A development Node.js WebSocket server
-- **yjs-inspector/**: A development inspector for visualizing Yjs documents and updates
+## Features
 
-## Setup Instructions
+- **Real-Time Collaboration**: Multiple users can edit content simultaneously with instant updates
+- **Smart Conflict Resolution**: Automatically merges changes to help prevent overwriting each other's work
+- **Visual Collaboration Indicators**: See live cursors, user avatars, and editing activity from team members
+- **Seamless WordPress Integration**: Uses existing WordPress permissions - no additional setup required
+- **Reliable Connection Management**: Graceful handling of network interruptions with automatic reconnection
 
-### Prerequisites
+## Supported Content Types
 
-- WordPress 6.7+
-- Gutenberg 21.5+
-- PHP 8.2+
-- Node.js and npm
+The plugin works with:
 
-### Development Setup
+- **Posts** - Standard WordPress blog posts
+- **Pages** - Static WordPress pages
+- **Custom Post Types** - Custom Post Types that support the Block Editor
 
-1. Install dependencies:
+> **Note**: The plugin is not currently compatible with the Site Editor (Full Site Editing).
 
-   ```bash
-   npm install
-   ```
+## Requirements
 
-2. Initialize husky:
+- **WordPress**: 6.7 or newer
+- **Gutenberg**: [Custom Gutenberg build with RTC features support](https://github.com/Automattic/gutenberg/tree/release/vip-rtc-0.1.0)
+- **WebSocket Server**: For real-time communication between users
+- **WordPress VIP**: Currently exclusive to VIP customers
 
-   ```
-   npx husky init
-   ```
+## Installation
 
-   You may have to run this command to make the pre-commit hook operational. This will overwrite the `.husky/pre-commit` file, which you should revert after running the command.
+The plugin is available to WordPress VIP customers. To enable VIP Real-Time Collaboration:
 
-3. Start the development environment:
+1. Visit the [VIP Integrations Center](https://docs.wpvip.com/integrations/center/)
+2. Enable Real-Time Collaboration with a few clicks
+3. All required infrastructure and software will be automatically configured
 
-   ```bash
-   npm run dev
-   ```
+## FAQ
 
-   This starts WordPress at `http://localhost:8888`
+### Do I need special permissions to collaborate?
 
-### Custom Gutenberg Development
+No additional permissions are required. Users can collaborate on any content they already have permission to edit in WordPress.
 
-This plugin is built on top of [the `release/vip-rtc-0.1.0` branch of Automattic's Gutenberg fork](https://github.com/Automattic/gutenberg/tree/release/vip-rtc-0.1.0).
+### What happens if my internet connection drops?
 
-If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
+The plugin handles connection interruptions gracefully. If the connection becomes particularly unstable, your editing session will be paused to protect the document's integrity.
 
-### Available Commands
+### Can I see who made specific changes?
 
-- `npm run dev` - Start development environment
-- `npm run build` - Build production assets
-- `npm run lint` - Run linting checks
-- `npm run format` - Format code
-- `npm run check-types` - TypeScript type checking
-- `npm run plugin-zip` - Create plugin zip for distribution
-- `npm run test:e2e` - Run end-to-end tests
-- `npm run test:e2e:debug` Show end-to-end tests in the Playwright UI for easier debugging
+The plugin shows live editing activity and user presence. For detailed change tracking, you can use WordPress's built-in revision system.
 
-### Environment Variables
+### How does conflict resolution work?
 
-- `VIP_RTC_WS_URL`: This is the websockets url that'll be used as the sync provider by Yjs. By default, it's null. On local dev environments, it's set to `ws://localhost:1234`.
-- `VIP_RTC_WS_AUTH_SECRET`: This is the auth token used by the websockets server to ensure that, only authorized parties can connect to it. By default, it's null. On local dev environments, it's set to `vip_rtc_ws_auth_secret`.
+The plugin uses advanced algorithms to automatically merge changes from multiple users, preventing conflicts.
+
+## Development
+
+For development setup, contributing guidelines, and technical information, please see:
+
+- [CONTRIBUTING.md](docs/CONTRIBUTING.md) - Development setup and contribution guidelines
+- [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) - Technical architecture documentation
+- [SECURITY.md](docs/SECURITY.md) - Reporting security issues
+
+## Support
+
+Please contact VIP Support for technical issues or questions.
+
+## Credits
+
+Parts of this work are based on contributions made by Kevin Jahns, which can be found in [this PR](https://github.com/WordPress/gutenberg/pull/68483).
