@@ -28,7 +28,11 @@ interface PersistedCrdtDocMetaValue {
 const logger = new Logger( 'crdt' );
 
 function serializeCrdtDoc( crdtDoc: CRDTDoc ): string {
-	return buffer.toBase64( Y.encodeStateAsUpdateV2( crdtDoc ) );
+	const yupdate = Y.encodeStateAsUpdateV2( crdtDoc );
+
+	console.debug( `[rtc] CRDT doc's size is ${ yupdate.byteLength } bytes` );
+
+	return buffer.toBase64( yupdate );
 }
 
 function deserializeCrdtDoc(

@@ -47,9 +47,6 @@ export class SyncProviderWithAwareness extends window.wp.sync.SyncProvider {
 		const contentHash = await getHashForEntityRecord( rawRecord, syncConfig );
 		const entityMeta = createPersistedCrdtDocMetaRecord( ydoc, contentHash );
 
-		const docLength = Y.encodeStateAsUpdate( ydoc ).byteLength;
-		console.debug( `[rtc] CRDT doc for ${ objectType }#${ objectId } is ${ docLength } bytes` );
-
 		this.logger.debug( 'Providing updated entity meta to saveEntityRecord', {
 			objectType,
 			objectId,

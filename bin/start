@@ -144,8 +144,8 @@ trap 'cleanup' INT TERM
 install_dependencies
 start_websocket_server
 start_yjs_inspector
-start_wordpress
-configure_wordpress
+#start_wordpress
+#configure_wordpress
 
 open_browser
 
