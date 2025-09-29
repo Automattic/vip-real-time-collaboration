@@ -4,6 +4,7 @@
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
+import * as Y from 'yjs';
 
 /**
  * Internal dependencies
@@ -27,13 +28,13 @@ import {
 } from '@/utilities/notifications';
 import {
 	getSelectionState,
+	SelectableBlock,
 	SelectionType,
 	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
 import type { Awareness } from 'y-protocols/awareness';
-import type * as Y from 'yjs';
 
 type AwarenessClientID = number;
 
@@ -73,6 +74,27 @@ export class AwarenessManager {
 
 		const { patchUser } = dispatch( awarenessStore );
 		void patchUser( clientId, { isConnected } );
+	}
+
+	public static convertRelativePositionToAbsolutePosition(
+		position: Y.RelativePosition
+	): Y.AbsolutePosition {
+		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
+			throw new Error( 'convertRelativePositionToAbsolutePosition() awareness document not found' );
+		}
+
+		const absolutePosition = Y.createAbsolutePositionFromRelativePosition(
+			position,
+			AwarenessManager.__instance.awareness.doc
+		);
+
+		if ( absolutePosition === null ) {
+			throw new Error(
+				'convertRelativePositionToAbsolutePosition() absolute position returned null'
+			);
+		}
+
+		return absolutePosition;
 	}
 
 	private setCurrentUserState(): void {
@@ -259,8 +281,11 @@ export class AwarenessManager {
 			selectionStart = newSelectionStart;
 			selectionEnd = newSelectionEnd;
 
+			const ydocument = this.awareness.doc.getMap( 'document' );
+			const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
+
 			const editorState = {
-				selection: getSelectionState( selectionStart, selectionEnd ),
+				selection: getSelectionState( selectionStart, selectionEnd, yBlocks ),
 			};
 
 			// Store the most recent editor state for awareness throttle

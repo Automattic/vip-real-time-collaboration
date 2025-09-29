@@ -2,6 +2,13 @@ import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, select } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+import * as Y from 'yjs';
+
+// Convenience types to manage block values with a clientId, attributes, and innerBlocks.
+type BlockClientId = string;
+type BlockInnerBlocks = Y.Array< SelectableBlock >;
+type BlockAttributes = Y.Map< Y.Text >;
+export type SelectableBlock = Y.Map< BlockClientId | BlockAttributes | BlockInnerBlocks >;
 
 export enum SelectionType {
 	None = 'none',
@@ -20,15 +27,15 @@ export type SelectionCursor = {
 	// The user has a cursor position in a block with no text highlighted.
 	type: SelectionType.Cursor;
 	blockId: string;
-	cursorPosition: number;
+	cursorPosition: Y.RelativePosition;
 };
 
 export type SelectionInOneBlock = {
 	// The user has highlighted text in a single block.
 	type: SelectionType.SelectionInOneBlock;
 	blockId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
+	cursorStartPosition: Y.RelativePosition;
+	cursorEndPosition: Y.RelativePosition;
 };
 
 export type SelectionInMultipleBlocks = {
@@ -36,8 +43,8 @@ export type SelectionInMultipleBlocks = {
 	type: SelectionType.SelectionInMultipleBlocks;
 	blockStartId: string;
 	blockEndId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
+	cursorStartPosition: Y.RelativePosition;
+	cursorEndPosition: Y.RelativePosition;
 };
 
 export type SelectionWholeBlock = {
@@ -106,7 +113,8 @@ export function areSelectionsEqual(
  */
 export function getSelectionState(
 	selectionStart: WPBlockSelection,
-	selectionEnd: WPBlockSelection
+	selectionEnd: WPBlockSelection,
+	yBlocks: Y.Array< SelectableBlock >
 ): SelectionState {
 	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
 	if ( isSelectionEmpty ) {
@@ -135,15 +143,15 @@ export function getSelectionState(
 		return {
 			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
-			cursorPosition: selectionStart.offset,
+			cursorPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
 		};
 	} else if ( isSelectionInOneBlock ) {
 		// Case 4: Selection in a single block
 		return {
 			type: SelectionType.SelectionInOneBlock,
 			blockId: selectionStart.clientId,
-			cursorStartPosition: selectionStart.offset,
-			cursorEndPosition: selectionEnd.offset,
+			cursorStartPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
+			cursorEndPosition: getRelativeCursorPosition( selectionEnd, yBlocks ),
 		};
 	}
 
@@ -152,8 +160,8 @@ export function getSelectionState(
 		type: SelectionType.SelectionInMultipleBlocks,
 		blockStartId: selectionStart.clientId,
 		blockEndId: selectionEnd.clientId,
-		cursorStartPosition: selectionStart.offset,
-		cursorEndPosition: selectionEnd.offset,
+		cursorStartPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
+		cursorEndPosition: getRelativeCursorPosition( selectionEnd, yBlocks ),
 	};
 }
 
@@ -193,4 +201,45 @@ export async function updateSelectionInEntityRecord(
 	await editEntityRecord( 'postType', postType, postId, edits, {
 		undoIgnore: true,
 	} );
+}
+
+export function getRelativeCursorPosition(
+	selection: WPBlockSelection,
+	blocks: Y.Array< SelectableBlock >
+): Y.RelativePosition {
+	const block = findBlockByClientId( selection.clientId, blocks );
+	const attributes = block.get( 'attributes' ) as Y.Map< Y.Text >;
+	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
+
+	const relativePosition = Y.createRelativePositionFromTypeIndex( currentYText, selection.offset );
+	console.log( 'Created relative position:', {
+		relativePositionJson: JSON.stringify( relativePosition ),
+	} );
+	return relativePosition;
+}
+
+function findBlockByClientId(
+	blockId: string,
+	blocks: Y.Array< SelectableBlock >
+): SelectableBlock {
+	for ( const block of blocks ) {
+		if ( block.get( 'clientId' ) === blockId ) {
+			return block;
+		}
+
+		const innerBlocks = block.get( 'innerBlocks' ) as BlockInnerBlocks;
+
+		if ( innerBlocks.length > 0 ) {
+			const innerBlock = findBlockByClientId(
+				blockId,
+				block.get( 'innerBlocks' ) as Y.Array< SelectableBlock >
+			);
+
+			if ( innerBlock ) {
+				return innerBlock;
+			}
+		}
+	}
+
+	throw new Error( `Unable to find block with findBlockByClientId() for clientId: ${ blockId }` );
 }

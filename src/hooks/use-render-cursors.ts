@@ -1,6 +1,7 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
+import { AwarenessManager } from '@/awareness-manager';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
 import { Logger } from '@/utilities/logger';
@@ -103,7 +104,7 @@ const drawUserSelections = (
 		if ( selection.type === SelectionType.None ) {
 			// Nothing selected.
 		} else if ( selection.type === SelectionType.WholeBlock ) {
-			// Don't try to draw a cursor for a whole block selection.
+			// Don't draw a cursor for a whole block selection.
 		} else if ( selection.type === SelectionType.Cursor ) {
 			coords = getCursorPosition( selection, editorDocument, overlay );
 		} else if ( selection.type === SelectionType.SelectionInOneBlock ) {
@@ -167,7 +168,11 @@ const getCursorPosition = (
 	selection: SelectionCursor,
 	editorDocument: Document,
 	overlay: HTMLElement
-) => {
+): { x: number; y: number; height: number } | null => {
+	const absolutePosition = AwarenessManager.convertRelativePositionToAbsolutePosition(
+		selection.cursorPosition
+	);
+
 	const blockElement = editorDocument.querySelector(
 		`[data-block="${ selection.blockId }"]`
 	) as HTMLElement;
@@ -178,7 +183,7 @@ const getCursorPosition = (
 
 	const coords = getOffsetPositionInBlock(
 		blockElement,
-		selection.cursorPosition,
+		absolutePosition.index,
 		editorDocument,
 		overlay
 	);

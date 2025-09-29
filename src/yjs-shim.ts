@@ -25,4 +25,8 @@ export const applyUpdateV2 = window.wp.sync.Y.applyUpdateV2;
 export const encodeStateVector = window.wp.sync.Y.encodeStateVector;
 export const encodeStateAsUpdate = window.wp.sync.Y.encodeStateAsUpdate;
 export const encodeStateAsUpdateV2 = window.wp.sync.Y.encodeStateAsUpdateV2;
+export const createRelativePositionFromTypeIndex =
+	window.wp.sync.Y.createRelativePositionFromTypeIndex;
+export const createAbsolutePositionFromRelativePosition =
+	window.wp.sync.Y.createAbsolutePositionFromRelativePosition;
 export const Doc = window.wp.sync.Y.Doc;
