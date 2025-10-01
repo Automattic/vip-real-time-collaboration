@@ -10,179 +10,71 @@ Please see [SECURITY.md](SECURITY.md).
 
 ### Prerequisites
 
-- WordPress 6.7+
-- Gutenberg plugin (see [here](#custom-gutenberg-development))
-- PHP 8.2+
-- Node.js and npm
-- MySQL 8.0+ or MariaDB 10.6+ (for integration tests)
-
-### Project Initialization
-
-After cloning the repo, initialize the project by following these steps:
-
-1. **Install dependencies:**
-
-   ```bash
-   npm install
-   ```
-
-2. **Initialize husky:**
-
-   ```bash
-   npx husky init
-   ```
-
-   You may have to run this command to make the pre-commit hook operational. This will overwrite the `.husky/pre-commit` file, which you can revert after running the command.
+- Custom Gutenberg build in sibling directory (`../gutenberg`)
+  - This plugin currently requires a custom Gutenberg build ([latest release](https://github.com/Automattic/vip-go-mu-plugins-ext/tree/trunk/vip-integrations/gutenberg)). If you use our `wp-env`-based development environment, it expects this custom build to be present in a sibling directory named `gutenberg`.
+  - If you use a different development environment, ensure the custom Gutenberg build is installed and active.
+- Node.js
+- Docker runtime and Docker Compose
 
 ### Running the development environment
 
-To start a fully working development environment:
+Start the development environment:
 
-1. **Start the WordPress development environment:**
+```sh
+npm run dev
+```
 
-   ```bash
-   npm run dev
-   ```
+This starts WordPress at `http://localhost:8888` and the local WebSocket server at `ws://localhost:1234`.
 
-   This starts WordPress at `http://localhost:8888`.
+### Additional commands
 
-2. **Start the local WebSocket server:**
+- `npm run dev:stop` stops the development environment without destroying content
+- `npm run dev:destroy` destroys the development environment and all content
 
-   ```bash
-   npm run dev:websocket-server
-   ```
+### Constants and environment variables
 
-   This Starts the local WebSocket server at `ws://localhost:1234`.
+The following PHP constants are automatically defined in our development environment:
 
-### Custom Gutenberg Development
+| Variable                               | Value                    | Description                         |
+| -------------------------------------- | ------------------------ | ----------------------------------- |
+| `VIP_RTC_WS_URL`                       | `ws://localhost:1234`    | WebSocket URL for Yjs sync provider |
+| `VIP_RTC_WS_AUTH_SECRET`               | `vip_rtc_ws_auth_secret` | Secret used to generate auth tokens |
+| `VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS` | `3600`                   | Auth token expiration in seconds    |
 
-This plugin is built on top of the `release/vip-rtc-0.1.0` branch, from the Gutenberg fork [here](https://github.com/Automattic/gutenberg/tree/release/vip-rtc-0.1.0).
-
-If you want to develop against a custom build of Gutenberg, copy `.wp-env.override.gutenberg-dev.json` to `.wp-env.override.json` and re-run `npm run dev`. This file assumes Gutenberg is checked out in a sibling folder of this project named `gutenberg`; adjust the path accordingly, if needed. Make sure to start the development build of Gutenberg.
-
-## Available Commands
-
-This section lists a selection of available commands. You may find additional commands in the [package.json](../package.json) file.
-
-### Development
-
-- `npm run dev` - Start development environment
-- `npm run dev:stop` - Stop the development environment
-- `npm run start` - Start webpack dev server with hot reload
-- `npm run dev:websocket-server` - Start the WebSocket server for real-time collaboration
-- `npm run dev:yjs-inspector` - Start the Yjs state inspector tool
-
-### Code Quality & Linting
-
-- `npm run lint` - Run all linting checks (JavaScript, CSS, PHP, TypeScript)
-- `npm run format` - Format code according to project standards
-- `npm run format:check` - Check if code is properly formatted
-- `npm run check-types` - TypeScript type checking
-- `npm run lint:js` - Run JavaScript/TypeScript linting only
-- `npm run lint:php` - Run PHP linting (PHPCodeSniffer + Psalm)
-
-### Testing
-
-- `npm run test:e2e` - Run end-to-end tests
-- `npm run test:e2e:debug` - Debug end-to-end tests in Playwright UI
-- `composer testwp-install` - Install integration test files and database (needed to run the tests)
-- `composer testwp` - Run PHP integration tests
-- `composer testwp-coverage` - Run PHP integration tests with code coverage
-- `composer testwp-experimental` - Run PHP integration tests in experimental mode (ignores possible deprecation errors)
-
-## Environment Variables
-
-The following environment variables are used during development:
-
-| Variable                 | Default | Development              | Description                               |
-| ------------------------ | ------- | ------------------------ | ----------------------------------------- |
-| `VIP_RTC_WS_URL`         | `null`  | `ws://localhost:1234`    | WebSocket URL for Yjs sync provider       |
-| `VIP_RTC_WS_AUTH_SECRET` | `null`  | `vip_rtc_ws_auth_secret` | Authentication token for WebSocket server |
+If you use a different development environment, ensure these variables are set accordingly. Note that `VIP_RTC_WS_AUTH_SECRET` must also be provided as an environment variable to the WebSocket server.
 
 ## Project Structure
 
 - **bin/**: Development scripts for starting/stopping the local environment
+- **build/**: Compiled JavaScript assets (generated)
 - **inc/**: PHP includes and server-side functionality
 - **src/**: TypeScript source files for the front-end components
 - **tests/**: Tests for validating the plugin's functionalities
 - **websocket-server/**: A development Node.js WebSocket server
 - **yjs-inspector/**: Development tool for inspecting Yjs document state
-- **build/**: Compiled JavaScript assets (generated)
 
-## Debugging Tools
+## Debugging
 
 ### Yjs Inspector
 
-The project includes a Yjs Inspector tool for debugging collaborative document state:
+The development environment includes a Yjs Inspector tool for debugging collaborative document state. When you open a post in the editor, a link to the Yjs Inspector will be logged in your browser's development console. This link opens a web interface where you can inspect the current state ofthe Yjs document, view document history, and debug synchronization issues.
 
-```bash
-npm run dev:yjs-inspector
-```
+## Guidelines
 
-This opens a web interface where you can inspect the current state of Yjs documents, view document history, and debug synchronization issues.
-
-### WebSocket Server Metrics
-
-The development WebSocket server includes basic metrics and logging:
-
-```bash
-npm run dev:websocket-server
-```
-
-Monitor the console output for connection events, message counts, and error logs.
-
-## Development Guidelines
-
-### Code Quality
+### Code quality
 
 - Follow the existing code style and conventions
+- Run `npm run lint` to check for linting issues
 - Use `npm run format` to automatically format code
 - Ensure TypeScript types are correct with `npm run check-types`
 - Ensure all tests pass before committing
-- The project uses Husky for pre-commit hooks, running linting on staged files
 
 ### Testing
 
-- Write tests for new functionality
+- Write unit or integration tests for new functionality
 - Run the full test suite before submitting changes:
+  - `npm run test` for PHP and TypeScript tests
   - `npm run test:e2e` for end-to-end tests (use `npm run test:e2e:debug` for interactive debugging)
-  - `composer testwp` for PHP integration tests
-
-## Troubleshooting
-
-### Common Issues
-
-**WordPress environment fails to start:**
-
-- Ensure Docker is running on your system
-- Try `npm run dev:destroy` followed by `npm run dev` to reset the environment
-- Check that ports 8888 and 1234 are not in use by other applications
-
-**WebSocket connection issues:**
-
-- Verify the WebSocket server is running with `npm run dev:websocket-server`
-- Check that `VIP_RTC_WS_URL` is set to `ws://localhost:1234` in your environment
-- Ensure firewall isn't blocking WebSocket connections
-
-**Gutenberg custom build issues:**
-
-- Make sure you're using the correct Gutenberg branch: `add/experimental-collaborative-editing`
-- Verify the Gutenberg development build is running
-- Check that the override file path points to the correct Gutenberg directory
-
-**Linting failures:**
-
-- Run `npm run format` to auto-fix formatting issues
-- Run individual linting commands to isolate the problem:
-  - `npm run lint:js` for JavaScript/TypeScript
-  - `npm run lint:php` for PHP
-- Check that all dependencies are properly installed
-
-**Integration tests do not run:**
-
-- Make sure you have a database per the [Prerequisites](#prerequisites) section
-- before running `composer testwp`, you need to install the required files and database using `composer testwp-install`
-- `composer testwp-install` adds files to a temporary directory, so you may need to run it again if you have rebooted
 
 ## Technical Architecture
 
