@@ -56,7 +56,6 @@
     "@automattic/eslint-plugin-wpvip": "0.13.1",
     "@playwright/test": "^1.54.1",
     "@types/wordpress__block-editor": "^11.5.17",
-    "@types/wordpress__notices": "3.27.6",
     "@wordpress/api-fetch": "7.31.0",
     "@wordpress/block-editor": "^15.4.0",
     "@wordpress/blocks": "^15.0.0",
