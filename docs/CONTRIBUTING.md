@@ -10,6 +10,7 @@ Please see [SECURITY.md](SECURITY.md).
 
 ### Prerequisites
 
+- WordPress 6.7+
 - Custom Gutenberg build in sibling directory (`../gutenberg`)
   - This plugin currently requires a custom Gutenberg build ([latest release](https://github.com/Automattic/vip-go-mu-plugins-ext/tree/trunk/vip-integrations/gutenberg)). If you use our `wp-env`-based development environment, it expects this custom build to be present in a sibling directory named `gutenberg`.
   - If you use a different development environment, ensure the custom Gutenberg build is installed and active.
