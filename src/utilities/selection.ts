@@ -18,6 +18,22 @@ export enum SelectionType {
 	WholeBlock = 'whole-block',
 }
 
+export type CursorPosition = {
+	relativePosition: Y.RelativePosition;
+
+	// Also store the absolute offset index of the cursor from the perspective
+	// of the user who is updating the selection.
+	//
+	// Do not use this value directly, instead use `createAbsolutePositionFromRelativePosition()`
+	// on relativePosition for the most up-to-date positioning.
+	//
+	// This is used because local Y.Text changes (e.g. adding or deleting a character)
+	// can result in the same relative position if it is pinned to an unchanged
+	// character. With both of these values as editor state, a change in perceived
+	// position will always result in a redraw.
+	absoluteOffset: number;
+};
+
 export type SelectionNone = {
 	// The user has not made a selection.
 	type: SelectionType.None;
@@ -27,15 +43,15 @@ export type SelectionCursor = {
 	// The user has a cursor position in a block with no text highlighted.
 	type: SelectionType.Cursor;
 	blockId: string;
-	cursorPosition: Y.RelativePosition;
+	cursorPosition: CursorPosition;
 };
 
 export type SelectionInOneBlock = {
 	// The user has highlighted text in a single block.
 	type: SelectionType.SelectionInOneBlock;
 	blockId: string;
-	cursorStartPosition: Y.RelativePosition;
-	cursorEndPosition: Y.RelativePosition;
+	cursorStartPosition: CursorPosition;
+	cursorEndPosition: CursorPosition;
 };
 
 export type SelectionInMultipleBlocks = {
@@ -43,8 +59,8 @@ export type SelectionInMultipleBlocks = {
 	type: SelectionType.SelectionInMultipleBlocks;
 	blockStartId: string;
 	blockEndId: string;
-	cursorStartPosition: Y.RelativePosition;
-	cursorEndPosition: Y.RelativePosition;
+	cursorStartPosition: CursorPosition;
+	cursorEndPosition: CursorPosition;
 };
 
 export type SelectionWholeBlock = {
@@ -99,15 +115,15 @@ export function getSelectionState(
 		return {
 			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
-			cursorPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
+			cursorPosition: getCursorPosition( selectionStart, yBlocks ),
 		};
 	} else if ( isSelectionInOneBlock ) {
 		// Case 4: Selection in a single block
 		return {
 			type: SelectionType.SelectionInOneBlock,
 			blockId: selectionStart.clientId,
-			cursorStartPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
-			cursorEndPosition: getRelativeCursorPosition( selectionEnd, yBlocks ),
+			cursorStartPosition: getCursorPosition( selectionStart, yBlocks ),
+			cursorEndPosition: getCursorPosition( selectionEnd, yBlocks ),
 		};
 	}
 
@@ -116,8 +132,8 @@ export function getSelectionState(
 		type: SelectionType.SelectionInMultipleBlocks,
 		blockStartId: selectionStart.clientId,
 		blockEndId: selectionEnd.clientId,
-		cursorStartPosition: getRelativeCursorPosition( selectionStart, yBlocks ),
-		cursorEndPosition: getRelativeCursorPosition( selectionEnd, yBlocks ),
+		cursorStartPosition: getCursorPosition( selectionStart, yBlocks ),
+		cursorEndPosition: getCursorPosition( selectionEnd, yBlocks ),
 	};
 }
 
@@ -159,26 +175,20 @@ export async function updateSelectionInEntityRecord(
 	} );
 }
 
-export function getRelativeCursorPosition(
+export function getCursorPosition(
 	selection: WPBlockSelection,
 	blocks: Y.Array< SelectableBlock >
-): Y.RelativePosition {
+): CursorPosition {
 	const block = findBlockByClientId( selection.clientId, blocks );
 	const attributes = block.get( 'attributes' ) as Y.Map< Y.Text >;
 	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
 
 	const relativePosition = Y.createRelativePositionFromTypeIndex( currentYText, selection.offset );
-	console.log(
-		'Created relative position from',
-		selection,
-		':',
-		{
-			currentYText: currentYText.toJSON(),
-		},
-		'=>',
-		JSON.stringify( relativePosition )
-	);
-	return relativePosition;
+
+	return {
+		relativePosition,
+		absoluteOffset: selection.offset,
+	};
 }
 
 function findBlockByClientId(

@@ -170,7 +170,7 @@ const getCursorPosition = (
 	overlay: HTMLElement
 ): { x: number; y: number; height: number } | null => {
 	const absolutePosition = AwarenessManager.convertRelativePositionToAbsolutePosition(
-		selection.cursorPosition
+		selection.cursorPosition.relativePosition
 	);
 
 	if ( absolutePosition === null ) {
