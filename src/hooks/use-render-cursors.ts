@@ -173,6 +173,13 @@ const getCursorPosition = (
 		selection.cursorPosition
 	);
 
+	if ( absolutePosition === null ) {
+		// An absolute position can be null if a cursor was set in a block that
+		// has since been deleted.
+		// Return null so we don't try to draw it.
+		return null;
+	}
+
 	const blockElement = editorDocument.querySelector(
 		`[data-block="${ selection.blockId }"]`
 	) as HTMLElement;

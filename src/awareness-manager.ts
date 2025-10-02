@@ -79,23 +79,16 @@ export class AwarenessManager {
 
 	public static convertRelativePositionToAbsolutePosition(
 		position: Y.RelativePosition
-	): Y.AbsolutePosition {
+	): Y.AbsolutePosition | null {
 		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
-			throw new Error( 'convertRelativePositionToAbsolutePosition() awareness document not found' );
+			console.error( 'convertRelativePositionToAbsolutePosition() awareness document not found' );
+			return null;
 		}
 
-		const absolutePosition = Y.createAbsolutePositionFromRelativePosition(
+		return Y.createAbsolutePositionFromRelativePosition(
 			position,
 			AwarenessManager.__instance.awareness.doc
 		);
-
-		if ( absolutePosition === null ) {
-			throw new Error(
-				'convertRelativePositionToAbsolutePosition() absolute position returned null'
-			);
-		}
-
-		return absolutePosition;
 	}
 
 	private setCurrentUserState(): void {
