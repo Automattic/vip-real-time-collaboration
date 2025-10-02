@@ -36,10 +36,6 @@ See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for development setup instructions.
 
 ## FAQ
 
-### Is this plugin available to WPVIP customers?
-
-VIP Real-Time Collaboration is currently in development and not yet available to all WPVIP customers.
-
 ### Do I need special permissions to collaborate?
 
 No additional permissions are required. Users can collaborate on any content they already have permission to edit in WordPress.
