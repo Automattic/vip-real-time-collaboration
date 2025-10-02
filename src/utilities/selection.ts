@@ -75,25 +75,37 @@ export function areSelectionsEqual(
 		case SelectionType.Cursor:
 			return (
 				selection1.blockId === ( selection2 as SelectionCursor ).blockId &&
-				selection1.cursorPosition === ( selection2 as SelectionCursor ).cursorPosition
+				areRelativePositionsEqual(
+					selection1.cursorPosition,
+					( selection2 as SelectionCursor ).cursorPosition
+				)
 			);
 
 		case SelectionType.SelectionInOneBlock:
 			return (
 				selection1.blockId === ( selection2 as SelectionInOneBlock ).blockId &&
-				selection1.cursorStartPosition ===
-					( selection2 as SelectionInOneBlock ).cursorStartPosition &&
-				selection1.cursorEndPosition === ( selection2 as SelectionInOneBlock ).cursorEndPosition
+				areRelativePositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInOneBlock ).cursorStartPosition
+				) &&
+				areRelativePositionsEqual(
+					selection1.cursorEndPosition,
+					( selection2 as SelectionInOneBlock ).cursorEndPosition
+				)
 			);
 
 		case SelectionType.SelectionInMultipleBlocks:
 			return (
 				selection1.blockStartId === ( selection2 as SelectionInMultipleBlocks ).blockStartId &&
 				selection1.blockEndId === ( selection2 as SelectionInMultipleBlocks ).blockEndId &&
-				selection1.cursorStartPosition ===
-					( selection2 as SelectionInMultipleBlocks ).cursorStartPosition &&
-				selection1.cursorEndPosition ===
+				areRelativePositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInMultipleBlocks ).cursorStartPosition
+				) &&
+				areRelativePositionsEqual(
+					selection1.cursorEndPosition,
 					( selection2 as SelectionInMultipleBlocks ).cursorEndPosition
+				)
 			);
 
 		case SelectionType.WholeBlock:
@@ -102,6 +114,14 @@ export function areSelectionsEqual(
 		default:
 			return false;
 	}
+}
+
+export function areRelativePositionsEqual(
+	relativePosition1: Y.RelativePosition,
+	relativePosition2: Y.RelativePosition
+): boolean {
+	// Y.RelativePosition can be safely converted to a JSON string.
+	return JSON.stringify( relativePosition1 ) === JSON.stringify( relativePosition2 );
 }
 
 /**
@@ -212,9 +232,16 @@ export function getRelativeCursorPosition(
 	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
 
 	const relativePosition = Y.createRelativePositionFromTypeIndex( currentYText, selection.offset );
-	console.log( 'Created relative position:', {
-		relativePositionJson: JSON.stringify( relativePosition ),
-	} );
+	console.log(
+		'Created relative position from',
+		selection,
+		':',
+		{
+			currentYText: currentYText.toJSON(),
+		},
+		'=>',
+		JSON.stringify( relativePosition )
+	);
 	return relativePosition;
 }
 

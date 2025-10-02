@@ -249,7 +249,7 @@ export class AwarenessManager {
 	}
 
 	private subscribeToSelectionChanges(): void {
-		const { getSelectionStart, getSelectionEnd } = select(
+		const { getSelectionStart, getSelectionEnd, getSelectedBlocksInitialCaretPosition } = select(
 			blockEditorStore
 		) as BlockEditorStoreSelectors;
 
@@ -269,14 +269,28 @@ export class AwarenessManager {
 			selectionStart = newSelectionStart;
 			selectionEnd = newSelectionEnd;
 
-			// When the local user types a character, the selection change fires before
-			// the underlying Y.Text content has been updated.
-			// Wait until the current call stack is clear with a setTimeout( ..., 0 )
-			// so that the relative position can be based on the updated Y.Text content.
-			// Without this, relative positions are always off by one character when typing.
-			setTimeout( () => {
+			// Typically selection position is only persisted after typing in a block, which
+			// can cause selection position to be reset by other users making block updates.
+			// Ensure we update the controlled selection right away, persisting our cursor position locally.
+			void updateSelectionInEntityRecord(
+				selectionStart,
+				selectionEnd,
+				getSelectedBlocksInitialCaretPosition()
+			);
+
+			// We receive two selection changes in quick succession
+			// from local selection events:
+			//   { clientId: "123...", attributeKey: "content", offset: undefined }
+			//   { clientId: "123...", attributeKey: "content", offset: 554 }
+			// Add a short debounce to avoid sending the first selection change.
+			let localCursorTimeout: NodeJS.Timeout | null = null;
+			if ( localCursorTimeout ) {
+				clearTimeout( localCursorTimeout );
+			}
+
+			localCursorTimeout = setTimeout( () => {
 				this.updateSelectionState( selectionStart, selectionEnd );
-			}, 0 );
+			}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 		} );
 	}
 
@@ -284,46 +298,23 @@ export class AwarenessManager {
 		selectionStart: WPBlockSelection,
 		selectionEnd: WPBlockSelection
 	): void {
-		const { getSelectedBlocksInitialCaretPosition } = select(
-			blockEditorStore
-		) as BlockEditorStoreSelectors;
 		const { patchUser } = dispatch( awarenessStore );
-
-		// Use timeouts to debounce local updates and throttle awareness updates.
-		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
-		let localCursorTimeout: NodeJS.Timeout | null = null;
-		let pendingEditorState: { selection: ReturnType< typeof getSelectionState > } | null = null;
 
 		const ydocument = this.awareness.doc.getMap( 'document' );
 		const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
-
 		const editorState = {
 			selection: getSelectionState( selectionStart, selectionEnd, yBlocks ),
 		};
 
+		// Update local state with the new selection state.
+		void patchUser( this.awareness.clientID, { editorState } );
+
+		// Throttle awareness updates.
+		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
+		let pendingEditorState: { selection: ReturnType< typeof getSelectionState > } | null = null;
+
 		// Store the most recent editor state for awareness throttle
 		pendingEditorState = editorState;
-
-		// Ensure we update the local controlled selection right away
-		// to avoid cursor changes from other users making block updates.
-		void updateSelectionInEntityRecord(
-			selectionStart,
-			selectionEnd,
-			getSelectedBlocksInitialCaretPosition()
-		);
-
-		// We usually receive two selection changes in quick succession
-		// from local selection events:
-		//   { clientId: "123...", attributeKey: "content", offset: undefined }
-		//   { clientId: "123...", attributeKey: "content", offset: 554 }
-		// Add a short debounce to avoid sending the first selection change.
-		if ( localCursorTimeout ) {
-			clearTimeout( localCursorTimeout );
-		}
-
-		localCursorTimeout = setTimeout( () => {
-			void patchUser( this.awareness.clientID, { editorState } );
-		}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 
 		// Throttle awareness updates - only set timeout if one isn't already running
 		if ( ! awarenessCursorTimeout ) {
