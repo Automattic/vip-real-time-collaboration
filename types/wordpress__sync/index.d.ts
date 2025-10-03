@@ -9,7 +9,6 @@ declare module '@wordpress/sync' {
 	type EntityID = string;
 	type ObjectID = string;
 	type ObjectType = string;
-	type UndoManager = Y.UndoManager;
 
 	interface ObjectData extends Record< string, unknown > {}
 
@@ -42,7 +41,6 @@ declare module '@wordpress/sync' {
 		handlers: RecordHandlers;
 		lastPersistedAt: number;
 		syncConfig: SyncConfig;
-		undoManager?: UndoManager;
 		ydoc: CRDTDoc;
 	}
 
