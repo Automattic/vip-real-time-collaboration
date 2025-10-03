@@ -6,4 +6,8 @@ declare module '@wordpress/editor' {
 		getCurrentPostType(): string | null;
 		getEditedPostContent(): string | null;
 	}
+
+	export var VisualEditorOverlay: {
+		Fill: React.ComponentType<{ children: React.ReactNode }>;
+	}
 }

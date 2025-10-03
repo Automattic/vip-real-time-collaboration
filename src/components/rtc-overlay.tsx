@@ -11,7 +11,7 @@ import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/setti
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
-	iframeDocument: Document;
+	iframeDocument: Document | null;
 }
 
 /**
@@ -19,16 +19,6 @@ interface RTCOverlayProps {
  */
 export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
-
-	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
-		SettingsStoreSelectors,
-		{ isAvatarsEnabled: boolean; isDebugToolsEnabled: boolean }
-	>( select => {
-		return {
-			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
-		};
-	} );
 
 	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
 
@@ -48,15 +38,6 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 			{ /* This is a full overlay that covers the entire iframe document.
 				Good for scrollable elements like cursor indicators */ }
 			<div className="vip-real-time-collaboration-overlay-full" ref={ mergedRef } />
-
-			{ /* This is a fixed overlay that covers the iframe window.
-				Good for floating elements like awareness avatars */ }
-			<div className="vip-real-time-collaboration-overlay-fixed">
-				{ isAvatarsEnabled && <Avatars /> }
-				{ isDebugToolsEnabled && <DebugTools iframeDocument={ iframeDocument } /> }
-			</div>
-
-			<PostLockedModal />
 		</>
 	);
 }

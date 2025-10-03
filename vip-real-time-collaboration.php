@@ -40,7 +40,7 @@ Telemetry\Telemetry::init( __FILE__ );
 
 // Examples (must be manually built):
 // require_once __DIR__ . '/examples/local-updates-block/local-updates-block.php';
-// require_once __DIR__ . '/examples/post-meta-block/post-meta-block.php';
+require_once __DIR__ . '/examples/post-meta-block/post-meta-block.php';
 
 add_action( 'plugins_loaded', static function (): void {
 	// If the plugin cannot load, return early.
