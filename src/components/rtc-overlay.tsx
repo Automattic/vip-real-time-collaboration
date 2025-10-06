@@ -16,15 +16,24 @@ interface RTCOverlayProps {
  */
 export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
-	const [ iframeDocument, setIframeDocument ] = useState< Document | null >( null );
+	const [ document, setDocument ] = useState< Document | null >( null );
 
 	useEffect( () => {
+		const ownerDocument = containerRef.current?.ownerDocument ?? null;
 		// Update iframe document on mount, which can happen when switching
 		// between iframed and non-iframed editors in preview mode.
-		setIframeDocument( containerRef.current?.ownerDocument ?? null );
+		setDocument( ownerDocument );
+
+		if ( ownerDocument ) {
+			// Redraw cursors after a short delay to ensure cursors are in the correct position
+			// after frame-changing animations (e.g. Desktop -> Tablet view) have completed.
+			setTimeout( () => {
+				renderCursorsRef.current?.();
+			}, 500 );
+		}
 	}, [] );
 
-	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
+	const renderCursorsRef = useRenderCursors( overlayRef, document );
 
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.
@@ -35,7 +44,7 @@ export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 	// Merge the refs to use the same element for both overlay and resize observation
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
-	useBlockHighlighting( iframeDocument );
+	useBlockHighlighting( document );
 
 	return (
 		<>
