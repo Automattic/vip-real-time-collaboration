@@ -1,6 +1,7 @@
 import '@wordpress/block-editor';
 
 import type { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+import type { Slot, Fill } from '@wordpress/components';
 
 declare module '@wordpress/block-editor' {
 	interface BlockEditorStoreSelectors {
@@ -29,4 +30,13 @@ declare module '@wordpress/block-editor' {
 			meta?: Record< string, any >
 		) => Record< string, any >;
 	}
+
+	interface BlockCanvasCoverFillProps {
+		containerElement: HTMLElement | null;
+	}
+
+	const BlockCanvasCover: {
+		Fill: Fill<BlockCanvasCoverFillProps>;
+		Slot: Slot<BlockCanvasCoverFillProps>;
+	};
 }
