@@ -21,6 +21,7 @@ import {
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
+import { MutableRefObject, Ref, useRef } from 'react';
 
 function isIFrameElement( element: HTMLElement ): element is HTMLIFrameElement {
 	return element?.tagName === 'IFRAME';
@@ -78,17 +79,9 @@ export function RTCSettingsPanel() {
 				</BlockCanvasCover.Fill>
 			) }
 			<BlockCanvasCover.Fill>
-				{ ( { containerElement }: { containerElement: HTMLElement } ) => {
-					console.log( 'containerElement', containerElement );
-					console.log( 'containerElement?.closest( document )', containerElement?.ownerDocument );
-					// if ( isIFrameElement( containerElement ) ) {
-					return (
-						containerElement && <RTCOverlay iframeDocument={ containerElement?.ownerDocument } />
-					);
-					// }
-
-					return <RTCOverlay iframeDocument={ null } />;
-				} }
+				{ ( { containerRef }: { containerRef: MutableRefObject< HTMLElement | null > } ) => (
+					<RTCOverlay iframeDocument={ containerRef.current?.ownerDocument ?? null } />
+				) }
 			</BlockCanvasCover.Fill>
 			<PostLockedModal />
 			<PluginDocumentSettingPanel
