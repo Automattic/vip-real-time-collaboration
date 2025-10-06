@@ -74,7 +74,7 @@ export function RTCSettingsPanel() {
 		<>
 			{ isAvatarsEnabled && (
 				<BlockCanvasCover.Fill>
-					<div style={ { position: 'sticky', top: 0, left: 0, right: 0, bottom: 0 } }><Avatars /></div>
+					<Avatars />
 				</BlockCanvasCover.Fill>
 			) }
 			<BlockCanvasCover.Fill>
