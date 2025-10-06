@@ -2,6 +2,7 @@ import '@wordpress/block-editor';
 
 import type { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import type { Slot, Fill } from '@wordpress/components';
+import type { MutableRefObject } from 'react';
 
 declare module '@wordpress/block-editor' {
 	interface BlockEditorStoreSelectors {
@@ -32,7 +33,7 @@ declare module '@wordpress/block-editor' {
 	}
 
 	interface BlockCanvasCoverFillProps {
-		containerElement: HTMLElement | null;
+		containerRef: MutableRefObject< HTMLElement | null >;
 	}
 
 	const BlockCanvasCover: {

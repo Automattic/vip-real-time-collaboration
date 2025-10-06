@@ -1,3 +1,4 @@
+import { BlockCanvasCover } from '@wordpress/block-editor';
 import {
 	Flex,
 	FlexItem,
@@ -6,9 +7,9 @@ import {
 	__experimentalText as Text,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PluginDocumentSettingPanel, VisualEditorOverlay } from '@wordpress/editor';
-import { BlockCanvasCover } from '@wordpress/block-editor';
+import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
+import { MutableRefObject } from 'react';
 
 import { Avatar } from './avatar';
 import { Avatars } from './avatars';
@@ -21,7 +22,6 @@ import {
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
-import { MutableRefObject, Ref, useRef } from 'react';
 
 function isIFrameElement( element: HTMLElement ): element is HTMLIFrameElement {
 	return element?.tagName === 'IFRAME';
@@ -79,9 +79,9 @@ export function RTCSettingsPanel() {
 				</BlockCanvasCover.Fill>
 			) }
 			<BlockCanvasCover.Fill>
-				{ ( { containerRef }: { containerRef: MutableRefObject< HTMLElement | null > } ) => (
-					<RTCOverlay iframeDocument={ containerRef.current?.ownerDocument ?? null } />
-				) }
+				{ ( { containerRef }: { containerRef: MutableRefObject< HTMLElement | null > } ) => {
+					return <RTCOverlay containerRef={ containerRef } />;
+				} }
 			</BlockCanvasCover.Fill>
 			<PostLockedModal />
 			<PluginDocumentSettingPanel

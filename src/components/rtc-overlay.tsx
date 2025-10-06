@@ -1,24 +1,28 @@
 import { useResizeObserver, useMergeRefs } from '@wordpress/compose';
-import { useSelect } from '@wordpress/data';
-import { useRef } from '@wordpress/element';
+import { useRef, useState, useEffect } from '@wordpress/element';
 
-import { Avatars } from '@/components/avatars';
-import { DebugTools } from '@/components/debug-tools';
-import { PostLockedModal } from '@/components/post-locked-modal';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
-import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
+
 import '@/components/rtc-overlay.scss';
+import { MutableRefObject } from 'react';
 
 interface RTCOverlayProps {
-	iframeDocument: Document | null;
+	containerRef: MutableRefObject< HTMLElement | null >;
 }
 
 /**
  * This component is responsible for rendering awareness components within the editor iframe.
  */
-export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
+export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
+	const [ iframeDocument, setIframeDocument ] = useState< Document | null >( null );
+
+	useEffect( () => {
+		// Update iframe document on mount, which can happen when switching
+		// between iframed and non-iframed editors in preview mode.
+		setIframeDocument( containerRef.current?.ownerDocument ?? null );
+	}, [] );
 
 	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
 
