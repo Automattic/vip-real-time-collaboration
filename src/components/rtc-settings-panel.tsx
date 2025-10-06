@@ -72,7 +72,11 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			<VisualEditorOverlay.Fill>{ isAvatarsEnabled && <Avatars /> }</VisualEditorOverlay.Fill>
+			{ isAvatarsEnabled && (
+				<BlockCanvasCover.Fill>
+					<div style={ { position: 'sticky', top: 0, left: 0, right: 0, bottom: 0 } }><Avatars /></div>
+				</BlockCanvasCover.Fill>
+			) }
 			<BlockCanvasCover.Fill>
 				{ ( { containerElement }: { containerElement: HTMLElement } ) => {
 					console.log( 'containerElement', containerElement );
