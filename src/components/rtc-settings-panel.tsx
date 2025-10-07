@@ -9,10 +9,10 @@ import {
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
-import { MutableRefObject } from 'react';
 
 import { Avatar } from './avatar';
 import { Avatars } from './avatars';
+import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
 import {
@@ -22,10 +22,6 @@ import {
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
-
-function isIFrameElement( element: HTMLElement ): element is HTMLIFrameElement {
-	return element?.tagName === 'IFRAME';
-}
 
 export function RTCSettingsPanel() {
 	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled, isSelfAwarenessEnabled } =
@@ -79,9 +75,14 @@ export function RTCSettingsPanel() {
 				</BlockCanvasCover.Fill>
 			) }
 			<BlockCanvasCover.Fill>
-				{ ( { containerRef }: { containerRef: MutableRefObject< HTMLElement | null > } ) => {
-					return <RTCOverlay containerRef={ containerRef } />;
-				} }
+				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
+					<>
+						<RTCOverlay containerRef={ containerRef } />
+						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
+							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
+						) }
+					</>
+				) }
 			</BlockCanvasCover.Fill>
 			<PostLockedModal />
 			<PluginDocumentSettingPanel
