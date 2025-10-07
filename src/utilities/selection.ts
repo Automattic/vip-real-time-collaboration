@@ -4,6 +4,10 @@ import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import * as Y from 'yjs';
 
+import { Logger } from './logger';
+
+const logger = new Logger( 'selection' );
+
 // Convenience types to manage block values with a clientId, attributes, and innerBlocks.
 type BlockClientId = string;
 type BlockInnerBlocks = Y.Array< SelectableBlock >;
@@ -296,7 +300,7 @@ export function areSelectionsEqual(
 			return selection1.blockId === ( selection2 as SelectionWholeBlock ).blockId;
 
 		default:
-			console.error( 'Unable to compare selection types:', selection1, selection2 );
+			logger.error( 'Unable to compare selection types:', selection1, selection2 );
 			return false;
 	}
 }
