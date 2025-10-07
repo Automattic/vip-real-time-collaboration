@@ -3,7 +3,9 @@
  */
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
+import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
 import { store as noticesStore } from '@wordpress/notices';
+import * as Y from 'yjs';
 
 /**
  * Internal dependencies
@@ -27,13 +29,13 @@ import {
 } from '@/utilities/notifications';
 import {
 	getSelectionState,
+	SelectableBlock,
 	SelectionType,
 	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
 
 import type { Awareness } from 'y-protocols/awareness';
-import type * as Y from 'yjs';
 
 type AwarenessClientID = number;
 
@@ -73,6 +75,20 @@ export class AwarenessManager {
 
 		const { patchUser } = dispatch( awarenessStore );
 		void patchUser( clientId, { isConnected } );
+	}
+
+	public static convertRelativePositionToAbsolutePosition(
+		position: Y.RelativePosition
+	): Y.AbsolutePosition | null {
+		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
+			console.error( 'convertRelativePositionToAbsolutePosition() awareness document not found' );
+			return null;
+		}
+
+		return Y.createAbsolutePositionFromRelativePosition(
+			position,
+			AwarenessManager.__instance.awareness.doc
+		);
 	}
 
 	private setCurrentUserState(): void {
@@ -233,20 +249,14 @@ export class AwarenessManager {
 	}
 
 	private subscribeToSelectionChanges(): void {
-		const { getSelectedBlocksInitialCaretPosition, getSelectionStart, getSelectionEnd } = select(
+		const { getSelectionStart, getSelectionEnd, getSelectedBlocksInitialCaretPosition } = select(
 			blockEditorStore
 		) as BlockEditorStoreSelectors;
-		const { patchUser } = dispatch( awarenessStore );
 
 		// Keep track of the current selection in the outer scope so we can compare
 		// in the subscription.
 		let selectionStart = getSelectionStart();
 		let selectionEnd = getSelectionEnd();
-
-		// Use timeouts to debounce local updates and throttle awareness updates.
-		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
-		let localCursorTimeout: NodeJS.Timeout;
-		let pendingEditorState: { selection: ReturnType< typeof getSelectionState > } | null = null;
 
 		subscribe( () => {
 			const newSelectionStart = getSelectionStart();
@@ -259,42 +269,63 @@ export class AwarenessManager {
 			selectionStart = newSelectionStart;
 			selectionEnd = newSelectionEnd;
 
-			const editorState = {
-				selection: getSelectionState( selectionStart, selectionEnd ),
-			};
-
-			// Store the most recent editor state for awareness throttle
-			pendingEditorState = editorState;
-
-			// Ensure we update the local controlled selection right away
-			// to avoid cursor changes from other users making block updates.
+			// Typically selection position is only persisted after typing in a block, which
+			// can cause selection position to be reset by other users making block updates.
+			// Ensure we update the controlled selection right away, persisting our cursor position locally.
 			void updateSelectionInEntityRecord(
 				selectionStart,
 				selectionEnd,
 				getSelectedBlocksInitialCaretPosition()
 			);
 
-			// We usually receive two selection changes in quick succession
+			// We receive two selection changes in quick succession
 			// from local selection events:
 			//   { clientId: "123...", attributeKey: "content", offset: undefined }
 			//   { clientId: "123...", attributeKey: "content", offset: 554 }
 			// Add a short debounce to avoid sending the first selection change.
-			clearTimeout( localCursorTimeout );
-			localCursorTimeout = setTimeout( () => {
-				void patchUser( this.awareness.clientID, { editorState } );
-			}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
-
-			// Throttle awareness updates - only set timeout if one isn't already running
-			if ( ! awarenessCursorTimeout ) {
-				awarenessCursorTimeout = setTimeout( () => {
-					if ( pendingEditorState ) {
-						this.setLocalStateField( 'editorState', pendingEditorState );
-						pendingEditorState = null;
-					}
-					awarenessCursorTimeout = null;
-				}, AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS );
+			let localCursorTimeout: NodeJS.Timeout | null = null;
+			if ( localCursorTimeout ) {
+				clearTimeout( localCursorTimeout );
 			}
+
+			localCursorTimeout = setTimeout( () => {
+				this.updateSelectionState( selectionStart, selectionEnd );
+			}, LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS );
 		} );
+	}
+
+	private updateSelectionState(
+		selectionStart: WPBlockSelection,
+		selectionEnd: WPBlockSelection
+	): void {
+		const { patchUser } = dispatch( awarenessStore );
+
+		const ydocument = this.awareness.doc.getMap( 'document' );
+		const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
+		const editorState = {
+			selection: getSelectionState( selectionStart, selectionEnd, yBlocks ),
+		};
+
+		// Update local state with the new selection state.
+		void patchUser( this.awareness.clientID, { editorState } );
+
+		// Throttle awareness updates.
+		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
+		let pendingEditorState: { selection: ReturnType< typeof getSelectionState > } | null = null;
+
+		// Store the most recent editor state for awareness throttle
+		pendingEditorState = editorState;
+
+		// Throttle awareness updates - only set timeout if one isn't already running
+		if ( ! awarenessCursorTimeout ) {
+			awarenessCursorTimeout = setTimeout( () => {
+				if ( pendingEditorState ) {
+					this.setLocalStateField( 'editorState', pendingEditorState );
+					pendingEditorState = null;
+				}
+				awarenessCursorTimeout = null;
+			}, AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS );
+		}
 	}
 
 	private subscribeToUserChanges(): void {

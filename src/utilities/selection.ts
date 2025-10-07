@@ -2,6 +2,17 @@ import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, select } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+import * as Y from 'yjs';
+
+import { Logger } from './logger';
+
+const logger = new Logger( 'selection' );
+
+// Convenience types to manage block values with a clientId, attributes, and innerBlocks.
+type BlockClientId = string;
+type BlockInnerBlocks = Y.Array< SelectableBlock >;
+type BlockAttributes = Y.Map< Y.Text >;
+export type SelectableBlock = Y.Map< BlockClientId | BlockAttributes | BlockInnerBlocks >;
 
 export enum SelectionType {
 	None = 'none',
@@ -10,6 +21,22 @@ export enum SelectionType {
 	SelectionInMultipleBlocks = 'selection-in-multiple-blocks',
 	WholeBlock = 'whole-block',
 }
+
+export type CursorPosition = {
+	relativePosition: Y.RelativePosition;
+
+	// Also store the absolute offset index of the cursor from the perspective
+	// of the user who is updating the selection.
+	//
+	// Do not use this value directly, instead use `createAbsolutePositionFromRelativePosition()`
+	// on relativePosition for the most up-to-date positioning.
+	//
+	// This is used because local Y.Text changes (e.g. adding or deleting a character)
+	// can result in the same relative position if it is pinned to an unchanged
+	// character. With both of these values as editor state, a change in perceived
+	// position will always result in a redraw.
+	absoluteOffset: number;
+};
 
 export type SelectionNone = {
 	// The user has not made a selection.
@@ -20,15 +47,15 @@ export type SelectionCursor = {
 	// The user has a cursor position in a block with no text highlighted.
 	type: SelectionType.Cursor;
 	blockId: string;
-	cursorPosition: number;
+	cursorPosition: CursorPosition;
 };
 
 export type SelectionInOneBlock = {
 	// The user has highlighted text in a single block.
 	type: SelectionType.SelectionInOneBlock;
 	blockId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
+	cursorStartPosition: CursorPosition;
+	cursorEndPosition: CursorPosition;
 };
 
 export type SelectionInMultipleBlocks = {
@@ -36,8 +63,8 @@ export type SelectionInMultipleBlocks = {
 	type: SelectionType.SelectionInMultipleBlocks;
 	blockStartId: string;
 	blockEndId: string;
-	cursorStartPosition: number;
-	cursorEndPosition: number;
+	cursorStartPosition: CursorPosition;
+	cursorEndPosition: CursorPosition;
 };
 
 export type SelectionWholeBlock = {
@@ -53,50 +80,6 @@ export type SelectionState =
 	| SelectionInMultipleBlocks
 	| SelectionWholeBlock;
 
-export function areSelectionsEqual(
-	selection1: SelectionState,
-	selection2: SelectionState
-): boolean {
-	if ( selection1.type !== selection2.type ) {
-		return false;
-	}
-
-	switch ( selection1.type ) {
-		case SelectionType.None:
-			return true;
-
-		case SelectionType.Cursor:
-			return (
-				selection1.blockId === ( selection2 as SelectionCursor ).blockId &&
-				selection1.cursorPosition === ( selection2 as SelectionCursor ).cursorPosition
-			);
-
-		case SelectionType.SelectionInOneBlock:
-			return (
-				selection1.blockId === ( selection2 as SelectionInOneBlock ).blockId &&
-				selection1.cursorStartPosition ===
-					( selection2 as SelectionInOneBlock ).cursorStartPosition &&
-				selection1.cursorEndPosition === ( selection2 as SelectionInOneBlock ).cursorEndPosition
-			);
-
-		case SelectionType.SelectionInMultipleBlocks:
-			return (
-				selection1.blockStartId === ( selection2 as SelectionInMultipleBlocks ).blockStartId &&
-				selection1.blockEndId === ( selection2 as SelectionInMultipleBlocks ).blockEndId &&
-				selection1.cursorStartPosition ===
-					( selection2 as SelectionInMultipleBlocks ).cursorStartPosition &&
-				selection1.cursorEndPosition ===
-					( selection2 as SelectionInMultipleBlocks ).cursorEndPosition
-			);
-
-		case SelectionType.WholeBlock:
-			return selection1.blockId === ( selection2 as SelectionWholeBlock ).blockId;
-
-		default:
-			return false;
-	}
-}
-
 /**
  * Converts WordPress block editor selection to a SelectionState.
  *
@@ -106,14 +89,17 @@ export function areSelectionsEqual(
  */
 export function getSelectionState(
 	selectionStart: WPBlockSelection,
-	selectionEnd: WPBlockSelection
+	selectionEnd: WPBlockSelection,
+	yBlocks: Y.Array< SelectableBlock >
 ): SelectionState {
 	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
+	const noSelection: SelectionNone = {
+		type: SelectionType.None,
+	};
+
 	if ( isSelectionEmpty ) {
 		// Case 1: No selection
-		return {
-			type: SelectionType.None,
-		};
+		return noSelection;
 	}
 
 	// When the page initially loads, selectionStart can contain an empty object `{}`.
@@ -132,28 +118,50 @@ export function getSelectionState(
 		};
 	} else if ( isCursorOnly ) {
 		// Case 3: Cursor only, no text selected
+		const cursorPosition = getCursorPosition( selectionStart, yBlocks );
+
+		if ( ! cursorPosition ) {
+			// If we can't find the cursor position in block text, treat it as a non-selection.
+			return noSelection;
+		}
+
 		return {
 			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
-			cursorPosition: selectionStart.offset,
+			cursorPosition,
 		};
 	} else if ( isSelectionInOneBlock ) {
 		// Case 4: Selection in a single block
+		const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
+		const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+
+		if ( ! cursorStartPosition || ! cursorEndPosition ) {
+			// If we can't find the cursor positions in block text, treat it as a non-selection.
+			return noSelection;
+		}
+
 		return {
 			type: SelectionType.SelectionInOneBlock,
 			blockId: selectionStart.clientId,
-			cursorStartPosition: selectionStart.offset,
-			cursorEndPosition: selectionEnd.offset,
+			cursorStartPosition,
+			cursorEndPosition,
 		};
 	}
 
 	// Caes 5: Selection in multiple blocks
+	const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
+	const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+	if ( ! cursorStartPosition || ! cursorEndPosition ) {
+		// If we can't find the cursor positions in block text, treat it as a non-selection.
+		return noSelection;
+	}
+
 	return {
 		type: SelectionType.SelectionInMultipleBlocks,
 		blockStartId: selectionStart.clientId,
 		blockEndId: selectionEnd.clientId,
-		cursorStartPosition: selectionStart.offset,
-		cursorEndPosition: selectionEnd.offset,
+		cursorStartPosition,
+		cursorEndPosition,
 	};
 }
 
@@ -193,4 +201,121 @@ export async function updateSelectionInEntityRecord(
 	await editEntityRecord( 'postType', postType, postId, edits, {
 		undoIgnore: true,
 	} );
+}
+
+export function getCursorPosition(
+	selection: WPBlockSelection,
+	blocks: Y.Array< SelectableBlock >
+): CursorPosition | null {
+	const block = findBlockByClientId( selection.clientId, blocks );
+	if ( ! block ) {
+		return null;
+	}
+
+	const attributes = block.get( 'attributes' ) as Y.Map< Y.Text >;
+	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
+
+	const relativePosition = Y.createRelativePositionFromTypeIndex( currentYText, selection.offset );
+
+	return {
+		relativePosition,
+		absoluteOffset: selection.offset,
+	};
+}
+
+function findBlockByClientId(
+	blockId: string,
+	blocks: Y.Array< SelectableBlock >
+): SelectableBlock | null {
+	for ( const block of blocks ) {
+		if ( block.get( 'clientId' ) === blockId ) {
+			return block;
+		}
+
+		const innerBlocks = block.get( 'innerBlocks' ) as BlockInnerBlocks;
+
+		if ( innerBlocks.length > 0 ) {
+			const innerBlock = findBlockByClientId(
+				blockId,
+				block.get( 'innerBlocks' ) as Y.Array< SelectableBlock >
+			);
+
+			if ( innerBlock ) {
+				return innerBlock;
+			}
+		}
+	}
+
+	return null;
+}
+
+export function areSelectionsEqual(
+	selection1: SelectionState,
+	selection2: SelectionState
+): boolean {
+	if ( selection1.type !== selection2.type ) {
+		return false;
+	}
+
+	switch ( selection1.type ) {
+		case SelectionType.None:
+			return true;
+
+		case SelectionType.Cursor:
+			return (
+				selection1.blockId === ( selection2 as SelectionCursor ).blockId &&
+				areCursorPositionsEqual(
+					selection1.cursorPosition,
+					( selection2 as SelectionCursor ).cursorPosition
+				)
+			);
+
+		case SelectionType.SelectionInOneBlock:
+			return (
+				selection1.blockId === ( selection2 as SelectionInOneBlock ).blockId &&
+				areCursorPositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInOneBlock ).cursorStartPosition
+				) &&
+				areCursorPositionsEqual(
+					selection1.cursorEndPosition,
+					( selection2 as SelectionInOneBlock ).cursorEndPosition
+				)
+			);
+
+		case SelectionType.SelectionInMultipleBlocks:
+			return (
+				selection1.blockStartId === ( selection2 as SelectionInMultipleBlocks ).blockStartId &&
+				selection1.blockEndId === ( selection2 as SelectionInMultipleBlocks ).blockEndId &&
+				areCursorPositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInMultipleBlocks ).cursorStartPosition
+				) &&
+				areCursorPositionsEqual(
+					selection1.cursorEndPosition,
+					( selection2 as SelectionInMultipleBlocks ).cursorEndPosition
+				)
+			);
+		case SelectionType.WholeBlock:
+			return selection1.blockId === ( selection2 as SelectionWholeBlock ).blockId;
+
+		default:
+			logger.error( 'Unable to compare selection types:', selection1, selection2 );
+			return false;
+	}
+}
+
+function areCursorPositionsEqual(
+	cursorPosition1: CursorPosition,
+	cursorPosition2: CursorPosition
+): boolean {
+	const isRelativePositionEqual =
+		JSON.stringify( cursorPosition1.relativePosition ) ===
+		JSON.stringify( cursorPosition2.relativePosition );
+
+	// Ensure a change in calculated absolute offset results in a treating the cursor as modified.
+	// This is necessary because Y.Text relative positions can remain the same after text changes.
+	const isAbsoluteOffsetEqual = cursorPosition1.absoluteOffset === cursorPosition2.absoluteOffset;
+
+	return isRelativePositionEqual && isAbsoluteOffsetEqual;
 }

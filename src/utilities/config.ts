@@ -1,6 +1,6 @@
 export const PERSISTED_STATE_POST_META_KEY = getVipConfigFromWindow( 'rtcPostMetaKey' );
 
-export const AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS = 150;
+export const AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS = 50;
 export const LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS = 5;
 
 export const DISCONNECTED_THRESHOLD_IN_MS = 5000;
