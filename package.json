@@ -85,7 +85,6 @@
     "yjs": "13.6.27"
   },
   "dependencies": {
-    "@wordpress/private-apis": "^1.31.0",
     "lib0": "0.2.42",
     "y-protocols": "1.0.6",
     "y-websocket": "3.0.0"
