@@ -25,16 +25,21 @@ export function Avatars() {
 	const remainingUsersText = remainingUsers.map( userState => userState.name ).join( ', ' );
 
 	return (
-		<div className="vip-real-time-collaboration-avatars">
-			{ visibleUsers.map( userState => (
-				<Avatar key={ userState.clientId } userState={ userState } showUserColorBorder={ true } />
-			) ) }
+		<div className="vip-real-time-collaboration-avatars-container">
+			<div className="vip-real-time-collaboration-avatars">
+				{ visibleUsers.map( userState => (
+					<Avatar key={ userState.clientId } userState={ userState } showUserColorBorder={ true } />
+				) ) }
 
-			{ remainingUsers.length > 0 && (
-				<div className="vip-real-time-collaboration-avatar-remaining" title={ remainingUsersText }>
-					+{ remainingUsers.length }
-				</div>
-			) }
+				{ remainingUsers.length > 0 && (
+					<div
+						className="vip-real-time-collaboration-avatar-remaining"
+						title={ remainingUsersText }
+					>
+						+{ remainingUsers.length }
+					</div>
+				) }
+			</div>
 		</div>
 	);
 }

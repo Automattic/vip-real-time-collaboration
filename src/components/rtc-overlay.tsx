@@ -1,36 +1,38 @@
 import { useResizeObserver, useMergeRefs } from '@wordpress/compose';
-import { useSelect } from '@wordpress/data';
-import { useRef } from '@wordpress/element';
+import { useRef, useState, useEffect } from '@wordpress/element';
 
-import { Avatars } from '@/components/avatars';
-import { DebugTools } from '@/components/debug-tools';
-import { PostLockedModal } from '@/components/post-locked-modal';
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
-import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
+
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
-	iframeDocument: Document;
+	containerRef: React.MutableRefObject< HTMLElement | null >;
 }
 
 /**
  * This component is responsible for rendering awareness components within the editor iframe.
  */
-export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
+export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
+	const [ document, setDocument ] = useState< Document | null >( null );
 
-	const { isAvatarsEnabled, isDebugToolsEnabled } = useSelect<
-		SettingsStoreSelectors,
-		{ isAvatarsEnabled: boolean; isDebugToolsEnabled: boolean }
-	>( select => {
-		return {
-			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
-		};
-	} );
+	useEffect( () => {
+		const ownerDocument = containerRef.current?.ownerDocument ?? null;
+		// Update iframe document on mount, which can happen when switching
+		// between iframed and non-iframed editors in preview mode.
+		setDocument( ownerDocument );
 
-	const renderCursorsRef = useRenderCursors( overlayRef, iframeDocument );
+		if ( ownerDocument ) {
+			// Redraw cursors after a short delay to ensure cursors are in the correct position
+			// after frame-changing animations (e.g. Desktop -> Tablet view) have completed.
+			setTimeout( () => {
+				renderCursorsRef.current?.();
+			}, 500 );
+		}
+	}, [] );
+
+	const renderCursorsRef = useRenderCursors( overlayRef, document );
 
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.
@@ -41,22 +43,13 @@ export function RTCOverlay( { iframeDocument }: RTCOverlayProps ) {
 	// Merge the refs to use the same element for both overlay and resize observation
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
-	useBlockHighlighting( iframeDocument );
+	useBlockHighlighting( document );
 
 	return (
 		<>
 			{ /* This is a full overlay that covers the entire iframe document.
 				Good for scrollable elements like cursor indicators */ }
 			<div className="vip-real-time-collaboration-overlay-full" ref={ mergedRef } />
-
-			{ /* This is a fixed overlay that covers the iframe window.
-				Good for floating elements like awareness avatars */ }
-			<div className="vip-real-time-collaboration-overlay-fixed">
-				{ isAvatarsEnabled && <Avatars /> }
-				{ isDebugToolsEnabled && <DebugTools iframeDocument={ iframeDocument } /> }
-			</div>
-
-			<PostLockedModal />
 		</>
 	);
 }
