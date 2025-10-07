@@ -1,6 +1,6 @@
 {
   "name": "vip-real-time-collaboration",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Real-time collaboration plugin for WordPress VIP",
   "main": "build/index.js",
   "keywords": [
