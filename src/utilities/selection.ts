@@ -89,11 +89,13 @@ export function getSelectionState(
 	yBlocks: Y.Array< SelectableBlock >
 ): SelectionState {
 	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
+	const noSelection: SelectionNone = {
+		type: SelectionType.None,
+	};
+
 	if ( isSelectionEmpty ) {
 		// Case 1: No selection
-		return {
-			type: SelectionType.None,
-		};
+		return noSelection;
 	}
 
 	// When the page initially loads, selectionStart can contain an empty object `{}`.
@@ -112,28 +114,50 @@ export function getSelectionState(
 		};
 	} else if ( isCursorOnly ) {
 		// Case 3: Cursor only, no text selected
+		const cursorPosition = getCursorPosition( selectionStart, yBlocks );
+
+		if ( ! cursorPosition ) {
+			// If we can't find the cursor position in block text, treat it as a non-selection.
+			return noSelection;
+		}
+
 		return {
 			type: SelectionType.Cursor,
 			blockId: selectionStart.clientId,
-			cursorPosition: getCursorPosition( selectionStart, yBlocks ),
+			cursorPosition,
 		};
 	} else if ( isSelectionInOneBlock ) {
 		// Case 4: Selection in a single block
+		const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
+		const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+
+		if ( ! cursorStartPosition || ! cursorEndPosition ) {
+			// If we can't find the cursor positions in block text, treat it as a non-selection.
+			return noSelection;
+		}
+
 		return {
 			type: SelectionType.SelectionInOneBlock,
 			blockId: selectionStart.clientId,
-			cursorStartPosition: getCursorPosition( selectionStart, yBlocks ),
-			cursorEndPosition: getCursorPosition( selectionEnd, yBlocks ),
+			cursorStartPosition,
+			cursorEndPosition,
 		};
 	}
 
 	// Caes 5: Selection in multiple blocks
+	const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
+	const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+	if ( ! cursorStartPosition || ! cursorEndPosition ) {
+		// If we can't find the cursor positions in block text, treat it as a non-selection.
+		return noSelection;
+	}
+
 	return {
 		type: SelectionType.SelectionInMultipleBlocks,
 		blockStartId: selectionStart.clientId,
 		blockEndId: selectionEnd.clientId,
-		cursorStartPosition: getCursorPosition( selectionStart, yBlocks ),
-		cursorEndPosition: getCursorPosition( selectionEnd, yBlocks ),
+		cursorStartPosition,
+		cursorEndPosition,
 	};
 }
 
@@ -178,8 +202,12 @@ export async function updateSelectionInEntityRecord(
 export function getCursorPosition(
 	selection: WPBlockSelection,
 	blocks: Y.Array< SelectableBlock >
-): CursorPosition {
+): CursorPosition | null {
 	const block = findBlockByClientId( selection.clientId, blocks );
+	if ( ! block ) {
+		return null;
+	}
+
 	const attributes = block.get( 'attributes' ) as Y.Map< Y.Text >;
 	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
 
@@ -194,7 +222,7 @@ export function getCursorPosition(
 function findBlockByClientId(
 	blockId: string,
 	blocks: Y.Array< SelectableBlock >
-): SelectableBlock {
+): SelectableBlock | null {
 	for ( const block of blocks ) {
 		if ( block.get( 'clientId' ) === blockId ) {
 			return block;
@@ -214,7 +242,7 @@ function findBlockByClientId(
 		}
 	}
 
-	throw new Error( `Unable to find block with findBlockByClientId() for clientId: ${ blockId }` );
+	return null;
 }
 
 export function areSelectionsEqual(
