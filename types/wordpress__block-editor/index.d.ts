@@ -34,11 +34,16 @@ declare module '@wordpress/block-editor' {
 	}
 
 	interface BlockCanvasCoverFillProps {
-		containerRef: MutableRefObject< HTMLElement | null >;
+		children?:
+			| React.ReactNode
+			| ( ( props: { containerRef: MutableRefObject< HTMLElement | null > } ) => React.ReactNode );
 	}
 
 	const BlockCanvasCover: {
 		Fill: React.FC< BlockCanvasCoverFillProps >;
-		Slot: React.FC< BlockCanvasCoverFillProps >;
+		Slot: React.FC< {
+			fillProps: { containerRef: MutableRefObject< HTMLElement | null > };
+			children: ( fills: React.ReactNode[] ) => React.ReactNode;
+		} >;
 	};
 }

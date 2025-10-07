@@ -5,10 +5,9 @@ import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
 
 import '@/components/rtc-overlay.scss';
-import { MutableRefObject } from 'react';
 
 interface RTCOverlayProps {
-	containerRef: MutableRefObject< HTMLElement | null >;
+	containerRef: React.MutableRefObject< HTMLElement | null >;
 }
 
 /**
