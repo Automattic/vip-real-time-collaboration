@@ -37,7 +37,7 @@ declare module '@wordpress/block-editor' {
 	}
 
 	const BlockCanvasCover: {
-		Fill: Fill<BlockCanvasCoverFillProps>;
-		Slot: Slot<BlockCanvasCoverFillProps>;
+		Fill: typeof Fill< BlockCanvasCoverFillProps >;
+		Slot: typeof Slot< BlockCanvasCoverFillProps >;
 	};
 }
