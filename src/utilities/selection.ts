@@ -296,6 +296,7 @@ export function areSelectionsEqual(
 			return selection1.blockId === ( selection2 as SelectionWholeBlock ).blockId;
 
 		default:
+			console.error( 'Unable to compare selection types:', selection1, selection2 );
 			return false;
 	}
 }
