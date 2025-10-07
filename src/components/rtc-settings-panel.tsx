@@ -81,6 +81,7 @@ export function RTCSettingsPanel() {
 						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 						) }
+						<PostLockedModal />
 					</>
 				) }
 			</BlockCanvasCover.Fill>
