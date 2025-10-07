@@ -216,3 +216,73 @@ function findBlockByClientId(
 
 	throw new Error( `Unable to find block with findBlockByClientId() for clientId: ${ blockId }` );
 }
+
+export function areSelectionsEqual(
+	selection1: SelectionState,
+	selection2: SelectionState
+): boolean {
+	if ( selection1.type !== selection2.type ) {
+		return false;
+	}
+
+	switch ( selection1.type ) {
+		case SelectionType.None:
+			return true;
+
+		case SelectionType.Cursor:
+			return (
+				selection1.blockId === ( selection2 as SelectionCursor ).blockId &&
+				areCursorPositionsEqual(
+					selection1.cursorPosition,
+					( selection2 as SelectionCursor ).cursorPosition
+				)
+			);
+
+		case SelectionType.SelectionInOneBlock:
+			return (
+				selection1.blockId === ( selection2 as SelectionInOneBlock ).blockId &&
+				areCursorPositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInOneBlock ).cursorStartPosition
+				) &&
+				areCursorPositionsEqual(
+					selection1.cursorEndPosition,
+					( selection2 as SelectionInOneBlock ).cursorEndPosition
+				)
+			);
+
+		case SelectionType.SelectionInMultipleBlocks:
+			return (
+				selection1.blockStartId === ( selection2 as SelectionInMultipleBlocks ).blockStartId &&
+				selection1.blockEndId === ( selection2 as SelectionInMultipleBlocks ).blockEndId &&
+				areCursorPositionsEqual(
+					selection1.cursorStartPosition,
+					( selection2 as SelectionInMultipleBlocks ).cursorStartPosition
+				) &&
+				areCursorPositionsEqual(
+					selection1.cursorEndPosition,
+					( selection2 as SelectionInMultipleBlocks ).cursorEndPosition
+				)
+			);
+		case SelectionType.WholeBlock:
+			return selection1.blockId === ( selection2 as SelectionWholeBlock ).blockId;
+
+		default:
+			return false;
+	}
+}
+
+function areCursorPositionsEqual(
+	cursorPosition1: CursorPosition,
+	cursorPosition2: CursorPosition
+): boolean {
+	const isRelativePositionEqual =
+		JSON.stringify( cursorPosition1.relativePosition ) ===
+		JSON.stringify( cursorPosition2.relativePosition );
+
+	// Ensure a change in calculated absolute offset results in a treating the cursor as modified.
+	// This is necessary because Y.Text relative positions can remain the same after text changes.
+	const isAbsoluteOffsetEqual = cursorPosition1.absoluteOffset === cursorPosition2.absoluteOffset;
+
+	return isRelativePositionEqual && isAbsoluteOffsetEqual;
+}
