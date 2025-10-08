@@ -45,8 +45,12 @@ final class Compatibility {
 
 		// Do not enable on Site Editor.
 		if ( 'site-editor.php' === $pagenow ) {
-			if ( is_array( $experiments ) && array_key_exists( 'gutenberg-sync-collaboration', $experiments ) ) {
-				unset( $experiments['gutenberg-sync-collaboration'] );
+			if ( is_array( $experiments ) ) {
+				if ( array_key_exists( 'gutenberg-sync-collaboration', $experiments ) ) {
+					unset( $experiments['gutenberg-sync-collaboration'] );
+				}
+
+				return $experiments;
 			}
 
 			return [];

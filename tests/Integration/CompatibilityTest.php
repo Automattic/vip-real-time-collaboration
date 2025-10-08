@@ -98,7 +98,7 @@ final class CompatibilityTest extends TestCase {
 
 	/**
 	 * Verifies that enable_sync_collaboration_experiment() handles various option
-	 * values via a data provider.
+	 * values on the site editor page via a data provider.
 	 *
 	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::enable_sync_collaboration_experiment
 	 * @dataProvider option_values_provider
@@ -123,6 +123,35 @@ final class CompatibilityTest extends TestCase {
 
 		self::assertIsArray( $result, 'Filter should return an array when given an empty string' );
 		self::assertArrayNotHasKey( 'gutenberg-sync-collaboration', $result, 'Result should not contain the sync collaboration experiment' );
+
+		$pagenow = $previous_pagenow;
+	}
+
+	/**
+	 * Verifies that enable_sync_collaboration_experiment() only diables the sync
+	 * collaboration experiment on the site editor page, leaving other experiments
+	 * intact.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::enable_sync_collaboration_experiment
+	 * @global $pagenow
+	 */
+	public function test_disables_only_sync_collaboration_experiment_on_site_editor(): void {
+		global $pagenow;
+
+		// Simulate Site Editor page.
+		$previous_pagenow = $pagenow;
+		$pagenow = 'site-editor.php';
+
+		update_option( 'gutenberg-experiments', [ 'foo' => true ] );
+
+		new Compatibility();
+
+		$result = get_option( 'gutenberg-experiments' );
+
+		self::assertIsArray( $result, 'Filter should return an array when given an empty string' );
+		self::assertArrayNotHasKey( 'gutenberg-sync-collaboration', $result, 'Result should not contain the sync collaboration experiment' );
+		self::assertArrayHasKey( 'foo', $result, 'Result should contain the test experiment' );
+		self::assertTrue( $result['foo'], 'Test experiment should be enabled' );
 
 		$pagenow = $previous_pagenow;
 	}
