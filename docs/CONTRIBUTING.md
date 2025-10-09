@@ -19,6 +19,12 @@ Please see [SECURITY.md](SECURITY.md).
 
 ### Running the development environment
 
+Install dependences:
+
+```sh
+npm install
+```
+
 Start the development environment:
 
 ```sh
