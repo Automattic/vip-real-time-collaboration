@@ -66,8 +66,9 @@ final class Overrides {
 	 *
 	 * This is to prevent users from disabling the collaborative editing feature,
 	 * which is controlled within the plugin.
+	 * @psalm-suppress MixedArrayAccess
 	 */
-	public function remove_sync_setttings_field() {
+	public function remove_sync_setttings_field(): void {
 		global $wp_settings_fields;
 		if ( isset( $wp_settings_fields['gutenberg-experiments']['gutenberg_experiments_section']['gutenberg-sync-collaboration'] ) ) {
 			unset( $wp_settings_fields['gutenberg-experiments']['gutenberg_experiments_section']['gutenberg-sync-collaboration'] );
