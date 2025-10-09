@@ -66,12 +66,11 @@ final class Overrides {
 	 *
 	 * This is to prevent users from disabling the collaborative editing feature,
 	 * which is controlled within the plugin.
-	 *
-	 * @return void
 	 */
-	public function remove_sync_setttings_field(): void {
+	public function remove_sync_setttings_field() {
 		global $wp_settings_fields;
-
-		unset( $wp_settings_fields['gutenberg-experiments']['gutenberg_experiments_section']['gutenberg-sync-collaboration'] );
+		if ( isset( $wp_settings_fields['gutenberg-experiments']['gutenberg_experiments_section']['gutenberg-sync-collaboration'] ) ) {
+			unset( $wp_settings_fields['gutenberg-experiments']['gutenberg_experiments_section']['gutenberg-sync-collaboration'] );
+		}
 	}
 }
