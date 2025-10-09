@@ -149,6 +149,7 @@ export function RTCSettingsPanel() {
 						</FlexItem>
 					) ) }
 				</Flex>
+				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
 		</>
 	);
