@@ -28,6 +28,37 @@ if ( defined( 'VIP_REAL_TIME_COLLABORATION__LOADED' ) ) {
 }
 
 define( 'VIP_REAL_TIME_COLLABORATION__LOADED', true );
+
+/** @psalm-suppress PossiblyFalseArgument */
+if ( version_compare( phpversion(), '8.2', '<' ) ) {
+	add_action( 'admin_notices', function (): void {
+		wp_admin_notice(
+			__(
+				'The VIP Real-Time Collaboration plugin requires PHP 8.2+. The VIP Real-Time Collaboration plugin has been disabled.',
+				'vip_real_time_collaboration'
+			),
+			[ 'type' => 'error' ]
+		);
+	}, 10, 0 );
+	return;
+}
+
+/** @psalm-suppress InvalidGlobal */
+global $wp_version;
+/** @psalm-suppress MixedArgument */
+if ( version_compare( $wp_version, '6.7', '<' ) ) {
+	add_action( 'admin_notices', function (): void {
+		wp_admin_notice(
+			__(
+				'The VIP Real-Time Collaboration plugin requires WordPress 6.7+. The VIP Real-Time Collaboration plugin has been disabled.',
+				'vip_real_time_collaboration'
+			),
+			[ 'type' => 'error' ]
+		);
+	}, 10, 0 );
+	return;
+}
+
 define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
 define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_DIRECTORY', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
 define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION', '0.1.3' );
