@@ -29,8 +29,8 @@ if ( defined( 'VIP_REAL_TIME_COLLABORATION__LOADED' ) ) {
 
 define( 'VIP_REAL_TIME_COLLABORATION__LOADED', true );
 
-/** @psalm-suppress PossiblyFalseArgument */
-if ( version_compare( phpversion(), '8.2', '<' ) ) {
+$php_version = phpversion();
+if ( is_string( $php_version ) && version_compare( $php_version, '8.2', '<' ) ) {
 	add_action( 'admin_notices', function (): void {
 		wp_admin_notice(
 			__(
@@ -45,8 +45,16 @@ if ( version_compare( phpversion(), '8.2', '<' ) ) {
 
 /** @psalm-suppress InvalidGlobal */
 global $wp_version;
-/** @psalm-suppress MixedArgument */
-if ( version_compare( $wp_version, '6.7', '<' ) ) {
+
+// Account for plugins overriding the $wp_version global.
+// Taken from the implementation of 'wp_get_wp_version()', which is 6.7 only.
+/** @psalm-suppress MissingFile */
+// This is a built-in WordPress file, so we can ignore the warning here.
+if ( ! isset( $wp_version ) ) {
+	require ABSPATH . WPINC . '/version.php';
+}
+
+if ( is_string( $wp_version ) && version_compare( $wp_version, '6.7', '<' ) ) {
 	add_action( 'admin_notices', function (): void {
 		wp_admin_notice(
 			__(
