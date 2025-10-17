@@ -12,16 +12,16 @@ declare module '@wordpress/sync' {
 
 	interface ObjectData extends Record< string, unknown > {}
 
-	interface ConnectDocResult {
+	interface ProviderCreatorResult {
 		destroy: () => void;
 	}
 
-	type ConnectDoc = (
-		id: ObjectID,
-		type: ObjectType,
+	type ProviderCreator = (
+		objectType: ObjectType,
+		objectId: ObjectID,
 		ydoc: Y.Doc,
 		awareness?: Awareness
-	) => Promise< ConnectDocResult >;
+	) => Promise< ProviderCreatorResult >;
 
 	// Only include what we actually use from SyncConfig.
 	interface SyncConfig {
