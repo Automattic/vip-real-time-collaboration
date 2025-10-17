@@ -24,22 +24,17 @@ export function Avatars() {
 	const remainingUsers = activeUsers.slice( 3 );
 	const remainingUsersText = remainingUsers.map( userState => userState.name ).join( ', ' );
 
-	return (
-		<div className="vip-real-time-collaboration-avatars-container">
-			<div className="vip-real-time-collaboration-avatars">
-				{ visibleUsers.map( userState => (
-					<Avatar key={ userState.clientId } userState={ userState } showUserColorBorder={ true } />
-				) ) }
+	return visibleUsers.length > 1 ? (
+		<>
+			{ visibleUsers.map( userState => (
+				<Avatar key={ userState.clientId } userState={ userState } showUserColorBorder={ false } />
+			) ) }
 
-				{ remainingUsers.length > 0 && (
-					<div
-						className="vip-real-time-collaboration-avatar-remaining"
-						title={ remainingUsersText }
-					>
-						+{ remainingUsers.length }
-					</div>
-				) }
-			</div>
-		</div>
-	);
+			{ remainingUsers.length > 0 && (
+				<div className="vip-real-time-collaboration-avatar-remaining" title={ remainingUsersText }>
+					+{ remainingUsers.length }
+				</div>
+			) }
+		</>
+	) : null;
 }

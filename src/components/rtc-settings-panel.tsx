@@ -7,7 +7,7 @@ import {
 	__experimentalText as Text,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PluginDocumentSettingPanel } from '@wordpress/editor';
+import { PluginDocumentSettingPanel, EditorsPresence } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
 
 import { Avatar } from './avatar';
@@ -70,9 +70,9 @@ export function RTCSettingsPanel() {
 	return (
 		<>
 			{ isAvatarsEnabled && (
-				<BlockCanvasCover.Fill>
+				<EditorsPresence>
 					<Avatars />
-				</BlockCanvasCover.Fill>
+				</EditorsPresence>
 			) }
 			<BlockCanvasCover.Fill>
 				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (

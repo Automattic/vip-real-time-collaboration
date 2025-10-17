@@ -1,56 +1,38 @@
-.vip-real-time-collaboration-avatars-container {
-	position: sticky;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
+.vip-real-time-collaboration-avatar {
+	margin-left: -16px;
+	flex-shrink: 0;
+
+	&:nth-child(1) {
+		margin-left: 0;
+		z-index: 3;
+	}
+
+	&:nth-child(2) {
+		z-index: 2
+	}
+
+	&:nth-child(3) {
+		z-index: 1;
+	}
 }
 
-.vip-real-time-collaboration-avatars {
-	background-color: #fff;
-	border-radius: 16px;
-	border: 1px solid #ddd;
-	padding: 4px 8px;
-	position: absolute;
-	top: 10px;
-	right: 8px;
-	pointer-events: auto;
-
-	display: flex;
-	align-items: center;
-
-	.vip-real-time-collaboration-avatar {
-		margin-left: -10px;
-
-		&:nth-child(1) {
-			margin-left: 0;
-			z-index: 3;
-		}
-
-		&:nth-child(2) {
-			z-index: 2;
-		}
-
-		&:nth-child(3) {
-			z-index: 1;
-		}
-	}
-
-	.vip-real-time-collaboration-avatar-remaining {
-		margin: 0 6px 0 4px;
-	}
+.vip-real-time-collaboration-avatar-remaining {
+	margin-right: 6px;
 }
 
 .vip-real-time-collaboration-avatar {
 	width: 28px;
 	height: 28px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 
 	img {
 		width: 24px;
 		height: 24px;
-		border-radius: 50%;
+		border-radius: 8px;
 		object-fit: cover;
-		border: 2px solid #fff;
+		border: 2px solid #f0f0f0;
 
 		/* Fallback for images that haven't loaded yet */
 		font-size: 0; // Hide alt text while the image loads.

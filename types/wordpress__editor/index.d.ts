@@ -6,4 +6,6 @@ declare module '@wordpress/editor' {
 		getCurrentPostType(): string | null;
 		getEditedPostContent(): string | null;
 	}
+
+	const EditorsPresence: React.FC< React.PropsWithChildren >;
 }
