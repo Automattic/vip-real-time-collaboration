@@ -205,7 +205,7 @@ sequenceDiagram
 - **WordPress Sync API**: Extends [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/)
 - **Post Lock Override**: Disables WordPress native post locking for simultaneous editing
 - **Site Editor Exclusion**: Automatically disables in Site Editor (FSE)
-- **Post Type Support**: Auto-detects post types with `collaborative-editing` and `editor` support
+- **Post Type Support**: Auto-detects post types with `editor` support
 
 ### 5.3 Permission System
 

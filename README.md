@@ -20,11 +20,7 @@ VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same Wo
 
 ## Supported content types
 
-Out of the box, the plugin works with standard WordPress posts and pages. Custom Post Types can opt-in by adding support for `collaborative-editing`:
-
-```php
-add_post_type_support( $post_type, 'collaborative-editing' );
-```
+Out of the box, the plugin works with all WordPress posts and pages, including Custom Post Types.
 
 ## Requirements
 
