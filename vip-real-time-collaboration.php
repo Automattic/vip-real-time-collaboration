@@ -89,10 +89,10 @@ function vip_real_time_collaboration_pre_init(): bool {
 
 	global $wp_version;
 
-	// Account for plugins overriding the $wp_version global, look at Gutenberg.php for reference.
+	// Account for plugins overriding the $wp_version global, look at gutenberg.php for reference.
 	/** @psalm-suppress MissingFile */
 	// This is a built-in WordPress file, so we can ignore the warning here.
-	require ABSPATH . WPINC . '/version.php';
+	include ABSPATH . WPINC . '/version.php';
 
 	if ( version_compare( $wp_version, '6.7', '<' ) ) {
 		add_action( 'admin_notices', function (): void {
