@@ -17,7 +17,7 @@ final class Compatibility {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
 				__(
-					'The Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.',
+					'The VIP Real-Time Collaboration plugin requires Gutenberg 21.9.0+. The VIP Real-Time Collaboration plugin has been disabled.',
 					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
@@ -27,7 +27,7 @@ final class Compatibility {
 		if ( ! self::is_websocket_url_defined() ) {
 			wp_admin_notice(
 				__(
-					'The WebSocket URL has not been configured. The VIP Real-Time Collaboration plugin has been disabled.',
+					'The VIP Real-Time Collaboration plugin requires a WebSocket URL to be configured. The VIP Real-Time Collaboration plugin has been disabled.',
 					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
@@ -37,8 +37,6 @@ final class Compatibility {
 
 	/**
 	 * Force-enable sync collaboration experiment.
-	 *
-	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public function enable_sync_collaboration_experiment( mixed $experiments ): array {
 		global $pagenow;
@@ -70,13 +68,30 @@ final class Compatibility {
 	}
 
 	/**
-	 * Check if the Gutenberg plugin is active.
-	 *
-	 * TODO: Check GUTENBERG_VERSION in production to ensure it is running a
-	 * compatible version.
+	 * Check if the Gutenberg plugin is active, and meets the minimum version requirement.
 	 */
 	private static function is_gutenberg_plugin_active(): bool {
-		return defined( 'IS_GUTENBERG_PLUGIN' ) && constant( 'IS_GUTENBERG_PLUGIN' );
+		// Gutenberg plugin isn't active.
+		if ( ! defined( 'IS_GUTENBERG_PLUGIN' ) || ! constant( 'IS_GUTENBERG_PLUGIN' ) ) {
+			return false;
+		}
+
+		// Need to ensure that development mode bypasses this check.
+		// For dev builds, this is defined in the Gutenberg plugin's main file.
+		// For production builds, this is removed entirely.
+		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
+			return true;
+		}
+
+		// If its not development mode, and the version is set, check the version.
+		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
+			/** @var string $gutenberg_version */
+			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
+			return version_compare( $gutenberg_version, '21.9.0', '>=' );
+		}
+
+		// Does not meet the minimum version requirement.
+		return false;
 	}
 
 	/**
