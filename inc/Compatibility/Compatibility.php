@@ -37,6 +37,8 @@ final class Compatibility {
 
 	/**
 	 * Force-enable sync collaboration experiment.
+	 *
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public function enable_sync_collaboration_experiment( mixed $experiments ): array {
 		global $pagenow;
@@ -87,7 +89,7 @@ final class Compatibility {
 		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
 			/** @var string $gutenberg_version */
 			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
-			return version_compare( $gutenberg_version, '21.9.0', '>=' );
+			return version_compare( $gutenberg_version, '21.7.0', '>=' );
 		}
 
 		// Does not meet the minimum version requirement.
