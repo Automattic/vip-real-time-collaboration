@@ -17,6 +17,7 @@ use VIPRealTimeCollaboration\Api\RestApi;
 use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
+use VIPRealTimeCollaboration\Settings\Settings;
 use VIPRealTimeCollaboration\Overrides\Overrides;
 
 defined( 'ABSPATH' ) || exit();
@@ -58,6 +59,7 @@ add_action( 'plugins_loaded', static function (): void {
 	new Compatibility();
 	new Overrides();
 	new RestApi();
+	new Settings();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );
