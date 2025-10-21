@@ -17,18 +17,18 @@ import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
-import type { ConnectDoc } from '@wordpress/sync';
+import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
 import type { Awareness } from 'y-protocols/awareness.js';
 import type * as Y from 'yjs';
 
 export interface WebSocketConnectionConfig {
-	onStatusChange?: (
-		event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
-		provider: WebsocketProvider
-	) => void;
 	options?: WebsocketProviderOptions;
 	serverUrl: string;
 }
+
+const defaultResult = {
+	destroy: () => {},
+};
 
 /**
  * Creates a connection ID generator with in-memory storage
@@ -75,6 +75,32 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 	) }`;
 
 	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
+}
+
+function onStatusChange(
+	event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
+	provider: WebsocketProvider
+): void {
+	switch ( event.status ) {
+		case 'connecting': {
+			break;
+		}
+
+		case 'connection-error': {
+			AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
+			break;
+		}
+
+		case 'connected': {
+			AwarenessManager.setConnectionStatus( provider.awareness.clientID, true );
+			break;
+		}
+
+		case 'disconnected': {
+			AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
+			break;
+		}
+	}
 }
 
 /**
@@ -130,8 +156,14 @@ function createConnect(
 	};
 }
 
-export function getWebSocketConnectionConfig( serverUrl: string ): WebSocketConnectionConfig {
-	return {
+/**
+ * Function that creates a new WebSocket Connection.
+ *
+ * @param {string} serverUrl The WebSocket server URL.
+ * @return {ProviderCreator} A function that connects a Y.Doc to a WebSocket server.
+ */
+export function createWebSocketConnection( serverUrl: string ): ProviderCreator {
+	const config: WebSocketConnectionConfig = {
 		serverUrl,
 		options: {
 			/**
@@ -141,22 +173,23 @@ export function getWebSocketConnectionConfig( serverUrl: string ): WebSocketConn
 			connect: false,
 		},
 	};
-}
 
-/**
- * Function that creates a new WebSocket Connection.
- *
- * @param {WebsocketConnectionConfig} config The configuration for the WebSocket connection.
- * @return {ConnectDoc} A function that connects a Y.Doc to a WebSocket server.
- */
-export function createWebSocketConnection( config: WebSocketConnectionConfig ): ConnectDoc {
 	return async function (
-		objectId: string = 'unknown',
-		objectType: string,
+		objectType: ObjectType,
+		objectId: ObjectID,
 		doc: Y.Doc,
 		awareness?: Awareness
 	) {
 		try {
+			// For now, we only support traditional post types.
+			if ( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) ) {
+				logger.debug( 'WebSocket connection skipped for unsupported object', {
+					objectType,
+					objectId,
+				} );
+				return defaultResult;
+			}
+
 			/**
 			 * Some entities like posts aren't unique across all sites in a multisite setup.
 			 * To avoid conflicts, we add the blog ID to the room name.
@@ -174,9 +207,9 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			provider.on( 'connection-error', () => {
 				// The provider does not change status on connection error, so we
 				// manually trigger a synthetic status change.
-				config.onStatusChange?.( { status: 'connection-error' }, provider );
+				onStatusChange( { status: 'connection-error' }, provider );
 			} );
-			provider.on( 'status', event => config.onStatusChange?.( event, provider ) );
+			provider.on( 'status', event => onStatusChange( event, provider ) );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
@@ -203,8 +236,6 @@ export function createWebSocketConnection( config: WebSocketConnectionConfig ): 
 			};
 		} catch {}
 
-		return {
-			destroy: () => {},
-		};
+		return defaultResult;
 	};
 }
