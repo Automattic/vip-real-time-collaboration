@@ -1,4 +1,4 @@
-import '@wordpress/core-editor';
+import '@wordpress/editor';
 
 declare module '@wordpress/editor' {
 	interface EditorStoreSelectors {
