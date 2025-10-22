@@ -20,11 +20,10 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 	return [ createWebSocketConnection( WEBSOCKET_URL ) ];
 } );
 
-registerPlugin( 'vip-real-time-collaboration', {
+registerPlugin( 'vip-rtc-settings-panel', {
 	render: RTCSettingsPanel,
 } );
 
-// Register this component
-registerPlugin( 'readonly-code-editor', {
+registerPlugin( 'vip-rtc-read-only-code-editor', {
 	render: ReadOnlyCodeEditor,
 } );
