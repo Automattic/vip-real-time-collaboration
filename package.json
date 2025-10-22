@@ -73,6 +73,7 @@
     "@wordpress/icons": "10.32.0",
     "@wordpress/notices": "5.32.0",
     "@wordpress/plugins": "^7.26.0",
+    "@wordpress/private-apis": "^1.33.0",
     "@wordpress/scripts": "30.25.0",
     "@wordpress/sync": "1.32.0",
     "eslint": "8.57.1",
