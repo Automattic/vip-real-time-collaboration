@@ -49,26 +49,4 @@ declare module '@wordpress/sync' {
 		getEditedRecord: () => Promise< ObjectData >;
 		refetchPersistedRecord: () => void;
 	}
-
-	class SyncProvider {
-		protected entityStates: Map< EntityID, EntityState >;
-
-		public constructor( connectionCreators: ConnectDoc[] ): void;
-		public bootstrap(
-			syncConfig: SyncConfig,
-			rawRecord: ObjectData,
-			handlers: RecordHandlers
-		): Promise< void >;
-
-		public createEntityMeta(
-			syncConfig: SyncConfig,
-			rawRecord: ObjectData
-		): Promise< Record< string, any > >;
-
-		protected getEntityId( type: ObjectType, id: ObjectID ): EntityID;
-		protected getPersistedCRDTDoc(
-			syncConfig: SyncConfig,
-			rawRecord: ObjectData
-		): Promise< CRDTDoc | null >;
-	}
 }
