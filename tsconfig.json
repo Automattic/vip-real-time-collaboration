@@ -19,6 +19,6 @@
     "typeRoots": [ "./types", "./node_modules/@types" ],
     "sourceMap": true
   },
-  "include": [ "./types/*.d.ts", "./src/**/*", "./tests/**/*" ],
+  "include": [ "./types/**/*.d.ts", "./src/**/*", "./tests/**/*" ],
   "exclude": [ "./websocket-server/**/*" ]
 }

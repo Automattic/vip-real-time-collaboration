@@ -5,6 +5,7 @@ import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
+import { ReadOnlyCodeEditor } from '@/components/read-only-code-editor';
 
 addFilter( 'sync.providers', 'vip-rtc', () => {
 	// We already error check for the WebSocket URL in the main plugin file,
@@ -21,4 +22,9 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 
 registerPlugin( 'vip-real-time-collaboration', {
 	render: RTCSettingsPanel,
+} );
+
+// Register this component
+registerPlugin( 'readonly-code-editor', {
+	render: ReadOnlyCodeEditor,
 } );
