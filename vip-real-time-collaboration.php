@@ -27,6 +27,10 @@ if ( defined( 'VIP_REAL_TIME_COLLABORATION__LOADED' ) ) {
 	return;
 }
 
+if ( ! vip_real_time_collaboration_pre_init() ) {
+	return;
+}
+
 define( 'VIP_REAL_TIME_COLLABORATION__LOADED', true );
 define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT', __FILE__ );
 define( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_DIRECTORY', untrailingslashit( plugin_dir_path( __FILE__ ) ) );
@@ -60,3 +64,48 @@ add_action( 'plugins_loaded', static function (): void {
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );
 }, 10, 0 );
+
+/**
+ * Verify that we can initialize the VIP Real-Time Collaboration plugin.
+ *
+ * @global string $wp_version The WordPress version string.
+ *
+ * @return bool true if the plugin can load, false otherwise.
+ */
+function vip_real_time_collaboration_pre_init(): bool {
+	$php_version = phpversion();
+	if ( is_string( $php_version ) && version_compare( $php_version, '8.2', '<' ) ) {
+		add_action( 'admin_notices', function (): void {
+			wp_admin_notice(
+				__(
+					'The VIP Real-Time Collaboration plugin requires PHP 8.2+. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
+				),
+				[ 'type' => 'error' ]
+			);
+		}, 10, 0 );
+		return false;
+	}
+
+	global $wp_version;
+
+	// Account for plugins overriding the $wp_version global, look at gutenberg.php for reference.
+	/** @psalm-suppress MissingFile */
+	// This is a built-in WordPress file, so we can ignore the warning here.
+	include ABSPATH . WPINC . '/version.php';
+
+	if ( version_compare( $wp_version, '6.7', '<' ) ) {
+		add_action( 'admin_notices', function (): void {
+			wp_admin_notice(
+				__(
+					'The VIP Real-Time Collaboration plugin requires WordPress 6.7+. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
+				),
+				[ 'type' => 'error' ]
+			);
+		}, 10, 0 );
+		return false;
+	}
+
+	return true;
+}
