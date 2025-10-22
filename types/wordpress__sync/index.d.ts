@@ -19,34 +19,22 @@ declare module '@wordpress/sync' {
 	type ProviderCreator = (
 		objectType: ObjectType,
 		objectId: ObjectID,
-		ydoc: Y.Doc,
-		awareness?: Awareness
+		ydoc: Y.Doc
 	) => Promise< ProviderCreatorResult >;
 
 	// Only include what we actually use from SyncConfig.
 	interface SyncConfig {
-		getInitialObjectData: ( rawRecord: ObjectData ) => ObjectData;
-		getObjectId: ( data: ObjectData ) => ObjectID;
-		objectType: ObjectType;
+		applyChangesToCRDTDoc: ( ydoc: Y.Doc, changes: Partial< ObjectData > ) => void;
+		getChangesFromCRDTDoc: ( ydoc: Y.Doc, editedRecord: ObjectData ) => ObjectData;
 		supports?: {
 			awareness?: boolean;
 			crdtPersistence?: boolean;
 			undo?: boolean;
 		};
-		syncedProperties: Set< string >;
-	}
-
-	interface EntityState {
-		discard: () => void;
-		handlers: RecordHandlers;
-		lastPersistedAt: number;
-		syncConfig: SyncConfig;
-		ydoc: CRDTDoc;
 	}
 
 	interface RecordHandlers {
 		editRecord: ( data: Partial< ObjectData > ) => void;
 		getEditedRecord: () => Promise< ObjectData >;
-		refetchPersistedRecord: () => void;
 	}
 }
