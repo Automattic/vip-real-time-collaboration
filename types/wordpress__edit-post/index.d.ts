@@ -1,6 +1,6 @@
-import type { StoreDescriptor } from '@wordpress/data/build-types/types';
-
 declare module '@wordpress/edit-post' {
+	import type { StoreDescriptor } from '@wordpress/data';
+
 	export const store: StoreDescriptor< any >;
 
 	export interface EditPostStoreSelectors {
