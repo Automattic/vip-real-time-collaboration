@@ -14,6 +14,8 @@ describe( 'getHashForEntityRecord', () => {
 		getObjectId: ( { id }: ObjectData ) => id as string,
 		objectType: 'test-type',
 		syncedProperties: new Set( [ 'id', 'title', 'content', 'blocks', 'date', 'slug' ] ),
+		applyChangesToCRDTDoc: () => {},
+		getChangesFromCRDTDoc: () => ( {} ),
 	};
 
 	before( async () => {

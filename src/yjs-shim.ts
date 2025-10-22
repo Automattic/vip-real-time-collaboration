@@ -18,15 +18,22 @@
  */
 import '@wordpress/core-data';
 
+// window.wp.sync is provided by @wordpress/core-data loading @wordpress/sync,
+// but the TypeScript types from @wordpress/sync don't include it in window.wp.
+// Cast to the proper type from our global type definitions.
+const wpSync = ( window.wp as any ).sync as {
+	SyncProvider: typeof import('@wordpress/sync').SyncProvider;
+	Y: typeof import('yjs');
+};
+
 // To avoid issues with default exports, you must individually export the
 // properties you need, including those used by dependencies.
-export const applyUpdate = window.wp.sync.Y.applyUpdate;
-export const applyUpdateV2 = window.wp.sync.Y.applyUpdateV2;
-export const encodeStateVector = window.wp.sync.Y.encodeStateVector;
-export const encodeStateAsUpdate = window.wp.sync.Y.encodeStateAsUpdate;
-export const encodeStateAsUpdateV2 = window.wp.sync.Y.encodeStateAsUpdateV2;
-export const createRelativePositionFromTypeIndex =
-	window.wp.sync.Y.createRelativePositionFromTypeIndex;
+export const applyUpdate = wpSync.Y.applyUpdate;
+export const applyUpdateV2 = wpSync.Y.applyUpdateV2;
+export const encodeStateVector = wpSync.Y.encodeStateVector;
+export const encodeStateAsUpdate = wpSync.Y.encodeStateAsUpdate;
+export const encodeStateAsUpdateV2 = wpSync.Y.encodeStateAsUpdateV2;
+export const createRelativePositionFromTypeIndex = wpSync.Y.createRelativePositionFromTypeIndex;
 export const createAbsolutePositionFromRelativePosition =
-	window.wp.sync.Y.createAbsolutePositionFromRelativePosition;
-export const Doc = window.wp.sync.Y.Doc;
+	wpSync.Y.createAbsolutePositionFromRelativePosition;
+export const Doc = wpSync.Y.Doc;
