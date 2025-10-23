@@ -7,5 +7,5 @@ declare module '@wordpress/editor' {
 		getEditedPostContent(): string | null;
 	}
 
-	const EditorsPresence: React.FC< React.PropsWithChildren >;
+	const EditorPresence: React.FC< React.PropsWithChildren >;
 }

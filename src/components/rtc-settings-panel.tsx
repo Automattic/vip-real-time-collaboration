@@ -7,8 +7,9 @@ import {
 	__experimentalText as Text,
 } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PluginDocumentSettingPanel, EditorsPresence } from '@wordpress/editor';
+import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
+import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatar } from './avatar';
 import { Avatars } from './avatars';
@@ -22,6 +23,13 @@ import {
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
+
+const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
+	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
+	'@wordpress/editor'
+);
+
+const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled, isSelfAwarenessEnabled } =
@@ -70,9 +78,9 @@ export function RTCSettingsPanel() {
 	return (
 		<>
 			{ isAvatarsEnabled && (
-				<EditorsPresence>
+				<EditorPresence>
 					<Avatars />
-				</EditorsPresence>
+				</EditorPresence>
 			) }
 			<BlockCanvasCover.Fill>
 				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
