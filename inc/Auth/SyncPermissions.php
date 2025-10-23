@@ -10,6 +10,8 @@ defined( 'ABSPATH' ) || exit;
  * Handles permission checking for sync objects using custom sync capabilities
  */
 final class SyncPermissions {
+	const CAP_NAME = 'edit_with_others';
+
 	/**
 	 * Initialize custom sync capabilities.
 	 * Sets up meta capability mapping and role capabilities.
@@ -110,7 +112,7 @@ final class SyncPermissions {
 		// Check sync_post capability (will be mapped to edit_post via map_meta_cap)
 		/** @var bool|WP_Error $can_sync_post */
 		$can_sync_post = true;
-		if ( ! current_user_can( 'sync_post', $parsed_post_id ) ) {
+		if ( ! current_user_can( self::CAP_NAME, $parsed_post_id ) ) {
 			$can_sync_post = new WP_Error(
 				'insufficient_sync_permissions',
 				__( 'You do not have permission to sync this content', 'vip-real-time-collaboration' )
@@ -194,8 +196,8 @@ final class SyncPermissions {
 
 		foreach ( $roles_to_update as $role_name ) {
 			$role = get_role( $role_name );
-			if ( $role && ! $role->has_cap( 'sync_post' ) ) {
-				$role->add_cap( 'sync_post' );
+			if ( $role && ! $role->has_cap( self::CAP_NAME ) ) {
+				$role->add_cap( self::CAP_NAME );
 			}
 		}
 	}

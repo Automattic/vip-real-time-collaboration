@@ -4,11 +4,13 @@ namespace VIPRealTimeCollaboration\Assets;
 
 defined( 'ABSPATH' ) || exit();
 
+use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Editor\CrdtPersistence;
 use function add_action;
 use function plugins_url;
 use function wp_add_inline_script;
 use function wp_die;
+use function wp_get_current_user;
 use function wp_enqueue_script;
 
 /**
@@ -21,6 +23,8 @@ final class Assets {
 	}
 
 	public function load_assets(): void {
+		global $post;
+
 		$vip_rtc_ws_url = null;
 
 		// Error checking for the WebSocket URL is already done in the main plugin file.
@@ -55,11 +59,13 @@ final class Assets {
 			[ 'in_footer' => false ]
 		);
 
+		$current_user = wp_get_current_user();
 		$script_data = wp_json_encode( [
+			'blogId' => get_current_blog_id(),
 			'debug' => [],
 			'rtcPostMetaKey' => CrdtPersistence::POST_META_KEY,
+			'syncEnabled' => $current_user->has_cap( SyncPermissions::CAP_NAME, $post->ID ?? null ),
 			'wsUrl' => $vip_rtc_ws_url,
-			'blogId' => get_current_blog_id(),
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.
@@ -69,7 +75,7 @@ final class Assets {
 
 		wp_add_inline_script(
 			'vip-real-time-collaboration',
-			"var VIP_RTC = $script_data;",
+			"var VIP_RTC = $script_data;window.__experimentalEnableSync = VIP_RTC.syncEnabled;",
 			'before'
 		);
 	}

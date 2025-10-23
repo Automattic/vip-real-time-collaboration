@@ -21,9 +21,6 @@ final class Overrides {
 	 * Constructor to initialize the overrides.
 	 */
 	public function __construct() {
-		// Allow multiple users to see the edit post screen.
-		add_filter( 'show_post_locked_dialog', '__return_false' );
-
 		// Ensure that the _edit_lock meta key is never returned, effectively disabling the post lock functionality just for revisions.php.
 		add_filter( 'get_post_metadata', [ $this, 'filter_post_meta' ], 10, 3 );
 	}

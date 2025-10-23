@@ -18,7 +18,9 @@ use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use VIPRealTimeCollaboration\Editor\CrdtPersistence;
+use VIPRealTimeCollaboration\Editor\PostLock;
 use VIPRealTimeCollaboration\Overrides\Overrides;
+use WP_User;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -59,6 +61,7 @@ add_action( 'plugins_loaded', static function (): void {
 	new Compatibility();
 	new CrdtPersistence();
 	new Overrides();
+	new PostLock();
 	new RestApi();
 
 	// Fire action to indicate that the plugin has loaded.
