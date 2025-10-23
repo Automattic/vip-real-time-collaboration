@@ -20,7 +20,6 @@ use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use VIPRealTimeCollaboration\Editor\CrdtPersistence;
 use VIPRealTimeCollaboration\Editor\PostLock;
 use VIPRealTimeCollaboration\Overrides\Overrides;
-use WP_User;
 
 defined( 'ABSPATH' ) || exit();
 

@@ -6,6 +6,7 @@ defined( 'ABSPATH' ) || exit();
 
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Editor\CrdtPersistence;
+use WP_Post;
 use function add_action;
 use function plugins_url;
 use function wp_add_inline_script;
@@ -64,7 +65,7 @@ final class Assets {
 			'blogId' => get_current_blog_id(),
 			'debug' => [],
 			'rtcPostMetaKey' => CrdtPersistence::POST_META_KEY,
-			'syncEnabled' => $current_user->has_cap( SyncPermissions::CAP_NAME, $post->ID ?? null ),
+			'syncEnabled' => $post instanceof WP_Post ? $current_user->has_cap( SyncPermissions::CAP_NAME, $post->ID ) : null,
 			'wsUrl' => $vip_rtc_ws_url,
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 

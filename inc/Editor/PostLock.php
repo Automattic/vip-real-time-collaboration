@@ -32,6 +32,7 @@ final class PostLock {
 	 *    },
 	 *  },
 	 * } $settings Block editor settings.
+	 * @psalm-suppress PossiblyUnusedReturnValue
 	 */
 	public function enhance_post_lock_user( array $settings ): array {
 		global $post;
@@ -70,6 +71,7 @@ final class PostLock {
 	 *     post_id: int,
 	 *   },
 	 * } $data     Heartbeat request data.
+	 * @psalm-suppress PossiblyUnusedReturnValue
 	 */
 	public function enhance_heartbeat_response( array $response, array $data ): array {
 		if ( isset( $response['wp-refresh-post-lock']['lock_error'], $data['wp-refresh-post-lock']['post_id'] ) ) {
