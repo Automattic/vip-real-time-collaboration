@@ -160,8 +160,12 @@ export function RTCSettingsPanel() {
 						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
 					</Heading>
 
+					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
+						{ __( 'Collaborator', 'vip-real-time-collaboration' ) }
+					</Heading>
+
 					<ToggleControl
-						label="Collaborators join"
+						label="Joins"
 						checked={ isNotificationsForCollaboratorJoiningEnabled }
 						onChange={ ( enabled: boolean ) => {
 							handleToggleNotificationsForCollaboratorJoining( enabled );
@@ -169,7 +173,7 @@ export function RTCSettingsPanel() {
 					/>
 
 					<ToggleControl
-						label="Collaborators leave"
+						label="Leaves"
 						checked={ isNotificationsForCollaboratorLeavingEnabled }
 						onChange={ ( enabled: boolean ) => {
 							handleToggleNotificationsForCollaboratorLeaving( enabled );
