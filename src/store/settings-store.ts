@@ -11,8 +11,8 @@ interface SettingsState {
 	isAwarenessCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
 	isSelfAwarenessEnabled: boolean;
-	isNotificationsForJoinEnabled: boolean;
-	isNotificationsForLeaveEnabled: boolean;
+	isNotificationsForCollaboratorJoiningEnabled: boolean;
+	isNotificationsForCollaboratorLeavingEnabled: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
@@ -20,8 +20,8 @@ const DEFAULT_STATE: SettingsState = {
 	isAwarenessCursorsEnabled: true,
 	isDebugToolsEnabled: false,
 	isSelfAwarenessEnabled: false,
-	isNotificationsForJoinEnabled: true,
-	isNotificationsForLeaveEnabled: false,
+	isNotificationsForCollaboratorJoiningEnabled: true,
+	isNotificationsForCollaboratorLeavingEnabled: false,
 };
 
 const actions = {
@@ -41,12 +41,12 @@ const actions = {
 		type: 'SET_SELF_AWARENESS_ENABLED',
 		payload: enabled,
 	} ),
-	setNotificationsForJoinEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED',
+	setNotificationsForCollaboratorJoiningEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED',
 		payload: enabled,
 	} ),
-	setNotificationsForLeaveEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED',
+	setNotificationsForCollaboratorLeavingEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED',
 		payload: enabled,
 	} ),
 };
@@ -92,19 +92,19 @@ const reducer = (
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
 		}
-		case 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED': {
+		case 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED': {
 			const newState = {
 				...state,
-				isNotificationsForJoinEnabled: action.payload,
+				isNotificationsForCollaboratorJoiningEnabled: action.payload,
 			};
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
 		}
-		case 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED': {
+		case 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED': {
 			const newState = {
 				...state,
-				isNotificationsForLeaveEnabled: action.payload,
+				isNotificationsForCollaboratorLeavingEnabled: action.payload,
 			};
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
@@ -131,11 +131,11 @@ const selectors = {
 		const { isSelfAwarenessEnabled } = state;
 		return isSelfAwarenessEnabled;
 	},
-	isNotificationsForJoinEnabled( state: SettingsState ) {
-		return state.isNotificationsForJoinEnabled;
+	isNotificationsForCollaboratorJoiningEnabled( state: SettingsState ) {
+		return state.isNotificationsForCollaboratorJoiningEnabled;
 	},
-	isNotificationsForLeaveEnabled( state: SettingsState ) {
-		return state.isNotificationsForLeaveEnabled;
+	isNotificationsForCollaboratorLeavingEnabled( state: SettingsState ) {
+		return state.isNotificationsForCollaboratorLeavingEnabled;
 	},
 };
 
@@ -145,8 +145,8 @@ type SettingsAction = {
 		| 'SET_AWARENESS_CURSORS_ENABLED'
 		| 'SET_DEBUG_TOOLS_ENABLED'
 		| 'SET_SELF_AWARENESS_ENABLED'
-		| 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED'
-		| 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED';
+		| 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED'
+		| 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED';
 	payload: boolean;
 };
 
@@ -165,8 +165,8 @@ export type SettingsStoreActions = {
 	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
 	setDebugToolsEnabled: ( enabled: boolean ) => void;
 	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
-	setNotificationsForJoinEnabled: ( enabled: boolean ) => void;
-	setNotificationsForLeaveEnabled: ( enabled: boolean ) => void;
+	setNotificationsForCollaboratorJoiningEnabled: ( enabled: boolean ) => void;
+	setNotificationsForCollaboratorLeavingEnabled: ( enabled: boolean ) => void;
 };
 
 export type SettingsStoreSelectors = {
@@ -174,6 +174,6 @@ export type SettingsStoreSelectors = {
 	isAwarenessCursorsEnabled: () => boolean;
 	isDebugToolsEnabled: () => boolean;
 	isSelfAwarenessEnabled: () => boolean;
-	isNotificationsForJoinEnabled: () => boolean;
-	isNotificationsForLeaveEnabled: () => boolean;
+	isNotificationsForCollaboratorJoiningEnabled: () => boolean;
+	isNotificationsForCollaboratorLeavingEnabled: () => boolean;
 };

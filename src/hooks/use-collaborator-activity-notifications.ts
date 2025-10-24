@@ -13,41 +13,62 @@ import { SettingsStoreSelectors } from '@/store/settings-store';
  * Custom hook to show notifications when users join or leave the post.
  * Notifications are shown based on the settings configured by the user.
  */
-export function usePostNotifications() {
+export function useCollaboratorActivityNotifications() {
 	// Get notification settings from the store.
-	const { isNotificationsForJoinEnabled, isNotificationsForLeaveEnabled } = useSelect<
+	const {
+		isNotificationsForCollaboratorJoiningEnabled,
+		isNotificationsForCollaboratorLeavingEnabled,
+	} = useSelect<
 		SettingsStoreSelectors,
-		{ isNotificationsForJoinEnabled: boolean; isNotificationsForLeaveEnabled: boolean }
+		{
+			isNotificationsForCollaboratorJoiningEnabled: boolean;
+			isNotificationsForCollaboratorLeavingEnabled: boolean;
+		}
 	>( select => {
 		return {
-			isNotificationsForJoinEnabled: select(
+			isNotificationsForCollaboratorJoiningEnabled: select(
 				'vip-real-time-collaboration/settings'
-			).isNotificationsForJoinEnabled(),
-			isNotificationsForLeaveEnabled: select(
+			).isNotificationsForCollaboratorJoiningEnabled(),
+			isNotificationsForCollaboratorLeavingEnabled: select(
 				'vip-real-time-collaboration/settings'
-			).isNotificationsForLeaveEnabled(),
+			).isNotificationsForCollaboratorLeavingEnabled(),
 		};
 	} );
-
-	// If both notifications are disabled, do nothing.
-	if ( ! isNotificationsForJoinEnabled && ! isNotificationsForLeaveEnabled ) {
-		return;
-	}
 
 	// Get the list of active users from the awareness store.
 	const activeUsers = useSelect< AwarenessStoreSelectors, Map< number, UserState > >( select => {
 		return select( awarenessStore ).getActiveUsers();
 	} );
 
+	sendPresenceNotifications(
+		activeUsers,
+		isNotificationsForCollaboratorJoiningEnabled,
+		isNotificationsForCollaboratorLeavingEnabled
+	);
+}
+
+function sendPresenceNotifications(
+	activeUsers: Map< number, UserState >,
+	isNotificationsForCollaboratorJoiningEnabled: boolean,
+	isNotificationsForCollaboratorLeavingEnabled: boolean
+) {
 	// Ref to keep track of the initial users, for comparison on subsequent renders.
 	const initialUsers = useRef( new Map() as Map< number, UserState > );
 
 	// Effect to show notifications when users join or leave.
 	useEffect( () => {
+		// If both notifications are disabled, do nothing.
+		if (
+			! isNotificationsForCollaboratorJoiningEnabled &&
+			! isNotificationsForCollaboratorLeavingEnabled
+		) {
+			return;
+		}
+
 		const { createNotice } = dispatch( noticesStore );
 
 		// Show notification for users who have joined.
-		if ( isNotificationsForJoinEnabled ) {
+		if ( isNotificationsForCollaboratorJoiningEnabled ) {
 			activeUsers.forEach( ( user, id ) => {
 				if ( ! initialUsers.current.has( id ) && ! user.isMe && initialUsers.current.size > 0 ) {
 					void createNotice( 'info', `${ user.name } has joined.`, {
@@ -60,7 +81,7 @@ export function usePostNotifications() {
 		}
 
 		// Show notification for users who have left.
-		if ( isNotificationsForLeaveEnabled ) {
+		if ( isNotificationsForCollaboratorLeavingEnabled ) {
 			initialUsers.current.forEach( ( user, id ) => {
 				if ( ! activeUsers.has( id ) && ! user.isMe && activeUsers.size > 0 ) {
 					void createNotice( 'info', `${ user.name } has left.`, {
@@ -74,5 +95,9 @@ export function usePostNotifications() {
 
 		// Update the initial users ref for the next comparison.
 		initialUsers.current = new Map( activeUsers );
-	}, [ activeUsers, isNotificationsForJoinEnabled, isNotificationsForLeaveEnabled ] );
+	}, [
+		activeUsers,
+		isNotificationsForCollaboratorJoiningEnabled,
+		isNotificationsForCollaboratorLeavingEnabled,
+	] );
 }
