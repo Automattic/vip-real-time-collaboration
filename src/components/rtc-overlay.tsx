@@ -5,6 +5,7 @@ import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
 
 import '@/components/rtc-overlay.scss';
+import { usePostNotifications } from '@/hooks/use-post-notifications';
 
 interface RTCOverlayProps {
 	containerRef: React.MutableRefObject< HTMLElement | null >;
@@ -44,6 +45,8 @@ export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
 	useBlockHighlighting( document );
+
+	usePostNotifications();
 
 	return (
 		<>

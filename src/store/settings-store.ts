@@ -11,6 +11,8 @@ interface SettingsState {
 	isAwarenessCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
 	isSelfAwarenessEnabled: boolean;
+	isNotificationsForJoinEnabled: boolean;
+	isNotificationsForLeaveEnabled: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
@@ -18,6 +20,8 @@ const DEFAULT_STATE: SettingsState = {
 	isAwarenessCursorsEnabled: true,
 	isDebugToolsEnabled: false,
 	isSelfAwarenessEnabled: false,
+	isNotificationsForJoinEnabled: true,
+	isNotificationsForLeaveEnabled: false,
 };
 
 const actions = {
@@ -35,6 +39,14 @@ const actions = {
 	} ),
 	setSelfAwarenessEnabled: ( enabled: boolean ): SettingsAction => ( {
 		type: 'SET_SELF_AWARENESS_ENABLED',
+		payload: enabled,
+	} ),
+	setNotificationsForJoinEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED',
+		payload: enabled,
+	} ),
+	setNotificationsForLeaveEnabled: ( enabled: boolean ): SettingsAction => ( {
+		type: 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED',
 		payload: enabled,
 	} ),
 };
@@ -80,6 +92,24 @@ const reducer = (
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
 			return newState;
 		}
+		case 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED': {
+			const newState = {
+				...state,
+				isNotificationsForJoinEnabled: action.payload,
+			};
+
+			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
+			return newState;
+		}
+		case 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED': {
+			const newState = {
+				...state,
+				isNotificationsForLeaveEnabled: action.payload,
+			};
+
+			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
+			return newState;
+		}
 		default:
 			return state;
 	}
@@ -101,6 +131,12 @@ const selectors = {
 		const { isSelfAwarenessEnabled } = state;
 		return isSelfAwarenessEnabled;
 	},
+	isNotificationsForJoinEnabled( state: SettingsState ) {
+		return state.isNotificationsForJoinEnabled;
+	},
+	isNotificationsForLeaveEnabled( state: SettingsState ) {
+		return state.isNotificationsForLeaveEnabled;
+	},
 };
 
 type SettingsAction = {
@@ -108,7 +144,9 @@ type SettingsAction = {
 		| 'SET_AWARENESS_AVATARS_ENABLED'
 		| 'SET_AWARENESS_CURSORS_ENABLED'
 		| 'SET_DEBUG_TOOLS_ENABLED'
-		| 'SET_SELF_AWARENESS_ENABLED';
+		| 'SET_SELF_AWARENESS_ENABLED'
+		| 'SET_NOTIFICATIONS_FOR_JOIN_ENABLED'
+		| 'SET_NOTIFICATIONS_FOR_LEAVE_ENABLED';
 	payload: boolean;
 };
 
@@ -127,6 +165,8 @@ export type SettingsStoreActions = {
 	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
 	setDebugToolsEnabled: ( enabled: boolean ) => void;
 	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
+	setNotificationsForJoinEnabled: ( enabled: boolean ) => void;
+	setNotificationsForLeaveEnabled: ( enabled: boolean ) => void;
 };
 
 export type SettingsStoreSelectors = {
@@ -134,4 +174,6 @@ export type SettingsStoreSelectors = {
 	isAwarenessCursorsEnabled: () => boolean;
 	isDebugToolsEnabled: () => boolean;
 	isSelfAwarenessEnabled: () => boolean;
+	isNotificationsForJoinEnabled: () => boolean;
+	isNotificationsForLeaveEnabled: () => boolean;
 };

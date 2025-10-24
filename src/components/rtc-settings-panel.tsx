@@ -23,6 +23,7 @@ import {
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
+import { usePostNotifications } from '@/hooks/use-post-notifications';
 
 const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
@@ -32,29 +33,41 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
-	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled, isSelfAwarenessEnabled } =
-		useSelect<
-			SettingsStoreSelectors,
-			{
-				isAvatarsEnabled: boolean;
-				isCursorsEnabled: boolean;
-				isDebugToolsEnabled: boolean;
-				isSelfAwarenessEnabled: boolean;
-			}
-		>( select => {
-			return {
-				isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-				isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-				isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
-				isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
-			};
-		} );
+	const {
+		isAvatarsEnabled,
+		isCursorsEnabled,
+		isDebugToolsEnabled,
+		isSelfAwarenessEnabled,
+		isNotificationsForJoinEnabled,
+		isNotificationsForLeaveEnabled,
+	} = useSelect<
+		SettingsStoreSelectors,
+		{
+			isAvatarsEnabled: boolean;
+			isCursorsEnabled: boolean;
+			isDebugToolsEnabled: boolean;
+			isSelfAwarenessEnabled: boolean;
+			isNotificationsForJoinEnabled: boolean;
+			isNotificationsForLeaveEnabled: boolean;
+		}
+	>( select => {
+		return {
+			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
+			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
+			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
+			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+			isNotificationsForJoinEnabled: select( rtcSettingsStore ).isNotificationsForJoinEnabled(),
+			isNotificationsForLeaveEnabled: select( rtcSettingsStore ).isNotificationsForLeaveEnabled(),
+		};
+	} );
 
 	const {
 		setAwarenessAvatarsEnabled,
 		setAwarenessCursorsEnabled,
 		setDebugToolsEnabled,
 		setSelfAwarenessEnabled,
+		setNotificationsForJoinEnabled,
+		setNotificationsForLeaveEnabled,
 	} = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	const activeUsers = useSortedAwarenessUsers();
@@ -73,6 +86,14 @@ export function RTCSettingsPanel() {
 
 	const handleToggleSelfAwareness = ( enabled: boolean ) => {
 		setSelfAwarenessEnabled( enabled );
+	};
+
+	const handleToggleNotificationsForJoin = ( enabled: boolean ) => {
+		setNotificationsForJoinEnabled( enabled );
+	};
+
+	const handleToggleNotificationsForLeave = ( enabled: boolean ) => {
+		setNotificationsForLeaveEnabled( enabled );
 	};
 
 	return (
@@ -133,6 +154,26 @@ export function RTCSettingsPanel() {
 							} }
 						/>
 					) }
+
+					<Heading level={ 3 } style={ { marginTop: '24px' } }>
+						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
+					</Heading>
+
+					<ToggleControl
+						label="Collaborators join"
+						checked={ isNotificationsForJoinEnabled }
+						onChange={ ( enabled: boolean ) => {
+							handleToggleNotificationsForJoin( enabled );
+						} }
+					/>
+
+					<ToggleControl
+						label="Collaborators leave"
+						checked={ isNotificationsForLeaveEnabled }
+						onChange={ ( enabled: boolean ) => {
+							handleToggleNotificationsForLeave( enabled );
+						} }
+					/>
 				</div>
 
 				<Heading level={ 3 } style={ { marginTop: '24px' } }>
