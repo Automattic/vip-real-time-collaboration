@@ -26,6 +26,8 @@ import { Logger } from '@/utilities/logger';
 import {
 	getPostRestoredNotificationContent,
 	getPostUpdatedNotificationContent,
+	NotificationType,
+	sendNotification,
 } from '@/utilities/notifications';
 import {
 	getSelectionState,
@@ -206,11 +208,7 @@ export class AwarenessManager {
 
 						const status = recordMap.get( 'status' ) as string;
 						const content = getPostUpdatedNotificationContent( userState, status );
-						void createNotice( 'info', content, {
-							id: `remote-user-persisted-${ remoteClientId }`,
-							isDismissible: false,
-							type: 'snackbar',
-						} );
+						sendNotification( content, userState, NotificationType.PostUpdated );
 
 						break;
 					}
@@ -235,11 +233,7 @@ export class AwarenessManager {
 						}
 
 						const content = getPostRestoredNotificationContent( userState );
-						void createNotice( 'info', content, {
-							id: `remote-user-restored-${ remoteClientId }`,
-							isDismissible: false,
-							type: 'snackbar',
-						} );
+						sendNotification( content, userState, NotificationType.PostRestored );
 
 						break;
 					}

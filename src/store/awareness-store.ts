@@ -3,6 +3,11 @@ import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
 import { type SelectionState } from '@/utilities/selection';
 import { areUserStatesEqual } from '@/utilities/user';
+import {
+	getUserPresenceNotificationContent,
+	NotificationType,
+	sendNotification,
+} from '@/utilities/notifications';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
@@ -99,6 +104,16 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 		}
 
 		case 'REMOVE_USER': {
+			const existingState = state.userMap.get( action.payload.clientId );
+
+			if ( existingState ) {
+				const content = getUserPresenceNotificationContent(
+					existingState,
+					NotificationType.UserExited
+				);
+				sendNotification( content, existingState, NotificationType.UserExited );
+			}
+
 			state.userMap.delete( action.payload.clientId );
 
 			return {
@@ -116,6 +131,12 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 					// No changes, don't update the state.
 					return state;
 				}
+			} else {
+				const content = getUserPresenceNotificationContent(
+					action.payload.userState,
+					NotificationType.UserEntered
+				);
+				sendNotification( content, action.payload.userState, NotificationType.UserEntered );
 			}
 
 			state.userMap.set( action.payload.clientId, action.payload.userState );
