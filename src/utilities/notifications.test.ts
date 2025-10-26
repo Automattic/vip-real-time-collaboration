@@ -4,6 +4,8 @@ import { describe, it } from 'node:test';
 import {
 	getPostRestoredNotificationContent,
 	getPostUpdatedNotificationContent,
+	getUserPresenceNotificationContent,
+	NotificationType,
 } from './notifications';
 
 import type { UserState } from '@/store/awareness-store';
@@ -74,5 +76,44 @@ describe( 'getPostUpdatedNotificationContent', () => {
 		const result = getPostUpdatedNotificationContent( baseUserState, 'unknown-status' );
 
 		assert.strictEqual( result, 'Draft saved by Alice.' );
+	} );
+} );
+
+describe( 'getUserPresenceNotificationContent', () => {
+	it( 'should return "entered" message for UserEntered type', () => {
+		const result = getUserPresenceNotificationContent(
+			baseUserState,
+			NotificationType.UserEntered
+		);
+
+		assert.strictEqual( result, 'Alice has entered the post.' );
+	} );
+
+	it( 'should return "exited" message for UserExited type', () => {
+		const result = getUserPresenceNotificationContent( baseUserState, NotificationType.UserExited );
+
+		assert.strictEqual( result, 'Alice has exited the post.' );
+	} );
+
+	it( 'should use correct user name in entered message', () => {
+		const userState: UserState = {
+			...baseUserState,
+			name: 'Bob',
+		};
+
+		const result = getUserPresenceNotificationContent( userState, NotificationType.UserEntered );
+
+		assert.strictEqual( result, 'Bob has entered the post.' );
+	} );
+
+	it( 'should use correct user name in exited message', () => {
+		const userState: UserState = {
+			...baseUserState,
+			name: 'Charlie',
+		};
+
+		const result = getUserPresenceNotificationContent( userState, NotificationType.UserExited );
+
+		assert.strictEqual( result, 'Charlie has exited the post.' );
 	} );
 } );

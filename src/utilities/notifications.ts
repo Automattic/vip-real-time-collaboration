@@ -10,6 +10,12 @@ export enum NotificationType {
 	UserExited = 'remote-user-post-user-exited',
 }
 
+/**
+ * Get the content of a post restored notification.
+ *
+ * @param userState the user state of the user related to the notification
+ * @returns the content of the post restored notification
+ */
 export function getPostRestoredNotificationContent( userState: UserState ): string {
 	let predicate = `${ userState.name } restored`;
 	if ( userState.isMe ) {
@@ -19,6 +25,13 @@ export function getPostRestoredNotificationContent( userState: UserState ): stri
 	return `${ predicate } newer content from the server.`;
 }
 
+/**
+ * Get the content of a post updated or draft saved notification.
+ *
+ * @param userState the user state of the user related to the notification
+ * @param status the status of the post
+ * @returns the content of the post updated or draft saved notification
+ */
 export function getPostUpdatedNotificationContent( userState: UserState, status: string ): string {
 	let noun = 'Draft';
 	let verb = 'saved';
@@ -31,6 +44,13 @@ export function getPostUpdatedNotificationContent( userState: UserState, status:
 	return `${ noun } ${ verb } by ${ userState.name }.`;
 }
 
+/**
+ * Get the content of a user presence notification, based on the type.
+ *
+ * @param userState the user state of the user related to the notification
+ * @param type the type of notification
+ * @returns the content of the user presence notification
+ */
 export function getUserPresenceNotificationContent(
 	userState: UserState,
 	type: NotificationType
@@ -67,6 +87,15 @@ function shouldSendNotification( userState: UserState, type: NotificationType ):
 	return true;
 }
 
+/**
+ * Send a notification to the editor.
+ *
+ * Certain notifications can be skipped based on user settings, or scenarios.
+ *
+ * @param content the notification content
+ * @param userState the user state of the user related to the notification
+ * @param type the type of notification
+ */
 export function sendNotification(
 	content: string,
 	userState: UserState,
