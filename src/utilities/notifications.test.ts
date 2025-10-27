@@ -79,23 +79,20 @@ describe( 'getPostUpdatedNotificationContent', () => {
 
 describe( 'getUserPresenceNotificationContent', () => {
 	it( 'should return "entered" message for UserEntered type', () => {
-		const result = getUserPresenceNotificationContent(
-			baseUserState,
-			NotificationType.UserEntered
-		);
+		const result = getUserPresenceNotificationContent( baseUserInfo, NotificationType.UserEntered );
 
 		assert.strictEqual( result, 'Alice has entered the post.' );
 	} );
 
 	it( 'should return "exited" message for UserExited type', () => {
-		const result = getUserPresenceNotificationContent( baseUserState, NotificationType.UserExited );
+		const result = getUserPresenceNotificationContent( baseUserInfo, NotificationType.UserExited );
 
 		assert.strictEqual( result, 'Alice has exited the post.' );
 	} );
 
 	it( 'should use correct user name in entered message', () => {
-		const userState: UserState = {
-			...baseUserState,
+		const userState: UserInfo = {
+			...baseUserInfo,
 			name: 'Bob',
 		};
 
@@ -105,8 +102,8 @@ describe( 'getUserPresenceNotificationContent', () => {
 	} );
 
 	it( 'should use correct user name in exited message', () => {
-		const userState: UserState = {
-			...baseUserState,
+		const userState: UserInfo = {
+			...baseUserInfo,
 			name: 'Charlie',
 		};
 
