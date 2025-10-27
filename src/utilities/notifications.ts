@@ -61,7 +61,7 @@ export function getUserPresenceNotificationContent(
 	return `${ userInfo.name } has ${ action } the post.`;
 }
 
-function shouldSendNotification( userState: UserInfo, type: NotificationType ): boolean {
+function shouldSendNotification( userInfo: UserInfo, type: NotificationType ): boolean {
 	// If notifications for user joining is disabled, skip.
 	if (
 		type === NotificationType.UserEntered &&
@@ -81,7 +81,7 @@ function shouldSendNotification( userState: UserInfo, type: NotificationType ): 
 	// If the current user is the one who joined/left, skip.
 	if (
 		( type === NotificationType.UserEntered || type === NotificationType.UserExited ) &&
-		userState.isMe
+		userInfo.isMe
 	) {
 		return false;
 	}

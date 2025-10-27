@@ -91,23 +91,23 @@ describe( 'getUserPresenceNotificationContent', () => {
 	} );
 
 	it( 'should use correct user name in entered message', () => {
-		const userState: UserInfo = {
+		const userInfo: UserInfo = {
 			...baseUserInfo,
 			name: 'Bob',
 		};
 
-		const result = getUserPresenceNotificationContent( userState, NotificationType.UserEntered );
+		const result = getUserPresenceNotificationContent( userInfo, NotificationType.UserEntered );
 
 		assert.strictEqual( result, 'Bob has entered the post.' );
 	} );
 
 	it( 'should use correct user name in exited message', () => {
-		const userState: UserInfo = {
+		const userInfo: UserInfo = {
 			...baseUserInfo,
 			name: 'Charlie',
 		};
 
-		const result = getUserPresenceNotificationContent( userState, NotificationType.UserExited );
+		const result = getUserPresenceNotificationContent( userInfo, NotificationType.UserExited );
 
 		assert.strictEqual( result, 'Charlie has exited the post.' );
 	} );
