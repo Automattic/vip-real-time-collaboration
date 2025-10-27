@@ -157,7 +157,7 @@ export function RTCSettingsPanel() {
 						</FlexItem>
 					) ) }
 				</Flex>
-				<div className="vip-telemetry-target" style={ { marginTop: '24px', minHeight: '30px' } }></div>
+				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
 		</>
 	);
