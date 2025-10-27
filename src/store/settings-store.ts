@@ -6,48 +6,37 @@ import { loadFromLocalStorage, saveToLocalStorage } from '@/utilities/local-stor
 const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
+export enum Setting {
+	AWARENESS_AVATARS = 'isAwarenessAvatarsEnabled',
+	AWARENESS_CURSORS = 'isAwarenessCursorsEnabled',
+	DEBUG_TOOLS = 'isDebugToolsEnabled',
+	SELF_AWARENESS = 'isSelfAwarenessEnabled',
+	USER_ENTER_NOTIFICATION = 'isUserEnterNotificationEnabled',
+	USER_EXIT_NOTIFICATION = 'isUserExitNotificationEnabled',
+}
+
 interface SettingsState {
-	isAwarenessAvatarsEnabled: boolean;
-	isAwarenessCursorsEnabled: boolean;
-	isDebugToolsEnabled: boolean;
-	isSelfAwarenessEnabled: boolean;
-	isNotificationsForCollaboratorJoiningEnabled: boolean;
-	isNotificationsForCollaboratorLeavingEnabled: boolean;
+	[ Setting.AWARENESS_AVATARS ]: boolean;
+	[ Setting.AWARENESS_CURSORS ]: boolean;
+	[ Setting.DEBUG_TOOLS ]: boolean;
+	[ Setting.SELF_AWARENESS ]: boolean;
+	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
+	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
-	isAwarenessAvatarsEnabled: true,
-	isAwarenessCursorsEnabled: true,
-	isDebugToolsEnabled: false,
-	isSelfAwarenessEnabled: false,
-	isNotificationsForCollaboratorJoiningEnabled: true,
-	isNotificationsForCollaboratorLeavingEnabled: false,
+	[ Setting.AWARENESS_AVATARS ]: true,
+	[ Setting.AWARENESS_CURSORS ]: true,
+	[ Setting.DEBUG_TOOLS ]: false,
+	[ Setting.SELF_AWARENESS ]: false,
+	[ Setting.USER_ENTER_NOTIFICATION ]: true,
+	[ Setting.USER_EXIT_NOTIFICATION ]: false,
 };
 
 const actions = {
-	setAwarenessAvatarsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_AWARENESS_AVATARS_ENABLED',
-		payload: enabled,
-	} ),
-	setAwarenessCursorsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_AWARENESS_CURSORS_ENABLED',
-		payload: enabled,
-	} ),
-	setDebugToolsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_DEBUG_TOOLS_ENABLED',
-		payload: enabled,
-	} ),
-	setSelfAwarenessEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_SELF_AWARENESS_ENABLED',
-		payload: enabled,
-	} ),
-	setNotificationsForCollaboratorJoiningEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED',
-		payload: enabled,
-	} ),
-	setNotificationsForCollaboratorLeavingEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED',
-		payload: enabled,
+	setSetting: ( setting: Setting, enabled: boolean ): SettingsAction => ( {
+		type: 'SET_SETTING',
+		payload: { setting, enabled },
 	} ),
 };
 
@@ -56,55 +45,10 @@ const reducer = (
 	action: SettingsAction
 ): SettingsState => {
 	switch ( action.type ) {
-		case 'SET_AWARENESS_AVATARS_ENABLED': {
+		case 'SET_SETTING': {
 			const newState = {
 				...state,
-				isAwarenessAvatarsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_AWARENESS_CURSORS_ENABLED': {
-			const newState = {
-				...state,
-				isAwarenessCursorsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_DEBUG_TOOLS_ENABLED': {
-			const newState = {
-				...state,
-				isDebugToolsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_SELF_AWARENESS_ENABLED': {
-			const newState = {
-				...state,
-				isSelfAwarenessEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED': {
-			const newState = {
-				...state,
-				isNotificationsForCollaboratorJoiningEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED': {
-			const newState = {
-				...state,
-				isNotificationsForCollaboratorLeavingEnabled: action.payload,
+				[ action.payload.setting ]: action.payload.enabled,
 			};
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
@@ -116,38 +60,21 @@ const reducer = (
 };
 
 const selectors = {
-	isAwarenessAvatarsEnabled( state: SettingsState ) {
-		const { isAwarenessAvatarsEnabled } = state;
-		return isAwarenessAvatarsEnabled;
-	},
-	isAwarenessCursorsEnabled( state: SettingsState ) {
-		const { isAwarenessCursorsEnabled } = state;
-		return isAwarenessCursorsEnabled;
-	},
-	isDebugToolsEnabled( state: SettingsState ) {
-		return isDevelopment() ? state.isDebugToolsEnabled : false;
-	},
-	isSelfAwarenessEnabled( state: SettingsState ) {
-		const { isSelfAwarenessEnabled } = state;
-		return isSelfAwarenessEnabled;
-	},
-	isNotificationsForCollaboratorJoiningEnabled( state: SettingsState ) {
-		return state.isNotificationsForCollaboratorJoiningEnabled;
-	},
-	isNotificationsForCollaboratorLeavingEnabled( state: SettingsState ) {
-		return state.isNotificationsForCollaboratorLeavingEnabled;
+	getSetting( state: SettingsState, setting: Setting ): boolean {
+		// Special handling for debug tools - only available in development
+		if ( setting === Setting.DEBUG_TOOLS ) {
+			return isDevelopment() ? state[ setting ] : false;
+		}
+		return state[ setting ];
 	},
 };
 
 type SettingsAction = {
-	type:
-		| 'SET_AWARENESS_AVATARS_ENABLED'
-		| 'SET_AWARENESS_CURSORS_ENABLED'
-		| 'SET_DEBUG_TOOLS_ENABLED'
-		| 'SET_SELF_AWARENESS_ENABLED'
-		| 'SET_NOTIFICATIONS_FOR_COLLABORATOR_JOINING_ENABLED'
-		| 'SET_NOTIFICATIONS_FOR_COLLABORATOR_LEAVING_ENABLED';
-	payload: boolean;
+	type: 'SET_SETTING';
+	payload: {
+		setting: Setting;
+		enabled: boolean;
+	};
 };
 
 export const store = createReduxStore( STORE_NAME, {
@@ -161,19 +88,9 @@ export const store = createReduxStore( STORE_NAME, {
 export type { SettingsState };
 
 export type SettingsStoreActions = {
-	setAwarenessAvatarsEnabled: ( enabled: boolean ) => void;
-	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
-	setDebugToolsEnabled: ( enabled: boolean ) => void;
-	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
-	setNotificationsForCollaboratorJoiningEnabled: ( enabled: boolean ) => void;
-	setNotificationsForCollaboratorLeavingEnabled: ( enabled: boolean ) => void;
+	setSetting: ( setting: Setting, enabled: boolean ) => void;
 };
 
 export type SettingsStoreSelectors = {
-	isAwarenessAvatarsEnabled: () => boolean;
-	isAwarenessCursorsEnabled: () => boolean;
-	isDebugToolsEnabled: () => boolean;
-	isSelfAwarenessEnabled: () => boolean;
-	isNotificationsForCollaboratorJoiningEnabled: () => boolean;
-	isNotificationsForCollaboratorLeavingEnabled: () => boolean;
+	getSetting: ( setting: Setting ) => boolean;
 };

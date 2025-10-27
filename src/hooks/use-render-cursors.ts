@@ -3,7 +3,7 @@ import { useEffect, useRef } from '@wordpress/element';
 
 import { AwarenessManager } from '@/awareness-manager';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
+import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
 
@@ -30,9 +30,9 @@ export function useRenderCursors(
 	const renderCursorsRef = useRef< () => void >();
 
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
-		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
-		if ( isAwarenessCursorsEnabled() ) {
-			if ( isSelfAwarenessEnabled() ) {
+		const { getSetting } = select( rtcSettingsStore );
+		if ( getSetting( Setting.AWARENESS_CURSORS ) ) {
+			if ( getSetting( Setting.SELF_AWARENESS ) ) {
 				return DrawType.All;
 			}
 
@@ -40,7 +40,7 @@ export function useRenderCursors(
 		}
 
 		return DrawType.None;
-	} );
+	}, [] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 

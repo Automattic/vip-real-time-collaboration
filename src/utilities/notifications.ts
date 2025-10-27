@@ -1,7 +1,7 @@
 import { store as noticesStore } from '@wordpress/notices';
 import { dispatch, select } from '@wordpress/data';
 import type { UserState } from '@/store/awareness-store';
-import { store as settingsStore } from '@/store/settings-store';
+import { store as settingsStore, Setting } from '@/store/settings-store';
 
 export enum NotificationType {
 	PostRestored = 'remote-user-post-restored',
@@ -63,7 +63,7 @@ function shouldSendNotification( userState: UserState, type: NotificationType ):
 	// If notifications for user joining is disabled, skip.
 	if (
 		type === NotificationType.UserEntered &&
-		! select( settingsStore ).isNotificationsForCollaboratorJoiningEnabled()
+		! select( settingsStore ).getSetting( Setting.USER_ENTER_NOTIFICATION )
 	) {
 		return false;
 	}
@@ -71,7 +71,7 @@ function shouldSendNotification( userState: UserState, type: NotificationType ):
 	// If notifications for user leaving is disabled, skip.
 	if (
 		type === NotificationType.UserExited &&
-		! select( settingsStore ).isNotificationsForCollaboratorLeavingEnabled()
+		! select( settingsStore ).getSetting( Setting.USER_EXIT_NOTIFICATION )
 	) {
 		return false;
 	}

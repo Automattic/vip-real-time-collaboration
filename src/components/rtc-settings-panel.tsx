@@ -18,6 +18,7 @@ import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
 import {
 	store as rtcSettingsStore,
+	Setting,
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
@@ -37,8 +38,8 @@ export function RTCSettingsPanel() {
 		isCursorsEnabled,
 		isDebugToolsEnabled,
 		isSelfAwarenessEnabled,
-		isNotificationsForCollaboratorJoiningEnabled,
-		isNotificationsForCollaboratorLeavingEnabled,
+		isUserEnterNotificationEnabled,
+		isUserExitNotificationEnabled,
 	} = useSelect<
 		SettingsStoreSelectors,
 		{
@@ -46,56 +47,24 @@ export function RTCSettingsPanel() {
 			isCursorsEnabled: boolean;
 			isDebugToolsEnabled: boolean;
 			isSelfAwarenessEnabled: boolean;
-			isNotificationsForCollaboratorJoiningEnabled: boolean;
-			isNotificationsForCollaboratorLeavingEnabled: boolean;
+			isUserEnterNotificationEnabled: boolean;
+			isUserExitNotificationEnabled: boolean;
 		}
 	>( select => {
+		const { getSetting } = select( rtcSettingsStore );
 		return {
-			isAvatarsEnabled: select( rtcSettingsStore ).isAwarenessAvatarsEnabled(),
-			isCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-			isDebugToolsEnabled: select( rtcSettingsStore ).isDebugToolsEnabled(),
-			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
-			isNotificationsForCollaboratorJoiningEnabled:
-				select( rtcSettingsStore ).isNotificationsForCollaboratorJoiningEnabled(),
-			isNotificationsForCollaboratorLeavingEnabled:
-				select( rtcSettingsStore ).isNotificationsForCollaboratorLeavingEnabled(),
+			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
+			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
+			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
+			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
+			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
+			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
 		};
-	} );
+	}, [] );
 
-	const {
-		setAwarenessAvatarsEnabled,
-		setAwarenessCursorsEnabled,
-		setDebugToolsEnabled,
-		setSelfAwarenessEnabled,
-		setNotificationsForCollaboratorJoiningEnabled,
-		setNotificationsForCollaboratorLeavingEnabled,
-	} = useDispatch< SettingsStoreActions >( rtcSettingsStore );
+	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	const activeUsers = useSortedAwarenessUsers();
-
-	const handleToggleAvatars = ( enabled: boolean ) => {
-		setAwarenessAvatarsEnabled( enabled );
-	};
-
-	const handleToggleCursors = ( enabled: boolean ) => {
-		setAwarenessCursorsEnabled( enabled );
-	};
-
-	const handleToggleDebugTools = ( enabled: boolean ) => {
-		setDebugToolsEnabled( enabled );
-	};
-
-	const handleToggleSelfAwareness = ( enabled: boolean ) => {
-		setSelfAwarenessEnabled( enabled );
-	};
-
-	const handleToggleNotificationsForCollaboratorJoining = ( enabled: boolean ) => {
-		setNotificationsForCollaboratorJoiningEnabled( enabled );
-	};
-
-	const handleToggleNotificationsForCollaboratorLeaving = ( enabled: boolean ) => {
-		setNotificationsForCollaboratorLeavingEnabled( enabled );
-	};
 
 	return (
 		<>
@@ -125,34 +94,26 @@ export function RTCSettingsPanel() {
 					<ToggleControl
 						label="Enable avatars"
 						checked={ isAvatarsEnabled }
-						onChange={ ( enabled: boolean ) => {
-							handleToggleAvatars( enabled );
-						} }
+						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_AVATARS, enabled ) }
 					/>
 
 					<ToggleControl
 						label="Enable cursors"
 						checked={ isCursorsEnabled }
-						onChange={ ( enabled: boolean ) => {
-							handleToggleCursors( enabled );
-						} }
+						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_CURSORS, enabled ) }
 					/>
 
 					<ToggleControl
 						label="Show my awareness"
 						checked={ isSelfAwarenessEnabled }
-						onChange={ ( enabled: boolean ) => {
-							handleToggleSelfAwareness( enabled );
-						} }
+						onChange={ ( enabled: boolean ) => setSetting( Setting.SELF_AWARENESS, enabled ) }
 					/>
 
 					{ isDevelopment() && (
 						<ToggleControl
 							label="Show debug tools"
 							checked={ isDebugToolsEnabled }
-							onChange={ ( enabled: boolean ) => {
-								handleToggleDebugTools( enabled );
-							} }
+							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
 						/>
 					) }
 
@@ -161,23 +122,23 @@ export function RTCSettingsPanel() {
 					</Heading>
 
 					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
-						{ __( 'Collaborator', 'vip-real-time-collaboration' ) }
+						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
 					</Heading>
 
 					<ToggleControl
-						label="Joins"
-						checked={ isNotificationsForCollaboratorJoiningEnabled }
-						onChange={ ( enabled: boolean ) => {
-							handleToggleNotificationsForCollaboratorJoining( enabled );
-						} }
+						label="Enters"
+						checked={ isUserEnterNotificationEnabled }
+						onChange={ ( enabled: boolean ) =>
+							setSetting( Setting.USER_ENTER_NOTIFICATION, enabled )
+						}
 					/>
 
 					<ToggleControl
-						label="Leaves"
-						checked={ isNotificationsForCollaboratorLeavingEnabled }
-						onChange={ ( enabled: boolean ) => {
-							handleToggleNotificationsForCollaboratorLeaving( enabled );
-						} }
+						label="Exits"
+						checked={ isUserExitNotificationEnabled }
+						onChange={ ( enabled: boolean ) =>
+							setSetting( Setting.USER_EXIT_NOTIFICATION, enabled )
+						}
 					/>
 				</div>
 
