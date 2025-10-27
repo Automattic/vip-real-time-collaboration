@@ -1,7 +1,9 @@
-import { store as noticesStore } from '@wordpress/notices';
 import { dispatch, select } from '@wordpress/data';
-import type { UserState } from '@/store/awareness-store';
+import { store as noticesStore } from '@wordpress/notices';
+
 import { store as settingsStore, Setting } from '@/store/settings-store';
+
+import type { UserInfo } from '@/store/awareness-store';
 
 export enum NotificationType {
 	PostRestored = 'remote-user-post-restored',
@@ -13,12 +15,12 @@ export enum NotificationType {
 /**
  * Get the content of a post restored notification.
  *
- * @param userState the user state of the user related to the notification
+ * @param userInfo the user info of the user related to the notification
  * @returns the content of the post restored notification
  */
-export function getPostRestoredNotificationContent( userState: UserState ): string {
-	let predicate = `${ userState.name } restored`;
-	if ( userState.isMe ) {
+export function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
+	let predicate = `${ userInfo.name } restored`;
+	if ( userInfo.isMe ) {
 		predicate = 'Restored';
 	}
 
@@ -28,11 +30,11 @@ export function getPostRestoredNotificationContent( userState: UserState ): stri
 /**
  * Get the content of a post updated or draft saved notification.
  *
- * @param userState the user state of the user related to the notification
+ * @param userInfo the user info of the user related to the notification
  * @param status the status of the post
  * @returns the content of the post updated or draft saved notification
  */
-export function getPostUpdatedNotificationContent( userState: UserState, status: string ): string {
+export function getPostUpdatedNotificationContent( userInfo: UserInfo, status: string ): string {
 	let noun = 'Draft';
 	let verb = 'saved';
 
@@ -41,25 +43,25 @@ export function getPostUpdatedNotificationContent( userState: UserState, status:
 		verb = 'updated';
 	}
 
-	return `${ noun } ${ verb } by ${ userState.name }.`;
+	return `${ noun } ${ verb } by ${ userInfo.name }.`;
 }
 
 /**
  * Get the content of a user presence notification, based on the type.
  *
- * @param userState the user state of the user related to the notification
+ * @param userInfo the user info of the user related to the notification
  * @param type the type of notification
  * @returns the content of the user presence notification
  */
 export function getUserPresenceNotificationContent(
-	userState: UserState,
+	userInfo: UserInfo,
 	type: NotificationType
 ): string {
-	let action = type === NotificationType.UserEntered ? 'entered' : 'exited';
-	return `${ userState.name } has ${ action } the post.`;
+	const action = type === NotificationType.UserEntered ? 'entered' : 'exited';
+	return `${ userInfo.name } has ${ action } the post.`;
 }
 
-function shouldSendNotification( userState: UserState, type: NotificationType ): boolean {
+function shouldSendNotification( userState: UserInfo, type: NotificationType ): boolean {
 	// If notifications for user joining is disabled, skip.
 	if (
 		type === NotificationType.UserEntered &&
@@ -93,24 +95,24 @@ function shouldSendNotification( userState: UserState, type: NotificationType ):
  * Certain notifications can be skipped based on user settings, or scenarios.
  *
  * @param content the notification content
- * @param userState the user state of the user related to the notification
+ * @param userInfo the user info of the user related to the notification
  * @param type the type of notification
  */
 export function sendNotification(
 	content: string,
-	userState: UserState,
+	userInfo: UserInfo,
 	type: NotificationType
 ): void {
 	const { createNotice } = dispatch( noticesStore );
 
 	// Skip notifications for certain cases.
-	if ( ! shouldSendNotification( userState, type ) ) {
+	if ( ! shouldSendNotification( userInfo, type ) ) {
 		return;
 	}
 
 	// Send the notification, via a notice.
 	void createNotice( 'info', content, {
-		id: `${ type }-${ userState.clientId }`,
+		id: `${ type }-${ userInfo.clientId }`,
 		isDismissible: false,
 		type: 'snackbar',
 	} );

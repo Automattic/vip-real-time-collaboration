@@ -48,11 +48,11 @@ export function useRenderCursors(
 	useEffect( () => {
 		renderCursorsRef.current = () => {
 			const userSelections = sortedUsers.map( user => ( {
-				userName: user.name,
+				userName: user.userInfo.name,
 				// Replace local user's selection with the current selection from the editor state.
-				selection: user.editorState.selection ?? { type: SelectionType.None },
-				color: user.color,
-				isMe: user.isMe,
+				selection: user.editorState?.selection ?? { type: SelectionType.None },
+				color: user.userInfo.color,
+				isMe: user.userInfo.isMe,
 			} ) );
 
 			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );

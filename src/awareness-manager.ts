@@ -4,13 +4,13 @@
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import { store as noticesStore } from '@wordpress/notices';
 import * as Y from 'yjs';
 
 /**
  * Internal dependencies
  */
 import {
+	type UserInfo,
 	type UserState,
 	type WordPressUserInfo,
 	store as awarenessStore,
@@ -32,7 +32,6 @@ import {
 import {
 	getSelectionState,
 	SelectableBlock,
-	SelectionType,
 	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { getNewUserColor } from '@/utilities/user-color';
@@ -75,8 +74,8 @@ export class AwarenessManager {
 			return;
 		}
 
-		const { patchUser } = dispatch( awarenessStore );
-		void patchUser( clientId, { isConnected } );
+		const { patchUserInfo } = dispatch( awarenessStore );
+		void patchUserInfo( clientId, { isConnected } );
 	}
 
 	public static convertRelativePositionToAbsolutePosition(
@@ -96,42 +95,27 @@ export class AwarenessManager {
 	private setCurrentUserState(): void {
 		const states = this.getStates();
 		const otherUserColors = Array.from( states.values() )
-			.filter( userState => ! userState.isMe )
-			.map( userState => userState.color )
+			.filter( userState => userState.userInfo && ! userState.userInfo.isMe )
+			.map( userState => userState.userInfo.color )
 			.filter( Boolean );
 
-		const currentUserState: UserState = {
+		const userInfo: UserInfo = {
 			...this.userInfo,
 			browserType: getBrowserName(),
 			clientId: this.awareness.clientID,
 			color: getNewUserColor( otherUserColors ),
-			editorState: this.getLocalStateField( 'editorState' ) ?? {
-				selection: {
-					type: SelectionType.None,
-				},
-			},
 			isConnected: true,
 			isMe: true,
 		};
 
-		this.awareness.setLocalState( currentUserState );
+		this.setLocalStateField( 'userInfo', userInfo );
 	}
 
-	/*
+	/**
 	 * Get the states from an awareness document.
 	 */
 	private getStates(): Map< number, UserState > {
 		return this.awareness.getStates() as Map< number, UserState >;
-	}
-
-	/**
-	 * Set a local state field on an awareness document.
-	 */
-	private getLocalStateField< FieldName extends keyof UserState >(
-		field: FieldName
-	): UserState[ FieldName ] | undefined {
-		// eslint-disable-next-line security/detect-object-injection
-		return ( this.awareness.getLocalState() as UserState )?.[ field ];
 	}
 
 	/**
@@ -158,7 +142,7 @@ export class AwarenessManager {
 				return;
 			}
 
-			userState.isMe = userState.clientId === this.awareness.clientID;
+			userState.userInfo.isMe = userState.userInfo.clientId === this.awareness.clientID;
 
 			void upsertUser( clientId, userState );
 			clientIdsFromAwareness.add( clientId );
@@ -176,7 +160,6 @@ export class AwarenessManager {
 		const now = Date.now();
 		const recordMap = this.awareness.doc.getMap( 'document' );
 		const stateMap = this.awareness.doc.getMap( 'state' );
-		const { createNotice } = dispatch( noticesStore );
 
 		stateMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
 			event.keysChanged.forEach( ( key: string ) => {
@@ -201,14 +184,14 @@ export class AwarenessManager {
 							// Ignore if we don't have a user state for the client ID
 							! userState ||
 							// Ignore if this is our own persisted event (can happen on refresh or reconnect)
-							userState.id === this.userInfo.id
+							userState.userInfo.id === this.userInfo.id
 						) {
 							break;
 						}
 
 						const status = recordMap.get( 'status' ) as string;
-						const content = getPostUpdatedNotificationContent( userState, status );
-						sendNotification( content, userState, NotificationType.PostUpdated );
+						const content = getPostUpdatedNotificationContent( userState.userInfo, status );
+						sendNotification( content, userState.userInfo, NotificationType.PostUpdated );
 
 						break;
 					}
@@ -232,8 +215,8 @@ export class AwarenessManager {
 							break;
 						}
 
-						const content = getPostRestoredNotificationContent( userState );
-						sendNotification( content, userState, NotificationType.PostRestored );
+						const content = getPostRestoredNotificationContent( userState.userInfo );
+						sendNotification( content, userState.userInfo, NotificationType.PostRestored );
 
 						break;
 					}
@@ -251,6 +234,7 @@ export class AwarenessManager {
 		// in the subscription.
 		let selectionStart = getSelectionStart();
 		let selectionEnd = getSelectionEnd();
+		let localCursorTimeout: NodeJS.Timeout | null = null;
 
 		subscribe( () => {
 			const newSelectionStart = getSelectionStart();
@@ -277,7 +261,6 @@ export class AwarenessManager {
 			//   { clientId: "123...", attributeKey: "content", offset: undefined }
 			//   { clientId: "123...", attributeKey: "content", offset: 554 }
 			// Add a short debounce to avoid sending the first selection change.
-			let localCursorTimeout: NodeJS.Timeout | null = null;
 			if ( localCursorTimeout ) {
 				clearTimeout( localCursorTimeout );
 			}
@@ -292,7 +275,7 @@ export class AwarenessManager {
 		selectionStart: WPBlockSelection,
 		selectionEnd: WPBlockSelection
 	): void {
-		const { patchUser } = dispatch( awarenessStore );
+		const { updateEditorState } = dispatch( awarenessStore );
 
 		const ydocument = this.awareness.doc.getMap( 'document' );
 		const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
@@ -301,7 +284,7 @@ export class AwarenessManager {
 		};
 
 		// Update local state with the new selection state.
-		void patchUser( this.awareness.clientID, { editorState } );
+		void updateEditorState( this.awareness.clientID, editorState );
 
 		// Throttle awareness updates.
 		let awarenessCursorTimeout: NodeJS.Timeout | null = null;
@@ -324,7 +307,7 @@ export class AwarenessManager {
 
 	private subscribeToUserChanges(): void {
 		const userRemovalTimeouts = new Map< number, NodeJS.Timeout >();
-		const { patchUser, removeUser, upsertUser } = dispatch( awarenessStore );
+		const { patchUserInfo, removeUser, upsertUser } = dispatch( awarenessStore );
 
 		this.awareness.on( 'change', ( { added, removed, updated }: AwarenessStateChange ) => {
 			const updatedUserStates = this.getStates();
@@ -342,12 +325,12 @@ export class AwarenessManager {
 				}
 
 				// If this is the current user, ignore most state updates. We handle our own state locally.
-				if ( userState.clientId === this.awareness.clientID ) {
+				if ( userState.userInfo.clientId === this.awareness.clientID ) {
 					// Except reconnection updates, which we receive from awareness.
 					// This is necessary when reconnecting after a short timeout, where we
 					// receive back-to-back 'removed' and 'added' events for ourselves.
-					if ( userState.isConnected === true ) {
-						void patchUser( id, {
+					if ( userState.userInfo.isConnected === true ) {
+						void patchUserInfo( id, {
 							isConnected: true,
 						} );
 					}
@@ -355,8 +338,8 @@ export class AwarenessManager {
 					return;
 				}
 
-				userState.isConnected = true;
-				userState.isMe = false;
+				userState.userInfo.isConnected = true;
+				userState.userInfo.isMe = false;
 
 				void upsertUser( id, userState );
 			} );
@@ -368,7 +351,7 @@ export class AwarenessManager {
 					return;
 				}
 
-				void patchUser( id, {
+				void patchUserInfo( id, {
 					isConnected: false,
 				} );
 
@@ -386,7 +369,7 @@ export class AwarenessManager {
 	private validateUserState( userState: UserState | undefined ): userState is UserState {
 		// User state can be set to an empty object by the Yjs awareness protocol
 		// when the user disconnects.
-		if ( ! userState?.clientId || ! userState?.id || ! userState?.editorState ) {
+		if ( ! userState?.userInfo.clientId || ! userState?.userInfo.id ) {
 			return false;
 		}
 

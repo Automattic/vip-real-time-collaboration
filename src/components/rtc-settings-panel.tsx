@@ -148,18 +148,18 @@ export function RTCSettingsPanel() {
 
 				<Flex direction="column" className="vip-real-time-collaboration-sidebar-users" gap={ 0 }>
 					{ activeUsers.map( userState => (
-						<FlexItem key={ userState.clientId }>
+						<FlexItem key={ userState.userInfo.clientId }>
 							<Flex
 								direction="row"
 								justify="flex-start"
 								className="vip-real-time-collaboration-sidebar-user-row"
 							>
 								<Avatar
-									key={ userState.clientId }
+									key={ userState.userInfo.clientId }
 									showUserColorBorder={ true }
-									userState={ userState }
+									userInfo={ userState.userInfo }
 								/>
-								<Text>{ userState.name }</Text>
+								<Text>{ userState.userInfo.name }</Text>
 							</Flex>
 						</FlexItem>
 					) ) }
