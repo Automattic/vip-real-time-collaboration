@@ -63,14 +63,15 @@ echo "Updated $package_file from $current_version_pkg to $new_version"
 
 echo "Version bump complete: $new_version"
 
+# Update package-lock.json
 npm install
 
 echo "Updated package-lock.json with new version."
 
-# # Create a new branch for the release
+# Create a new branch for the release
 git checkout -b release/v"$new_version"
 
-# # Commit the changes
+# Commit the changes
 git add "$php_file"
 git commit -m "v$new_version"
 
