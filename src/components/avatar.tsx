@@ -1,27 +1,27 @@
-import { UserState } from '@/store/awareness-store';
+import { UserInfo } from '@/store/awareness-store';
 
 /**
  * Renders a circular avatar bubble for a user with an optional border.
  */
 export function Avatar( {
-	userState,
+	userInfo,
 	showUserColorBorder,
 }: {
-	userState: UserState;
+	userInfo: UserInfo;
 	showUserColorBorder?: boolean;
 } ) {
 	const style = {
-		border: showUserColorBorder === true ? `2px solid ${ userState.color }` : undefined,
-		opacity: userState.isConnected ? 1 : 0.5,
+		border: showUserColorBorder === true ? `2px solid ${ userInfo.color }` : undefined,
+		opacity: userInfo.isConnected ? 1 : 0.5,
 	};
 
 	return (
 		<div className="vip-real-time-collaboration-avatar">
 			<img
-				alt={ userState.name }
-				src={ userState.avatarUrl }
+				alt={ userInfo.name }
+				src={ userInfo.avatarUrl }
 				style={ style }
-				title={ userState.name }
+				title={ userInfo.name }
 			/>
 		</div>
 	);

@@ -5,8 +5,6 @@ import type { Awareness } from 'y-protocols/awareness';
 import type * as Y from 'yjs';
 
 declare module '@wordpress/sync' {
-	type CRDTDoc = Y.Doc;
-	type EntityID = string;
 	type ObjectID = string;
 	type ObjectType = string;
 

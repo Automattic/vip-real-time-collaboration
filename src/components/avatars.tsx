@@ -22,12 +22,16 @@ export function Avatars() {
 
 	const visibleUsers = activeUsers.slice( 0, 3 );
 	const remainingUsers = activeUsers.slice( 3 );
-	const remainingUsersText = remainingUsers.map( userState => userState.name ).join( ', ' );
+	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
 	return visibleUsers.length > 1 ? (
 		<>
 			{ visibleUsers.map( userState => (
-				<Avatar key={ userState.clientId } userState={ userState } showUserColorBorder={ false } />
+				<Avatar
+					key={ userState.userInfo.clientId }
+					userInfo={ userState.userInfo }
+					showUserColorBorder={ false }
+				/>
 			) ) }
 
 			{ remainingUsers.length > 0 && (

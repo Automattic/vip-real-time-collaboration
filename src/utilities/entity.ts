@@ -4,7 +4,7 @@ import { select } from '@wordpress/data';
 import type { WordPressUserInfo } from '@/store/awareness-store';
 
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
-	const { avatar_urls: avatarUrls, id, name } = select( coreStore ).getCurrentUser() ?? {};
+	const { avatar_urls: avatarUrls, id, name, slug } = select( coreStore ).getCurrentUser() ?? {};
 
 	if ( ! id ) {
 		// getCurrentUser() returns an empty user object for a short time after load.
@@ -14,5 +14,5 @@ export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
 	}
 	const avatarUrl = avatarUrls?.[ 24 ] || avatarUrls?.[ 48 ] || avatarUrls?.[ 96 ];
 
-	return { avatarUrl, id, name };
+	return { avatarUrl, id, name: name ?? slug };
 }

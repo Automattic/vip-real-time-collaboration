@@ -1,15 +1,15 @@
-import type { UserState } from '@/store/awareness-store';
+import type { UserInfo } from '@/store/awareness-store';
 
-export function getPostRestoredNotificationContent( userState: UserState ): string {
-	let predicate = `${ userState.name } restored`;
-	if ( userState.isMe ) {
+export function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
+	let predicate = `${ userInfo.name } restored`;
+	if ( userInfo.isMe ) {
 		predicate = 'Restored';
 	}
 
 	return `${ predicate } newer content from the server.`;
 }
 
-export function getPostUpdatedNotificationContent( userState: UserState, status: string ): string {
+export function getPostUpdatedNotificationContent( userInfo: UserInfo, status: string ): string {
 	let noun = 'Draft';
 	let verb = 'saved';
 
@@ -18,5 +18,5 @@ export function getPostUpdatedNotificationContent( userState: UserState, status:
 		verb = 'updated';
 	}
 
-	return `${ noun } ${ verb } by ${ userState.name }.`;
+	return `${ noun } ${ verb } by ${ userInfo.name }.`;
 }
