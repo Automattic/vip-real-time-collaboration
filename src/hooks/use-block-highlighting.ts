@@ -53,14 +53,14 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			.map( userState => {
 				const isWholeBlockSelected =
 					userState.editorState?.selection?.type === SelectionType.WholeBlock;
-				const shouldDrawUser = userState.isMe ? isSelfAwarenessEnabled : true;
+				const shouldDrawUser = userState.userInfo.isMe ? isSelfAwarenessEnabled : true;
 
 				if ( isWholeBlockSelected && shouldDrawUser ) {
-					const selection = userState.editorState.selection as SelectionWholeBlock;
+					const selection = userState.editorState?.selection as SelectionWholeBlock;
 
 					return {
 						blockId: selection.blockId,
-						color: userState.color,
+						color: userState.userInfo.color,
 					};
 				}
 

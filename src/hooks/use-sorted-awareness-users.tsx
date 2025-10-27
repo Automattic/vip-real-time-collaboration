@@ -17,10 +17,10 @@ export function useSortedAwarenessUsers(): UserState[] {
 
 	return useMemo( () => {
 		return Array.from( activeUsers.values() ).sort( ( user1: UserState, user2: UserState ) => {
-			if ( user1.isMe && ! user2.isMe ) {
+			if ( user1.userInfo.isMe && ! user2.userInfo.isMe ) {
 				return -1;
 			}
-			if ( ! user1.isMe && user2.isMe ) {
+			if ( ! user1.userInfo.isMe && user2.userInfo.isMe ) {
 				return 1;
 			}
 			return 0;

@@ -234,7 +234,9 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			return {
 				destroy: () => provider.destroy(),
 			};
-		} catch {}
+		} catch ( err ) {
+			logger.critical( 'Failed to create WebSocket connection', { error: err } );
+		}
 
 		return defaultResult;
 	};
