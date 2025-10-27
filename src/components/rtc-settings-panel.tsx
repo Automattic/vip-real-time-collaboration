@@ -31,6 +31,8 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 
 const { EditorPresence } = unlock( editorPrivateApis );
 
+import '@/components/rtc-settings-panel.scss';
+
 export function RTCSettingsPanel() {
 	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled, isSelfAwarenessEnabled } =
 		useSelect<
