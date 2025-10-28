@@ -1,6 +1,8 @@
 import { useSelect } from '@wordpress/data';
+import { useState } from '@wordpress/element';
 
 import { Avatar } from '@/components/avatar';
+import { CollaboratorsList } from '@/components/collaborators-list';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import {
 	store as rtcSettingsStore,
@@ -8,8 +10,11 @@ import {
 	type SettingsStoreSelectors,
 } from '@/store/settings-store';
 
+import '@/components/avatars.scss';
+
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
+ * Shows a popover with all users on hover.
  */
 export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
@@ -17,6 +22,8 @@ export function Avatars() {
 		select => select( rtcSettingsStore ).getSetting( Setting.SELF_AWARENESS ),
 		[]
 	);
+
+	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 
 	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
 		// Hide avatars when there's only one user.
@@ -30,7 +37,11 @@ export function Avatars() {
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
 	return visibleUsers.length > 1 ? (
-		<>
+		<div
+			className="vip-real-time-collaboration-avatars-container"
+			onMouseEnter={ () => setIsPopoverVisible( true ) }
+			onMouseLeave={ () => setIsPopoverVisible( false ) }
+		>
 			{ visibleUsers.map( userState => (
 				<Avatar
 					key={ userState.userInfo.clientId }
@@ -44,6 +55,8 @@ export function Avatars() {
 					+{ remainingUsers.length }
 				</div>
 			) }
-		</>
+
+			{ isPopoverVisible && <CollaboratorsList activeUsers={ activeUsers } /> }
+		</div>
 	) : null;
 }

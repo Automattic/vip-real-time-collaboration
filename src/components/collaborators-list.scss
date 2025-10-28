@@ -1,0 +1,65 @@
+.vip-real-time-collaboration-collaborators-list {
+	.vip-real-time-collaboration-collaborators-list-content {
+		padding: 16px;
+		min-width: 280px;
+		background: white;
+		border-radius: 8px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+	}
+
+	.vip-real-time-collaboration-collaborators-list-header {
+		font-size: 11px;
+		font-weight: 600;
+		color: #8c8f94;
+		text-transform: uppercase;
+		letter-spacing: 0.5px;
+		margin-bottom: 12px;
+		padding-bottom: 12px;
+		border-bottom: 1px solid #e0e0e0;
+	}
+
+	.vip-real-time-collaboration-collaborators-list-items {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.vip-real-time-collaboration-collaborators-list-item {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 4px 0;
+
+		// Make avatars larger in the list
+		.vip-real-time-collaboration-avatar {
+			width: 32px;
+			height: 32px;
+
+			img {
+				width: 32px;
+				height: 32px;
+				border-radius: 6px;
+			}
+		}
+	}
+
+	.vip-real-time-collaboration-collaborators-list-item-info {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		flex: 1;
+	}
+
+	.vip-real-time-collaboration-collaborators-list-item-name {
+		font-size: 14px;
+		font-weight: 500;
+		color: #1e1e1e;
+		line-height: 1.4;
+	}
+
+	.vip-real-time-collaboration-collaborators-list-item-email {
+		font-size: 13px;
+		color: #757575;
+		line-height: 1.4;
+	}
+}
