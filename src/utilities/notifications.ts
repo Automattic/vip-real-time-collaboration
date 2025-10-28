@@ -6,25 +6,9 @@ import { store as settingsStore, Setting } from '@/store/settings-store';
 import type { UserInfo } from '@/store/awareness-store';
 
 export enum NotificationType {
-	PostRestored = 'remote-user-post-restored',
 	PostUpdated = 'remote-user-post-updated',
 	UserEntered = 'remote-user-user-entered',
 	UserExited = 'remote-user-user-exited',
-}
-
-/**
- * Get the content of a post restored notification.
- *
- * @param userInfo the user info of the user related to the notification
- * @returns the content of the post restored notification
- */
-function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
-	let predicate = `${ userInfo.name } restored`;
-	if ( userInfo.isMe ) {
-		predicate = 'Restored';
-	}
-
-	return `${ predicate } newer content from the server.`;
 }
 
 /**
@@ -101,8 +85,6 @@ function getContentForNotificationType(
 	status?: string
 ): string {
 	switch ( type ) {
-		case NotificationType.PostRestored:
-			return getPostRestoredNotificationContent( userInfo );
 		case NotificationType.PostUpdated:
 			return getPostUpdatedNotificationContent( userInfo, status ?? '' );
 		case NotificationType.UserEntered:

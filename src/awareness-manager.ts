@@ -166,6 +166,11 @@ export class AwarenessManager {
 						}
 
 						const remoteClientId = stateMap.get( 'persistedBy' ) as number;
+
+						if ( ! remoteClientId ) {
+							break;
+						}
+
 						const userState = this.getStates().get( remoteClientId );
 						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
 							remoteClientId,
@@ -186,30 +191,6 @@ export class AwarenessManager {
 
 						const status = recordMap.get( 'status' ) as string;
 						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
-
-						break;
-					}
-
-					// A remote user has restored the document (restored a revision or loaded newer content).
-					case 'restoredAt': {
-						const remoteClientId = stateMap.get( 'restoredBy' ) as number;
-						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was restored by client ID ${ remoteClientId }.`, {
-							remoteClientId,
-							userState,
-							stateMap,
-						} );
-
-						if (
-							// Ignore if the restoredAt timestamp is older than our session
-							now > ( stateMap.get( 'restoredAt' ) as number ) ||
-							// Ignore if we don't have a user state for the client ID
-							! userState
-						) {
-							break;
-						}
-
-						sendNotification( NotificationType.PostRestored, userState.userInfo );
 
 						break;
 					}

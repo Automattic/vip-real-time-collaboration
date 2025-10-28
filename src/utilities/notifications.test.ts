@@ -161,41 +161,6 @@ describe( 'notifications', () => {
 			} );
 		} );
 
-		describe( 'PostRestored notification type', () => {
-			it( 'user is not me', () => {
-				sendNotification( NotificationType.PostRestored, baseUserInfo );
-
-				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
-				assert.strictEqual(
-					createNoticeMock.mock.calls.length,
-					1,
-					'createNotice should be called'
-				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
-					'info',
-					'Alice restored newer content from the server.',
-					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
-				] );
-			} );
-
-			it( 'user is me', () => {
-				const meUserInfo = { ...baseUserInfo, isMe: true };
-				sendNotification( NotificationType.PostRestored, meUserInfo );
-
-				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
-				assert.strictEqual(
-					createNoticeMock.mock.calls.length,
-					1,
-					'createNotice should be called'
-				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
-					'info',
-					'Restored newer content from the server.',
-					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
-				] );
-			} );
-		} );
-
 		describe( 'UserEntered notification type', () => {
 			it( 'notification enabled and user is not me', () => {
 				getSettingMock.mock.mockImplementationOnce( () => true );
