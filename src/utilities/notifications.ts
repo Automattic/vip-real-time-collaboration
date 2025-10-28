@@ -8,8 +8,8 @@ import type { UserInfo } from '@/store/awareness-store';
 export enum NotificationType {
 	PostRestored = 'remote-user-post-restored',
 	PostUpdated = 'remote-user-post-updated',
-	UserEntered = 'remote-user-post-user-entered',
-	UserExited = 'remote-user-post-user-exited',
+	UserEntered = 'remote-user-user-entered',
+	UserExited = 'remote-user-user-exited',
 }
 
 /**
