@@ -18,7 +18,7 @@ export enum NotificationType {
  * @param userInfo the user info of the user related to the notification
  * @returns the content of the post restored notification
  */
-export function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
+function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
 	let predicate = `${ userInfo.name } restored`;
 	if ( userInfo.isMe ) {
 		predicate = 'Restored';
@@ -34,7 +34,7 @@ export function getPostRestoredNotificationContent( userInfo: UserInfo ): string
  * @param status the status of the post
  * @returns the content of the post updated or draft saved notification
  */
-export function getPostUpdatedNotificationContent( userInfo: UserInfo, status: string ): string {
+function getPostUpdatedNotificationContent( userInfo: UserInfo, status: string ): string {
 	let noun = 'Draft';
 	let verb = 'saved';
 
@@ -53,15 +53,21 @@ export function getPostUpdatedNotificationContent( userInfo: UserInfo, status: s
  * @param type the type of notification
  * @returns the content of the user presence notification
  */
-export function getUserPresenceNotificationContent(
-	userInfo: UserInfo,
-	type: NotificationType
-): string {
+function getUserPresenceNotificationContent( userInfo: UserInfo, type: NotificationType ): string {
 	const action = type === NotificationType.UserEntered ? 'entered' : 'exited';
 	return `${ userInfo.name } has ${ action } the post.`;
 }
 
-function shouldSendNotification( userInfo: UserInfo, type: NotificationType ): boolean {
+function shouldSendNotification(
+	userInfo: UserInfo,
+	type: NotificationType,
+	content: string
+): boolean {
+	// If content is empty, skip.
+	if ( ! content ) {
+		return false;
+	}
+
 	// If notifications for user joining is disabled, skip.
 	if (
 		type === NotificationType.UserEntered &&
@@ -89,6 +95,24 @@ function shouldSendNotification( userInfo: UserInfo, type: NotificationType ): b
 	return true;
 }
 
+function getContentForNotificationType(
+	userInfo: UserInfo,
+	type: NotificationType,
+	status?: string
+): string {
+	switch ( type ) {
+		case NotificationType.PostRestored:
+			return getPostRestoredNotificationContent( userInfo );
+		case NotificationType.PostUpdated:
+			return getPostUpdatedNotificationContent( userInfo, status ?? '' );
+		case NotificationType.UserEntered:
+		case NotificationType.UserExited:
+			return getUserPresenceNotificationContent( userInfo, type );
+		default:
+			return '';
+	}
+}
+
 /**
  * Send a notification to the editor.
  *
@@ -99,14 +123,18 @@ function shouldSendNotification( userInfo: UserInfo, type: NotificationType ): b
  * @param type the type of notification
  */
 export function sendNotification(
-	content: string,
+	type: NotificationType,
 	userInfo: UserInfo,
-	type: NotificationType
+	status?: string
 ): void {
+	// This is done on purpose, to allow tests to be written without noticesStore.
 	const { createNotice } = dispatch( noticesStore );
 
+	// Get the content for the notification type.
+	const content = getContentForNotificationType( userInfo, type, status );
+
 	// Skip notifications for certain cases.
-	if ( ! shouldSendNotification( userInfo, type ) ) {
+	if ( ! shouldSendNotification( userInfo, type, content ) ) {
 		return;
 	}
 

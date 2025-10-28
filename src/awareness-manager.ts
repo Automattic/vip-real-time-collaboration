@@ -23,12 +23,7 @@ import {
 } from '@/utilities/config';
 import { getCurrentUserInfo } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
-import {
-	getPostRestoredNotificationContent,
-	getPostUpdatedNotificationContent,
-	NotificationType,
-	sendNotification,
-} from '@/utilities/notifications';
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 import {
 	getSelectionState,
 	SelectableBlock,
@@ -190,8 +185,7 @@ export class AwarenessManager {
 						}
 
 						const status = recordMap.get( 'status' ) as string;
-						const content = getPostUpdatedNotificationContent( userState.userInfo, status );
-						sendNotification( content, userState.userInfo, NotificationType.PostUpdated );
+						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
 
 						break;
 					}
@@ -215,8 +209,7 @@ export class AwarenessManager {
 							break;
 						}
 
-						const content = getPostRestoredNotificationContent( userState.userInfo );
-						sendNotification( content, userState.userInfo, NotificationType.PostRestored );
+						sendNotification( NotificationType.PostRestored, userState.userInfo );
 
 						break;
 					}

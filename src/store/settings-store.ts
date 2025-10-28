@@ -7,12 +7,12 @@ const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
 export enum Setting {
-	AWARENESS_AVATARS = 'isAwarenessAvatarsEnabled',
-	AWARENESS_CURSORS = 'isAwarenessCursorsEnabled',
-	DEBUG_TOOLS = 'isDebugToolsEnabled',
-	SELF_AWARENESS = 'isSelfAwarenessEnabled',
-	USER_ENTER_NOTIFICATION = 'isUserEnterNotificationEnabled',
-	USER_EXIT_NOTIFICATION = 'isUserExitNotificationEnabled',
+	AWARENESS_AVATARS = 'Awareness_Avatars',
+	AWARENESS_CURSORS = 'Awareness_Cursors',
+	DEBUG_TOOLS = 'Debug_Tools',
+	SELF_AWARENESS = 'Self_Awareness',
+	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
+	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
 }
 
 interface SettingsState {

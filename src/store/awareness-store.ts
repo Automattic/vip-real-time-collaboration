@@ -1,11 +1,7 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import {
-	getUserPresenceNotificationContent,
-	NotificationType,
-	sendNotification,
-} from '@/utilities/notifications';
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 import { type SelectionState } from '@/utilities/selection';
 import { areEditorStatesEqual, areUserInfosEqual, areUserStatesEqual } from '@/utilities/user';
 
@@ -121,11 +117,7 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 			const existingState = state.userMap.get( action.payload.clientId );
 
 			if ( existingState?.userInfo ) {
-				const content = getUserPresenceNotificationContent(
-					existingState.userInfo,
-					NotificationType.UserExited
-				);
-				sendNotification( content, existingState.userInfo, NotificationType.UserExited );
+				sendNotification( NotificationType.UserExited, existingState.userInfo );
 			}
 
 			state.userMap.delete( action.payload.clientId );
@@ -172,11 +164,7 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 				}
 			} else {
 				const { userInfo } = action.payload.userState;
-				const content = getUserPresenceNotificationContent(
-					userInfo,
-					NotificationType.UserEntered
-				);
-				sendNotification( content, userInfo, NotificationType.UserEntered );
+				sendNotification( NotificationType.UserEntered, userInfo );
 			}
 
 			state.userMap.set( action.payload.clientId, action.payload.userState );
