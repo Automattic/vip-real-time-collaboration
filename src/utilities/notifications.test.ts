@@ -1,5 +1,8 @@
 import assert from 'node:assert';
-import { afterEach, before, describe, it, mock } from 'node:test';
+import { afterEach, before, describe, it, mock, type Mock } from 'node:test';
+
+import { Setting } from '@/store/settings-store';
+
 import type { UserInfo } from '@/store/awareness-store';
 
 const baseUserInfo: UserInfo = {
@@ -14,37 +17,16 @@ const baseUserInfo: UserInfo = {
 
 describe( 'notifications', () => {
 	let sendNotification: typeof import('./notifications').sendNotification;
-	let notificationTypes: typeof import('./notifications').NotificationType;
-	let createNoticeMock: any = null;
-	let getSettingMock: any = null;
+	let NotificationType: typeof import('./notifications').NotificationType;
+
+	let createNoticeMock: Mock< () => Promise< void > >;
+	let getSettingMock: Mock< () => boolean >;
 
 	before( async () => {
-		// These modules access browser globals in their top-level scope which makes
-		// it impossible to import the `./selection` module in this file's top-level
-		// scope. Therefore, we must mock them and then dynamically import the module
-		// under test.
-		mock.module( '../store/settings-store', {
-			namedExports: {
-				Setting: {
-					AWARENESS_AVATARS: 'Awareness_Avatars',
-					AWARENESS_CURSORS: 'Awareness_Cursors',
-					DEBUG_TOOLS: 'Debug_Tools',
-					SELF_AWARENESS: 'Self_Awareness',
-					USER_ENTER_NOTIFICATION: 'User_Enter_Notification',
-					USER_EXIT_NOTIFICATION: 'User_Exit_Notification',
-				},
-				store: 'settings-store',
-			},
-		} );
-		mock.module( '@wordpress/notices', {
-			namedExports: {
-				store: 'notices-store',
-			},
-		} );
-
-		createNoticeMock = mock.fn( async () => Promise.resolve() );
-		getSettingMock = mock.fn( () => true );
-
+		// These @wordpress modules access browser globals in their top-level scope,
+		// which makes it impossible to import the `./notifications` module in this
+		// file's top-level scope. Therefore, we must mock these modules and then
+		// dynamically import the module under test.
 		mock.module( '@wordpress/data', {
 			namedExports: {
 				dispatch: mock.fn( () => {
@@ -59,11 +41,20 @@ describe( 'notifications', () => {
 				},
 			},
 		} );
+		mock.module( '@wordpress/notices' );
+		mock.module( '@/store/settings-store', {
+			namedExports: {
+				Setting,
+			},
+		} );
+
+		createNoticeMock = mock.fn( async () => Promise.resolve() );
+		getSettingMock = mock.fn( () => true );
 
 		// @ts-expect-error: TS2702 Dynamic import -- used to navigate import issues mentioned above.
 		const notificationsModule = await import( './notifications' );
 		sendNotification = notificationsModule.sendNotification;
-		notificationTypes = notificationsModule.NotificationType;
+		NotificationType = notificationsModule.NotificationType;
 	} );
 
 	afterEach( () => {
@@ -74,7 +65,7 @@ describe( 'notifications', () => {
 	describe( 'sendNotification', () => {
 		describe( 'PostUpdated notification type', () => {
 			it( 'empty status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, '' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, '' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -82,7 +73,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Draft saved by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -90,7 +81,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'draft status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, 'draft' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'draft' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -98,7 +89,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Draft saved by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -106,7 +97,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'pending status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, 'pending' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'pending' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -114,7 +105,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Draft saved by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -122,7 +113,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'publish status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, 'publish' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'publish' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -130,7 +121,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Post updated by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -138,7 +129,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'future status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, 'future' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'future' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -146,7 +137,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Post updated by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -154,7 +145,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'private status', () => {
-				sendNotification( notificationTypes.PostUpdated, baseUserInfo, 'private' );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'private' );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -162,7 +153,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Post updated by Alice.',
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
@@ -172,7 +163,7 @@ describe( 'notifications', () => {
 
 		describe( 'PostRestored notification type', () => {
 			it( 'user is not me', () => {
-				sendNotification( notificationTypes.PostRestored, baseUserInfo );
+				sendNotification( NotificationType.PostRestored, baseUserInfo );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -180,7 +171,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Alice restored newer content from the server.',
 					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
@@ -189,7 +180,7 @@ describe( 'notifications', () => {
 
 			it( 'user is me', () => {
 				const meUserInfo = { ...baseUserInfo, isMe: true };
-				sendNotification( notificationTypes.PostRestored, meUserInfo );
+				sendNotification( NotificationType.PostRestored, meUserInfo );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -197,7 +188,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Restored newer content from the server.',
 					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
@@ -208,7 +199,7 @@ describe( 'notifications', () => {
 		describe( 'UserEntered notification type', () => {
 			it( 'notification enabled and user is not me', () => {
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( notificationTypes.UserEntered, baseUserInfo );
+				sendNotification( NotificationType.UserEntered, baseUserInfo );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -216,7 +207,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Alice has entered the post.',
 					{ id: 'remote-user-user-entered-123', isDismissible: false, type: 'snackbar' },
@@ -225,7 +216,7 @@ describe( 'notifications', () => {
 
 			it( 'notification disabled', () => {
 				getSettingMock.mock.mockImplementationOnce( () => false );
-				sendNotification( notificationTypes.UserEntered, baseUserInfo );
+				sendNotification( NotificationType.UserEntered, baseUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
@@ -242,7 +233,7 @@ describe( 'notifications', () => {
 			it( 'user is me', () => {
 				const meUserInfo = { ...baseUserInfo, isMe: true };
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( notificationTypes.UserEntered, meUserInfo );
+				sendNotification( NotificationType.UserEntered, meUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
@@ -260,7 +251,7 @@ describe( 'notifications', () => {
 		describe( 'UserExited notification type', () => {
 			it( 'notification enabled and user is not me', () => {
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( notificationTypes.UserExited, baseUserInfo );
+				sendNotification( NotificationType.UserExited, baseUserInfo );
 
 				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
 				assert.strictEqual(
@@ -268,7 +259,7 @@ describe( 'notifications', () => {
 					1,
 					'createNotice should be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ].arguments, [
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
 					'info',
 					'Alice has exited the post.',
 					{ id: 'remote-user-user-exited-123', isDismissible: false, type: 'snackbar' },
@@ -277,7 +268,7 @@ describe( 'notifications', () => {
 
 			it( 'notification disabled', () => {
 				getSettingMock.mock.mockImplementationOnce( () => false );
-				sendNotification( notificationTypes.UserExited, baseUserInfo );
+				sendNotification( NotificationType.UserExited, baseUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
@@ -294,7 +285,7 @@ describe( 'notifications', () => {
 			it( 'user is me', () => {
 				const meUserInfo = { ...baseUserInfo, isMe: true };
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( notificationTypes.UserExited, meUserInfo );
+				sendNotification( NotificationType.UserExited, meUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
