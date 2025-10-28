@@ -1,6 +1,7 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 import { type SelectionState } from '@/utilities/selection';
 import { areEditorStatesEqual, areUserInfosEqual, areUserStatesEqual } from '@/utilities/user';
 
@@ -113,6 +114,12 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 		}
 
 		case 'REMOVE_USER': {
+			const existingState = state.userMap.get( action.payload.clientId );
+
+			if ( existingState?.userInfo ) {
+				sendNotification( NotificationType.UserExited, existingState.userInfo );
+			}
+
 			state.userMap.delete( action.payload.clientId );
 
 			return {
@@ -155,6 +162,9 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 					// No changes, don't update the state.
 					return state;
 				}
+			} else {
+				const { userInfo } = action.payload.userState;
+				sendNotification( NotificationType.UserEntered, userInfo );
 			}
 
 			state.userMap.set( action.payload.clientId, action.payload.userState );

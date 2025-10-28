@@ -4,7 +4,6 @@
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import { store as noticesStore } from '@wordpress/notices';
 import * as Y from 'yjs';
 
 /**
@@ -24,10 +23,7 @@ import {
 } from '@/utilities/config';
 import { getCurrentUserInfo } from '@/utilities/entity';
 import { Logger } from '@/utilities/logger';
-import {
-	getPostRestoredNotificationContent,
-	getPostUpdatedNotificationContent,
-} from '@/utilities/notifications';
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 import {
 	getSelectionState,
 	SelectableBlock,
@@ -159,7 +155,6 @@ export class AwarenessManager {
 		const now = Date.now();
 		const recordMap = this.awareness.doc.getMap( 'document' );
 		const stateMap = this.awareness.doc.getMap( 'state' );
-		const { createNotice } = dispatch( noticesStore );
 
 		stateMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
 			event.keysChanged.forEach( ( key: string ) => {
@@ -190,12 +185,7 @@ export class AwarenessManager {
 						}
 
 						const status = recordMap.get( 'status' ) as string;
-						const content = getPostUpdatedNotificationContent( userState.userInfo, status );
-						void createNotice( 'info', content, {
-							id: `remote-user-persisted-${ remoteClientId }`,
-							isDismissible: false,
-							type: 'snackbar',
-						} );
+						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
 
 						break;
 					}
@@ -219,12 +209,7 @@ export class AwarenessManager {
 							break;
 						}
 
-						const content = getPostRestoredNotificationContent( userState.userInfo );
-						void createNotice( 'info', content, {
-							id: `remote-user-restored-${ remoteClientId }`,
-							isDismissible: false,
-							type: 'snackbar',
-						} );
+						sendNotification( NotificationType.PostRestored, userState.userInfo );
 
 						break;
 					}
@@ -377,7 +362,7 @@ export class AwarenessManager {
 	private validateUserState( userState: UserState | undefined ): userState is UserState {
 		// User state can be set to an empty object by the Yjs awareness protocol
 		// when the user disconnects.
-		if ( ! userState?.userInfo.clientId || ! userState?.userInfo.id ) {
+		if ( ! userState?.userInfo?.clientId || ! userState?.userInfo?.id ) {
 			return false;
 		}
 

@@ -1,6 +1,6 @@
 {
   "name": "vip-real-time-collaboration",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "description": "Real-time collaboration plugin for WordPress VIP",
   "main": "build/index.js",
   "keywords": [
@@ -55,7 +55,7 @@
   "devDependencies": {
     "@automattic/eslint-plugin-wpvip": "0.13.1",
     "@playwright/test": "^1.56.0",
-    "@types/wordpress__block-editor": "^11.5.17",
+    "@types/wordpress__block-editor": "^14.21.0",
     "@wordpress/api-fetch": "7.32.0",
     "@wordpress/block-editor": "^15.5.0",
     "@wordpress/blocks": "^15.0.0",
@@ -87,7 +87,6 @@
     "yjs": "13.6.27"
   },
   "dependencies": {
-    "lib0": "0.2.42",
     "y-protocols": "1.0.6",
     "y-websocket": "3.0.0"
   }
