@@ -362,7 +362,7 @@ export class AwarenessManager {
 	private validateUserState( userState: UserState | undefined ): userState is UserState {
 		// User state can be set to an empty object by the Yjs awareness protocol
 		// when the user disconnects.
-		if ( ! userState?.userInfo.clientId || ! userState?.userInfo.id ) {
+		if ( ! userState?.userInfo?.clientId || ! userState?.userInfo?.id ) {
 			return false;
 		}
 
