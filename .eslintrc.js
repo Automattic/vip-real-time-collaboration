@@ -33,7 +33,8 @@ module.exports = {
 		{
 			files: [ 'websocket-server/**/*.ts' ], // Websocket server has its own tsconfig
 			parserOptions: {
-				project: './websocket-server/tsconfig.json',
+				project: true,
+				tsconfigRootDir: __dirname,
 			},
 			rules: {
 				'@typescript-eslint/no-misused-promises': 'off', // ignore the misused promises rule in websocket server code
