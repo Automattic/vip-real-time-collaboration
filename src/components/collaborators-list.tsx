@@ -16,13 +16,12 @@ export function CollaboratorsList( { activeUsers }: CollaboratorsListProps ) {
 	return (
 		<Popover
 			placement="bottom-start"
-			noArrow={ false }
 			offset={ 8 }
 			className="vip-real-time-collaboration-collaborators-list"
 		>
 			<div className="vip-real-time-collaboration-collaborators-list-content">
 				<div className="vip-real-time-collaboration-collaborators-list-header">
-					{ activeUsers.length } ACTIVE COLLABORATOR{ activeUsers.length !== 1 ? 'S' : '' }
+					{ activeUsers.length } Active Collaborator{ activeUsers.length !== 1 ? 's' : '' }
 				</div>
 				<div className="vip-real-time-collaboration-collaborators-list-items">
 					{ activeUsers.map( userState => (
@@ -30,7 +29,7 @@ export function CollaboratorsList( { activeUsers }: CollaboratorsListProps ) {
 							key={ userState.userInfo.clientId }
 							className="vip-real-time-collaboration-collaborators-list-item"
 						>
-							<Avatar userInfo={ userState.userInfo } showUserColorBorder={ true } />
+							<Avatar userInfo={ userState.userInfo } showUserColorBorder={ true } size="medium" />
 							<div className="vip-real-time-collaboration-collaborators-list-item-info">
 								<div className="vip-real-time-collaboration-collaborators-list-item-name">
 									{ userState.userInfo.name }
