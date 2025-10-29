@@ -1,4 +1,4 @@
-import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
+import { createReduxStore, register, StoreDescriptor } from '@wordpress/data';
 
 import { isDevelopment } from '@/utilities/config';
 import { loadFromLocalStorage, saveToLocalStorage } from '@/utilities/local-storage';
@@ -10,6 +10,7 @@ export enum Setting {
 	AWARENESS_AVATARS = 'Awareness_Avatars',
 	AWARENESS_CURSORS = 'Awareness_Cursors',
 	DEBUG_TOOLS = 'Debug_Tools',
+	LOG_TELEMETRY_USING_LOGGER = 'Log_Telemetry_Using_Logger',
 	SELF_AWARENESS = 'Self_Awareness',
 	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
 	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
@@ -19,6 +20,7 @@ interface SettingsState {
 	[ Setting.AWARENESS_AVATARS ]: boolean;
 	[ Setting.AWARENESS_CURSORS ]: boolean;
 	[ Setting.DEBUG_TOOLS ]: boolean;
+	[ Setting.LOG_TELEMETRY_USING_LOGGER ]: boolean;
 	[ Setting.SELF_AWARENESS ]: boolean;
 	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
 	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
@@ -28,6 +30,7 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.AWARENESS_AVATARS ]: true,
 	[ Setting.AWARENESS_CURSORS ]: true,
 	[ Setting.DEBUG_TOOLS ]: false,
+	[ Setting.LOG_TELEMETRY_USING_LOGGER ]: false,
 	[ Setting.SELF_AWARENESS ]: false,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,

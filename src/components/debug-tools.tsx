@@ -1,11 +1,25 @@
+/**
+ * External dependencies
+ */
 import {
 	store as blockEditorStore,
-	type BlockEditorStoreSelectors,
 	type BlockEditorStoreActions,
+	type BlockEditorStoreSelectors,
 } from '@wordpress/block-editor';
 import { createBlock } from '@wordpress/blocks';
-import { useSelect, useDispatch } from '@wordpress/data';
-import { useState, useEffect, useRef } from '@wordpress/element';
+import { CheckboxControl } from '@wordpress/components';
+import { useDispatch, useSelect } from '@wordpress/data';
+import { useEffect, useRef, useState } from '@wordpress/element';
+
+/**
+ * Internal dependencies
+ */
+import {
+	store as rtcSettingsStore,
+	Setting,
+	type SettingsStoreActions,
+	type SettingsStoreSelectors,
+} from '@/store/settings-store';
 
 interface DebugToolsProps {
 	iframeDocument: Document;
@@ -67,6 +81,12 @@ export function DebugTools( { iframeDocument }: DebugToolsProps ) {
 	const selectedBlockClientId = getSelectedBlockClientId();
 
 	const { selectBlock, insertBlock } = useDispatch< BlockEditorStoreActions >( blockEditorStore );
+
+	const logTelemetryUsingLogger = useSelect< SettingsStoreSelectors, boolean >( select =>
+		select( rtcSettingsStore ).getSetting( Setting.LOG_TELEMETRY_USING_LOGGER )
+	);
+
+	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	// Keep track of the last selected block when it changes
 	useEffect( () => {
@@ -195,6 +215,10 @@ export function DebugTools( { iframeDocument }: DebugToolsProps ) {
 		setTypingSpeed( 100 );
 	};
 
+	const handleLogTelemetryUsingLoggerToggle = ( enabled: boolean ) => {
+		setSetting( Setting.LOG_TELEMETRY_USING_LOGGER, enabled );
+	};
+
 	return (
 		<div className="vip-real-time-collaboration-debug-interface">
 			<div className="vip-real-time-collaboration-debug-header">Debug Tools</div>
@@ -230,6 +254,12 @@ export function DebugTools( { iframeDocument }: DebugToolsProps ) {
 					</div>
 				</div>
 			) }
+			<CheckboxControl
+				className="vip-real-time-collaboration-debug-telemetry"
+				label="Log telemetry using Logger"
+				checked={ logTelemetryUsingLogger }
+				onChange={ handleLogTelemetryUsingLoggerToggle }
+			/>
 		</div>
 	);
 }

@@ -12,6 +12,7 @@ const DEFAULT_LOG_THRESHOLD = isDevelopment() ? LogLevel.DEBUG : LogLevel.WARNIN
 
 export class Logger {
 	private namespace: string;
+	private enabled: boolean = true;
 
 	public constructor(
 		localNamespace: string = '',
@@ -20,8 +21,12 @@ export class Logger {
 		this.namespace = `vip-rtc${ localNamespace ? `:${ localNamespace }` : '' }`;
 	}
 
+	public setEnabled( enabled: boolean ): void {
+		this.enabled = enabled;
+	}
+
 	protected log( level: LogLevel, ...args: unknown[] ): void {
-		if ( level < this.threshold ) {
+		if ( ! this.enabled || level < this.threshold ) {
 			return;
 		}
 
