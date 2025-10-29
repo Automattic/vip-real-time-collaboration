@@ -11,6 +11,12 @@ export enum NotificationType {
 	UserExited = 'remote-user-user-exited',
 }
 
+const NOTIFICATION_TYPE_TO_SETTING_MAP: Record< NotificationType, Setting > = {
+	[ NotificationType.PostUpdated ]: Setting.POST_UPDATE_NOTIFICATION,
+	[ NotificationType.UserEntered ]: Setting.USER_ENTER_NOTIFICATION,
+	[ NotificationType.UserExited ]: Setting.USER_EXIT_NOTIFICATION,
+};
+
 /**
  * Get the content of a post updated or draft saved notification.
  *
@@ -52,19 +58,13 @@ function shouldSendNotification(
 		return false;
 	}
 
-	// If notifications for user joining is disabled, skip.
-	if (
-		type === NotificationType.UserEntered &&
-		! select( settingsStore ).getSetting( Setting.USER_ENTER_NOTIFICATION )
-	) {
-		return false;
+	// If the notification type has no settings associated with it, send it.
+	if ( ! ( type in NOTIFICATION_TYPE_TO_SETTING_MAP ) ) {
+		return true;
 	}
 
-	// If notifications for user leaving is disabled, skip.
-	if (
-		type === NotificationType.UserExited &&
-		! select( settingsStore ).getSetting( Setting.USER_EXIT_NOTIFICATION )
-	) {
+	// If the setting for this notification type is disabled, skip.
+	if ( ! select( settingsStore ).getSetting( NOTIFICATION_TYPE_TO_SETTING_MAP[ type ] ) ) {
 		return false;
 	}
 
@@ -76,14 +76,7 @@ function shouldSendNotification(
 		return false;
 	}
 
-	// If notifications for post updates is disabled, skip.
-	if (
-		type === NotificationType.PostUpdated &&
-		! select( settingsStore ).getSetting( Setting.POST_UPDATE_NOTIFICATION )
-	) {
-		return false;
-	}
-
+	// Otherwise, send the notification.
 	return true;
 }
 

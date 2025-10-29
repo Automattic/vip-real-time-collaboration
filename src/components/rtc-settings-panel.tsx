@@ -129,7 +129,7 @@ export function RTCSettingsPanel() {
 					</Heading>
 
 					<ToggleControl
-						label="Updates"
+						label="Save/Publish"
 						checked={ isPostUpdateNotificationEnabled }
 						onChange={ ( enabled: boolean ) => {
 							setSetting( Setting.POST_UPDATE_NOTIFICATION, enabled );
