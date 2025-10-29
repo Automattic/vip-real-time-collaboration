@@ -35,7 +35,7 @@ export function CollaboratorsList( { activeUsers }: CollaboratorsListProps ) {
 									{ userState.userInfo.name }
 								</div>
 								<div className="vip-real-time-collaboration-collaborators-list-item-email">
-									{ userState.userInfo.name.toLowerCase().replace( ' ', '.' ) }@news.com
+									{ userState.userInfo.email }
 								</div>
 							</div>
 						</div>

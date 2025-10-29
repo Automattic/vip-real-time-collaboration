@@ -7,7 +7,9 @@ import { areEditorStatesEqual, areUserInfosEqual, areUserStatesEqual } from '@/u
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
-export type WordPressUserInfo = Pick< User, 'id' | 'name' > & { avatarUrl?: string };
+export type WordPressUserInfo = Pick< User, 'id' | 'name' | 'email' > & {
+	avatarUrl?: string;
+};
 
 export interface UserState {
 	editorState?: EditorState;
