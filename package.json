@@ -35,7 +35,7 @@
     "lint:css": "echo 'No CSS files have been committed yet.' # wp-scripts lint-style",
     "lint:css:fix": "wp-scripts lint-style --fix",
     "lint:js": "npm run cmd:lint:js",
-    "lint:js:fix": "npm run cmd:lint:js . -- --fix",
+    "lint:js:fix": "npm run cmd:lint:js -- --fix",
     "lint:php": "npm run lint:phpcs && npm run lint:psalm",
     "lint:phpcs": "vendor/bin/phpcs --cache",
     "lint:phpcs:fix": "vendor/bin/phpcbf",
