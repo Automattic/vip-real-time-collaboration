@@ -194,6 +194,12 @@ function checkReconnection( connectionId: string | null ): void {
  * ------------------------------------------------------------
  */
 export function createMetricsServer(): http.Server {
+	// This is technically a type mismatch, but the function is async for syntactic
+	// benefits. Node.js ignores the return value of the function and manages the
+	// lifecycle of the request via `res` -- e.g., when `res.end()` is called, not
+	// when the promise resolves.
+	//
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	return http.createServer( async ( request, response ) => {
 		const pathname = getRequestPathname( request );
 

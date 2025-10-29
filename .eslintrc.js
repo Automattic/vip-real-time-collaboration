@@ -36,9 +36,6 @@ module.exports = {
 				project: true,
 				tsconfigRootDir: __dirname,
 			},
-			rules: {
-				'@typescript-eslint/no-misused-promises': 'off', // ignore the misused promises rule in websocket server code
-			},
 		},
 	],
 };
