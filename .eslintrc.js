@@ -9,10 +9,7 @@ module.exports = {
 		{
 			files: [ '*.test.ts' ], // Node.js unit tests
 			rules: {
-				'@typescript-eslint/no-explicit-any': 'off',
 				'@typescript-eslint/no-floating-promises': 'off',
-				'@typescript-eslint/no-unsafe-argument': 'off',
-				'@typescript-eslint/no-unsafe-assignment': 'off',
 			},
 		},
 		{
@@ -35,9 +32,6 @@ module.exports = {
 			parserOptions: {
 				project: true,
 				tsconfigRootDir: __dirname,
-			},
-			rules: {
-				'@typescript-eslint/no-misused-promises': 'off', // ignore the misused promises rule in websocket server code
 			},
 		},
 	],
