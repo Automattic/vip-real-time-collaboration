@@ -4,5 +4,4 @@ vendor
 *.php
 yjs-inspector
 tests/e2e
-examples/
 websocket-server

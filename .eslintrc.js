@@ -15,5 +15,20 @@ module.exports = {
 				'@typescript-eslint/no-unsafe-assignment': 'off',
 			},
 		},
+		{
+			files: [ 'examples/**/*.js' ], // Examples use JSX in .js files
+			parserOptions: {
+				requireConfigFile: false,
+				babelOptions: {
+					presets: [ '@babel/preset-react' ],
+				},
+				ecmaFeatures: {
+					jsx: true,
+				},
+			},
+			rules: {
+				'no-unused-vars': 'off', // Allow unused vars in example code
+			},
+		},
 	],
 };

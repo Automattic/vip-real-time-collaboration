@@ -21,6 +21,7 @@
 		"@wordpress/block-editor": "15.3.0",
 		"@wordpress/blocks": "15.3.0",
 		"@wordpress/components": "30.3.0",
+		"@wordpress/element": "^6.26.0",
 		"@wordpress/i18n": "6.3.0"
 	}
 }
