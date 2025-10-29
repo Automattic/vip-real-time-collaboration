@@ -20,7 +20,7 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "npm run cmd:build",
-    "check-types": "tsc --skipLibCheck --allowJS --noEmit",
+    "check-types": "tsc --noEmit",
     "cmd:build": "WP_DEVTOOL=source-map wp-scripts build --experimental-modules",
     "cmd:format": "prettier '**/*.(js|json|jsx|md|ts|tsx|yml|yaml)'",
     "cmd:lint:js": "eslint --ext 'js,jsx,ts,tsx' --quiet .",
@@ -31,7 +31,7 @@
     "dev:yjs-inspector": "cd yjs-inspector && npm run dev",
     "format": "npm run cmd:format -- --write",
     "format:check": "npm run cmd:format -- --check",
-    "lint": "npm run format:check && npm run lint:js && npm run lint:css && npm run lint:php && npm run check-types",
+    "lint": "npm run format:check && npm run lint:js && npm run lint:css && npm run lint:php",
     "lint:css": "echo 'No CSS files have been committed yet.' # wp-scripts lint-style",
     "lint:css:fix": "wp-scripts lint-style --fix",
     "lint:js": "npm run cmd:lint:js",
