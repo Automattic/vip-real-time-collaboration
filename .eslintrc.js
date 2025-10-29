@@ -15,5 +15,30 @@ module.exports = {
 				'@typescript-eslint/no-unsafe-assignment': 'off',
 			},
 		},
+		{
+			files: [ 'examples/**/*.js' ], // Examples use JSX in .js files
+			parserOptions: {
+				requireConfigFile: false,
+				babelOptions: {
+					presets: [ '@babel/preset-react' ],
+				},
+				ecmaFeatures: {
+					jsx: true,
+				},
+			},
+			rules: {
+				'no-unused-vars': 'off', // Allow unused vars in example code
+			},
+		},
+		{
+			files: [ 'websocket-server/**/*.ts' ], // Websocket server has its own tsconfig
+			parserOptions: {
+				project: true,
+				tsconfigRootDir: __dirname,
+			},
+			rules: {
+				'@typescript-eslint/no-misused-promises': 'off', // ignore the misused promises rule in websocket server code
+			},
+		},
 	],
 };
