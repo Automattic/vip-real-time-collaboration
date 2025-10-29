@@ -20,7 +20,7 @@
   "license": "GPL-2.0-or-later",
   "scripts": {
     "build": "npm run cmd:build",
-    "check-types": "tsc --noEmit",
+    "check-types": "tsc --skipLibCheck --allowJS --noEmit",
     "cmd:build": "WP_DEVTOOL=source-map wp-scripts build --experimental-modules",
     "cmd:format": "prettier '**/*.(js|json|jsx|md|ts|tsx|yml|yaml)'",
     "cmd:lint:js": "eslint --ext 'js,jsx,ts,tsx' --quiet .",

@@ -30,15 +30,5 @@ module.exports = {
 				'no-unused-vars': 'off', // Allow unused vars in example code
 			},
 		},
-		{
-			files: [ 'websocket-server/**/*.ts' ], // Websocket server has its own tsconfig
-			parserOptions: {
-				project: './websocket-server/tsconfig.json',
-				tsconfigRootDir: __dirname,
-			},
-			rules: {
-				'@typescript-eslint/no-misused-promises': 'off', // ignore the misused promises rule in websocket server code
-			},
-		},
 	],
 };
