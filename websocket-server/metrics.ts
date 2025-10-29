@@ -1,5 +1,6 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
+
 import type { RawData, WebSocketServer } from 'ws';
 
 /**

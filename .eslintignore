@@ -4,4 +4,5 @@ vendor
 *.php
 yjs-inspector
 tests/e2e
-websocket-server
+websocket-server/dist
+websocket-server/node_modules
