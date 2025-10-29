@@ -76,6 +76,14 @@ function shouldSendNotification(
 		return false;
 	}
 
+	// If notifications for post updates is disabled, skip.
+	if (
+		type === NotificationType.PostUpdated &&
+		! select( settingsStore ).getSetting( Setting.POST_UPDATE_NOTIFICATION )
+	) {
+		return false;
+	}
+
 	return true;
 }
 

@@ -159,6 +159,38 @@ describe( 'notifications', () => {
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
 				] );
 			} );
+
+			it( 'notification disabled for draft status', () => {
+				getSettingMock.mock.mockImplementationOnce( () => false );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'draft' );
+
+				assert.strictEqual(
+					createNoticeMock.mock.callCount(),
+					0,
+					'createNotice should not be called'
+				);
+				assert.strictEqual(
+					createNoticeMock.mock.calls.length,
+					0,
+					'createNotice should not be called'
+				);
+			} );
+
+			it( 'notification disabled for publish status', () => {
+				getSettingMock.mock.mockImplementationOnce( () => false );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'publish' );
+
+				assert.strictEqual(
+					createNoticeMock.mock.callCount(),
+					0,
+					'createNotice should not be called'
+				);
+				assert.strictEqual(
+					createNoticeMock.mock.calls.length,
+					0,
+					'createNotice should not be called'
+				);
+			} );
 		} );
 
 		describe( 'UserEntered notification type', () => {

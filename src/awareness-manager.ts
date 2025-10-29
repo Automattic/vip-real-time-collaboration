@@ -167,6 +167,7 @@ export class AwarenessManager {
 
 						const remoteClientId = stateMap.get( 'persistedBy' ) as number;
 
+						// Prevent the "undefined" clientID case.
 						if ( ! remoteClientId ) {
 							break;
 						}
