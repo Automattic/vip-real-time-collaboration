@@ -23,6 +23,9 @@ jobs:
           node-version-file: .nvmrc
           ignore-scripts: true
 
+      - name: Install websocket-server dependencies
+        run: npm install --ignore-scripts --prefix websocket-server
+
       - name: Check formatting
         run: npm run format:check
 
