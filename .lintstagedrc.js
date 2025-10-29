@@ -6,7 +6,7 @@ module.exports = {
 	// to skip sending those files by using a function here.
 	// https://github.com/lint-staged/lint-staged/issues/825
 	// https://github.com/microsoft/TypeScript/issues/6591
-	'*.{js,jsx,ts,tsx}': [ () => 'npm run lint' ],
+	'*.{js,jsx,ts,tsx}': [ () => 'npm run lint:js' ],
 	'*.php': [ 'npm run lint:php' ],
 	'*.{js,json,jsx,md,ts,tsx,yml,yaml}': [ 'npm run format:check' ],
 };
