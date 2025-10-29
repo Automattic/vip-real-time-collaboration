@@ -7,7 +7,7 @@ module.exports = {
 	},
 	overrides: [
 		{
-			files: [ '*.test.ts' ], // Node.js unit tests
+			files: [ '*.test.ts' ], // Node.js unit tests and e2e tests
 			rules: {
 				'@typescript-eslint/no-explicit-any': 'off',
 				'@typescript-eslint/no-floating-promises': 'off',

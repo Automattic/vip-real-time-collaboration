@@ -1,4 +1,5 @@
 import '@wordpress/editor';
+import type { PrivateApis } from '@wordpress/private-apis';
 
 declare module '@wordpress/editor' {
 	interface EditorStoreSelectors {
@@ -7,5 +8,9 @@ declare module '@wordpress/editor' {
 		getEditedPostContent(): string | null;
 	}
 
-	const EditorPresence: React.FC< React.PropsWithChildren >;
+	export interface EditorPrivateApis {
+		EditorPresence: React.FC< React.PropsWithChildren >;
+	}
+
+	export const privateApis: PrivateApis< EditorPrivateApis >;
 }

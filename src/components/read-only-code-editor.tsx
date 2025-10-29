@@ -14,10 +14,9 @@ export function ReadOnlyCodeEditor() {
 	// Get the current editor mode (visual or text).
 	// Visual mode is the default block editor mode.
 	// Text mode is the code editor mode.
-	const editorMode = useSelect< EditPostStoreSelectors, 'visual' | 'text' | undefined >( select => {
-		const { getEditorMode } = select( editPostStore );
-		return getEditorMode();
-	} );
+	const editorMode = useSelect< EditPostStoreSelectors, 'visual' | 'text' | undefined >( select =>
+		select( editPostStore ).getEditorMode()
+	);
 
 	// When in text mode, set the code editor (textarea) to read-only.
 	useEffect( () => {

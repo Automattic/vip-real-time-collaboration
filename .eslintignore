@@ -2,5 +2,7 @@ build
 node_modules
 vendor
 *.php
-websocket-server/node_modules
-websocket-server/dist
+websocket-server
+yjs-inspector
+tests/e2e
+examples/

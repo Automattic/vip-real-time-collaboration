@@ -13,11 +13,9 @@ export function useCurrentEntity(): CurrentEntity | null {
 		EditorStoreSelectors,
 		{ postId: number | null; postType: string | null }
 	>( select => {
-		const { getCurrentPostId, getCurrentPostType } = select( editorStore );
-
 		return {
-			postId: getCurrentPostId(),
-			postType: getCurrentPostType(),
+			postId: select( editorStore ).getCurrentPostId(),
+			postType: select( editorStore ).getCurrentPostType(),
 		};
 	} );
 
