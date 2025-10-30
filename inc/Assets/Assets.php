@@ -4,6 +4,7 @@ namespace VIPRealTimeCollaboration\Assets;
 
 defined( 'ABSPATH' ) || exit();
 
+use VIPRealTimeCollaboration\Settings\Settings;
 use function add_action;
 use function plugins_url;
 use function wp_add_inline_script;
@@ -38,6 +39,11 @@ final class Assets {
 			wp_die( sprintf( 'The asset file %s is missing. Run `npm run build` to generate it.', esc_html( $asset_file ) ) );
 		}
 
+		$default_options = Settings::get_default_options();
+		/** @var array<string> */
+		$options = get_option( 'vip_real_time_collaboration_settings', [] );
+		$options = array_merge( $default_options, $options );
+
 		/**
 		 * @var array{
 		 *   dependencies: array{string},
@@ -58,6 +64,7 @@ final class Assets {
 			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
 			'blogId' => get_current_blog_id(),
+			'settings' => $options,
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.

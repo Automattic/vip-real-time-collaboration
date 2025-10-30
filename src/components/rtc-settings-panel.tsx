@@ -23,7 +23,7 @@ import {
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import { isDevelopment } from '@/utilities/config';
+import { getSettingFromConfig, isDevelopment, SettingKey } from '@/utilities/config';
 
 const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
@@ -33,38 +33,23 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
-	const {
-		isAvatarsEnabled,
-		isCursorsEnabled,
-		isDebugToolsEnabled,
-		isSelfAwarenessEnabled,
-		isUserEnterNotificationEnabled,
-		isUserExitNotificationEnabled,
-	} = useSelect<
+	const { isDebugToolsEnabled } = useSelect<
 		SettingsStoreSelectors,
 		{
-			isAvatarsEnabled: boolean;
-			isCursorsEnabled: boolean;
 			isDebugToolsEnabled: boolean;
-			isSelfAwarenessEnabled: boolean;
-			isUserEnterNotificationEnabled: boolean;
-			isUserExitNotificationEnabled: boolean;
 		}
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
 		return {
-			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
-			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
-			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
-			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
-			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
 		};
 	}, [] );
 
 	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
 	const activeUsers = useSortedAwarenessUsers();
+
+	const isAvatarsEnabled = getSettingFromConfig( SettingKey.ENABLE_AWARENESS_AVATARS );
 
 	return (
 		<>
@@ -91,24 +76,6 @@ export function RTCSettingsPanel() {
 				className="vip-real-time-collaboration-settings"
 			>
 				<div>
-					<ToggleControl
-						label="Enable avatars"
-						checked={ isAvatarsEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_AVATARS, enabled ) }
-					/>
-
-					<ToggleControl
-						label="Enable cursors"
-						checked={ isCursorsEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_CURSORS, enabled ) }
-					/>
-
-					<ToggleControl
-						label="Show my awareness"
-						checked={ isSelfAwarenessEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.SELF_AWARENESS, enabled ) }
-					/>
-
 					{ isDevelopment() && (
 						<ToggleControl
 							label="Show debug tools"
@@ -116,30 +83,6 @@ export function RTCSettingsPanel() {
 							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
 						/>
 					) }
-
-					<Heading level={ 3 } style={ { marginTop: '24px' } }>
-						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
-						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<ToggleControl
-						label="Enters"
-						checked={ isUserEnterNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_ENTER_NOTIFICATION, enabled )
-						}
-					/>
-
-					<ToggleControl
-						label="Exits"
-						checked={ isUserExitNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_EXIT_NOTIFICATION, enabled )
-						}
-					/>
 				</div>
 
 				<Heading level={ 3 } style={ { marginTop: '24px' } }>

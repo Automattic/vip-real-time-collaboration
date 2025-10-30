@@ -43,6 +43,7 @@ final class Settings {
 						'id' => 'enable-self-awareness',
 						'title' => __( 'Enable self awareness', 'vip-real-time-collaboration' ),
 						'label' => __( 'Show your own cursor while editing', 'vip-real-time-collaboration' ),
+						'default' => false,
 					],
 				],
 			],
@@ -74,8 +75,48 @@ final class Settings {
 	}
 
 	public function __construct() {
-		add_action( 'admin_init', [ $this, 'register_settings' ] );
-		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
+		add_action( 'admin_init', [ __CLASS__, 'initialize_options' ] );
+		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
+		add_action( 'admin_menu', [ __CLASS__, 'add_options_page' ] );
+	}
+
+	public static function initialize_options(): void {
+		$default_options = self::get_default_options();
+
+		/** @var array<string> */
+		$existing_options = get_option( self::OPTION_NAME, [] );
+
+		// Add default options if they don't exist.
+		if ( empty( $existing_options ) ) {
+			add_option( self::OPTION_NAME, $default_options );
+		}
+	}
+
+	public static function get_default_options(): array {
+		$default_options = [];
+
+		// Build default options from settings configuration.
+		foreach ( self::get_settings_config() as $section ) {
+			// Fields in the main section.
+			if ( isset( $section['fields'] ) ) {
+				foreach ( $section['fields'] as $field ) {
+					$default_options[ $field['id'] ] = $field['default'] ?? true;
+				}
+			}
+
+			// Fields in subsections.
+			if ( isset( $section['subsections'] ) ) {
+				foreach ( $section['subsections'] as $subsection ) {
+					if ( isset( $subsection['fields'] ) ) {
+						foreach ( $subsection['fields'] as $field ) {
+							$default_options[ $field['id'] ] = $field['default'] ?? true;
+						}
+					}
+				}
+			}
+		}
+
+		return $default_options;
 	}
 
 	public static function register_settings(): void {
@@ -218,9 +259,9 @@ final class Settings {
 	 * @param array{id: string, label: string, default?: bool} $args Field arguments (label, id, default).
 	 */
 	public static function display_settings_checkbox( array $args ): void {
-		/** @var array<string, mixed>|false */
-		$options = get_option( self::OPTION_NAME );
-		$value = is_array( $options ) && isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : ( $args['default'] ?? true );
+		/** @var array<string> */
+		$options = get_option( self::OPTION_NAME, [] );
+		$value = isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : ( $args['default'] ?? true );
 		$field_name = self::OPTION_NAME . '[' . $args['id'] . ']';
 		?>
 		<label for="<?php echo esc_attr( $args['id'] ); ?>">

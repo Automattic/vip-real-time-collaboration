@@ -1,22 +1,13 @@
-import { useSelect } from '@wordpress/data';
-
 import { Avatar } from '@/components/avatar';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import {
-	store as rtcSettingsStore,
-	Setting,
-	type SettingsStoreSelectors,
-} from '@/store/settings-store';
+import { getSettingFromConfig, SettingKey } from '@/utilities/config';
 
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  */
 export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
-	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >(
-		select => select( rtcSettingsStore ).getSetting( Setting.SELF_AWARENESS ),
-		[]
-	);
+	const isSelfAwarenessEnabled = getSettingFromConfig( SettingKey.ENABLE_SELF_AWARENESS );
 
 	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
 		// Hide avatars when there's only one user.

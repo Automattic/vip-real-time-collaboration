@@ -2,15 +2,11 @@ import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
 import {
-	store as rtcSettingsStore,
-	Setting,
-	SettingsStoreSelectors,
-} from '../store/settings-store';
-import {
 	AwarenessStoreSelectors,
 	UserState,
 	store as awarenessStore,
 } from '@/store/awareness-store';
+import { getSettingFromConfig, SettingKey } from '@/utilities/config';
 import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
 
 /**
@@ -23,16 +19,8 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 		return Array.from( select( awarenessStore ).getActiveUsers().values() );
 	} );
 
-	const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = useSelect<
-		SettingsStoreSelectors,
-		{ isAwarenessCursorsEnabled: boolean; isSelfAwarenessEnabled: boolean }
-	>( select => {
-		const { getSetting } = select( rtcSettingsStore );
-		return {
-			isAwarenessCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
-			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
-		};
-	}, [] );
+	const isAwarenessCursorsEnabled = getSettingFromConfig( SettingKey.ENABLE_AWARENESS_CURSORS );
+	const isSelfAwarenessEnabled = getSettingFromConfig( SettingKey.ENABLE_SELF_AWARENESS );
 
 	// Draw block highlights
 	useEffect( () => {
