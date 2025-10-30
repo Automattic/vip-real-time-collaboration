@@ -154,18 +154,18 @@ export class AwarenessManager {
 	private subscribeToCRDTChanges(): void {
 		const now = Date.now();
 		const recordMap = this.awareness.doc.getMap( 'document' );
-		const stateMap = this.awareness.doc.getMap( 'state' );
+		const recordMeta = this.awareness.doc.getMap( 'documentMeta' );
 
-		stateMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
+		recordMeta.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
 			event.keysChanged.forEach( ( key: string ) => {
 				switch ( key ) {
-					// A remote user has persisted the document (saved).
-					case 'persistedAt': {
+					// A remote user has saved the document.
+					case 'savedAt': {
 						if ( transaction.local ) {
 							break;
 						}
 
-						const remoteClientId = stateMap.get( 'persistedBy' ) as number;
+						const remoteClientId = recordMeta.get( 'savedBy' ) as number;
 
 						// Prevent the "undefined" clientID case.
 						if ( ! remoteClientId ) {
@@ -173,18 +173,18 @@ export class AwarenessManager {
 						}
 
 						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
+						this.logger.debug( `Document was saved by client ID ${ remoteClientId }.`, {
 							remoteClientId,
 							userState,
-							stateMap,
+							recordMeta,
 						} );
 
 						if (
-							// Ignore if the persistedAt timestamp is older than our session
-							now > ( stateMap.get( 'persistedAt' ) as number ) ||
+							// Ignore if the savedAt timestamp is older than our session
+							now > ( recordMeta.get( 'savedAt' ) as number ) ||
 							// Ignore if we don't have a user state for the client ID
 							! userState ||
-							// Ignore if this is our own persisted event (can happen on refresh or reconnect)
+							// Ignore if this is our own saved event (can happen on refresh or reconnect)
 							userState.userInfo.id === this.userInfo.id
 						) {
 							break;
