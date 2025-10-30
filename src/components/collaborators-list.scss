@@ -1,35 +1,56 @@
 .vip-real-time-collaboration-collaborators-list.components-popover {
+	// Popover wrapper styles
 	.components-popover__content {
-		border: none;
-		border-width: 1px 0px 0px 1px;
-		border-style: solid;
-		border-color: #ddd;
+		border: 1px solid #ddd;
+		border-width: 1px 0 0 1px;
 		border-radius: 8px;
 		background: #fff;
-		box-shadow: 0px 1px 2px rgba(0, 0, 0, 0.05),
-			0px 1px 2px rgba(0, 0, 0, 0.05),
-			0px 1px 2px rgba(0, 0, 0, 0.05),
-			0px 8px 8px rgba(0, 0, 0, 0.02);
+		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05),
+			0 1px 2px rgba(0, 0, 0, 0.05),
+			0 1px 2px rgba(0, 0, 0, 0.05),
+			0 8px 8px rgba(0, 0, 0, 0.02);
 	}
 
 	.vip-real-time-collaboration-collaborators-list-content {
-		padding: 16px;
 		min-width: 280px;
-		border-radius: 8px;
 	}
 
+	// Header with title and action button
 	.vip-real-time-collaboration-collaborators-list-header {
-		font-size: 11px;
-		font-weight: 500;
-		color: var(--Gutenberg-Gray-700, #757575);
-		text-transform: uppercase;
-		line-height: 16px;
-		padding-bottom: 8px;
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		padding: 0 16px;
+
+		&-title {
+			font-size: 13px;
+			font-weight: 500;
+			text-transform: uppercase;
+			line-height: 20px;
+			padding: 14px 0;
+
+			span {
+				color: var(--Gutenberg-Gray-700, #757575);
+			}
+		}
+
+		&-action {
+			padding: 8px 0;
+
+			button {
+				color: var(--wp-components-color-foreground, #1e1e1e);
+				height: 24px;
+				width: 24px;
+				padding: 0;
+			}
+		}
 	}
 
+	// List of collaborators
 	.vip-real-time-collaboration-collaborators-list-items {
 		display: flex;
 		flex-direction: column;
+		padding: 0 16px 16px;
 	}
 
 	.vip-real-time-collaboration-collaborators-list-item {
@@ -38,28 +59,16 @@
 		padding: 6px 0;
 		gap: 8px;
 
-		// Make avatars larger in the list
-		.vip-real-time-collaboration-avatar {
-			width: 32px;
-			height: 32px;
-
-			img {
-				width: 32px;
-				height: 32px;
-				border-radius: 6px;
-			}
+		&-info {
+			display: flex;
+			flex-direction: column;
+			flex: 1;
+			line-height: 16px;
+			font-size: 12px;
 		}
-	}
 
-	.vip-real-time-collaboration-collaborators-list-item-info {
-		display: flex;
-		flex-direction: column;
-		flex: 1;
-		line-height: 16px;
-		font-size: 12px;
-	}
-
-	.vip-real-time-collaboration-collaborators-list-item-email {
-		color: #757575;
+		&-email {
+			color: #757575;
+		}
 	}
 }

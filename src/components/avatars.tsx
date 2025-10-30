@@ -25,6 +25,7 @@ export function Avatars() {
 	);
 
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
+	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
 	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
 		// Hide avatars when there's only one user.
@@ -38,27 +39,38 @@ export function Avatars() {
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
 	return visibleUsers.length > 1 ? (
-		<Button
-			className="vip-real-time-collaboration-avatars-container"
-			onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
-			isPressed={ isPopoverVisible }
-		>
-			{ visibleUsers.map( userState => (
-				<Avatar
-					key={ userState.userInfo.clientId }
-					userInfo={ userState.userInfo }
-					showUserColorBorder={ false }
-					size="small"
+		<>
+			<Button
+				className="vip-real-time-collaboration-avatars-container"
+				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
+				isPressed={ isPopoverVisible }
+				ref={ setPopoverAnchor }
+			>
+				{ visibleUsers.map( userState => (
+					<Avatar
+						key={ userState.userInfo.clientId }
+						userInfo={ userState.userInfo }
+						showUserColorBorder={ false }
+						size="small"
+					/>
+				) ) }
+
+				{ remainingUsers.length > 0 && (
+					<div
+						className="vip-real-time-collaboration-avatar-remaining"
+						title={ remainingUsersText }
+					>
+						+{ remainingUsers.length }
+					</div>
+				) }
+			</Button>
+			{ isPopoverVisible && (
+				<CollaboratorsList
+					activeUsers={ activeUsers }
+					popoverAnchor={ popoverAnchor }
+					setIsPopoverVisible={ setIsPopoverVisible }
 				/>
-			) ) }
-
-			{ remainingUsers.length > 0 && (
-				<div className="vip-real-time-collaboration-avatar-remaining" title={ remainingUsersText }>
-					+{ remainingUsers.length }
-				</div>
 			) }
-
-			{ isPopoverVisible && <CollaboratorsList activeUsers={ activeUsers } /> }
-		</Button>
+		</>
 	) : null;
 }

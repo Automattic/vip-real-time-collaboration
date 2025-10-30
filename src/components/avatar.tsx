@@ -24,10 +24,9 @@ export function Avatar( {
 		.filter( Boolean )
 		.join( ' ' );
 
-	const avatarStyles = {
+	const avatarStyles: React.CSSProperties & Record< `--${ string }`, string > = {
 		'--avatar-url': `url(${ userInfo.avatarUrl })`,
 		'--user-color': userInfo.color,
-		opacity: userInfo.isConnected ? 1 : 0.5,
 	};
 
 	return (
