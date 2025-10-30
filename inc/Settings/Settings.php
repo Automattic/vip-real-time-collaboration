@@ -4,21 +4,6 @@ namespace VIPRealTimeCollaboration\Settings;
 
 defined( 'ABSPATH' ) || exit();
 
-use function add_action;
-use function add_options_page;
-use function add_settings_field;
-use function add_settings_section;
-use function checked;
-use function do_settings_sections;
-use function esc_attr;
-use function esc_html;
-use function esc_html_e;
-use function get_option;
-use function register_setting;
-use function settings_errors;
-use function settings_fields;
-use function submit_button;
-
 final class Settings {
 	private const SETTINGS_PAGE_SLUG = 'vip-real-time-collaboration-settings';
 	private const OPTION_NAME = 'vip_real_time_collaboration_settings';
