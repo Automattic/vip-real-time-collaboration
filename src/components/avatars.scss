@@ -4,16 +4,31 @@
 	cursor: pointer;
 	position: relative;
 	padding: 4px;
-	background-color: #ddd;
 	border-radius: inherit;
+	height: fit-content;
+	color: #2f2f2f;
+	background-color: #f0f0f0;
+
+	&:hover {
+		background-color: #e0e0e0;
+
+		.vip-real-time-collaboration-avatar {
+			border-color: #ddd;
+		}
+	};
 
 	.vip-real-time-collaboration-avatar-remaining {
 		margin-right: 6px;
 	}
 
+	&.components-button:hover .vip-real-time-collaboration-avatar-remaining {
+		color: #2f2f2f;
+	}
+
 	.vip-real-time-collaboration-avatar {
 		margin-left: -16px;
 		flex-shrink: 0;
+		border-color: #f0f0f0;
 
 		&:nth-child(1) {
 			margin-left: 0;

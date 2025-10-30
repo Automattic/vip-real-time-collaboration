@@ -1,3 +1,4 @@
+import { Button } from '@wordpress/components';
 import { useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 
@@ -37,7 +38,7 @@ export function Avatars() {
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
 	return visibleUsers.length > 1 ? (
-		<div
+		<Button
 			className="vip-real-time-collaboration-avatars-container"
 			onMouseEnter={ () => setIsPopoverVisible( true ) }
 			onMouseLeave={ () => setIsPopoverVisible( false ) }
@@ -47,6 +48,7 @@ export function Avatars() {
 					key={ userState.userInfo.clientId }
 					userInfo={ userState.userInfo }
 					showUserColorBorder={ false }
+					size="small"
 				/>
 			) ) }
 
@@ -57,6 +59,6 @@ export function Avatars() {
 			) }
 
 			{ isPopoverVisible && <CollaboratorsList activeUsers={ activeUsers } /> }
-		</div>
+		</Button>
 	) : null;
 }

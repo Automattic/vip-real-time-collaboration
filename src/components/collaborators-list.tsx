@@ -15,7 +15,7 @@ interface CollaboratorsListProps {
 export function CollaboratorsList( { activeUsers }: CollaboratorsListProps ) {
 	return (
 		<Popover
-			placement="bottom-start"
+			placement="bottom"
 			offset={ 8 }
 			className="vip-real-time-collaboration-collaborators-list"
 		>
