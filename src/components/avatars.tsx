@@ -40,8 +40,8 @@ export function Avatars() {
 	return visibleUsers.length > 1 ? (
 		<Button
 			className="vip-real-time-collaboration-avatars-container"
-			onMouseEnter={ () => setIsPopoverVisible( true ) }
-			onMouseLeave={ () => setIsPopoverVisible( false ) }
+			onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
+			isPressed={ isPopoverVisible }
 		>
 			{ visibleUsers.map( userState => (
 				<Avatar
