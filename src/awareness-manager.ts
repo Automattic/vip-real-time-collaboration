@@ -4,6 +4,12 @@
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+import {
+	CRDT_RECORD_MAP_KEY as RECORD_KEY,
+	CRDT_RECORD_METADATA_MAP_KEY as RECORD_METADATA_KEY,
+	CRDT_RECORD_METADATA_SAVED_AT_KEY as SAVED_AT_KEY,
+	CRDT_RECORD_METADATA_SAVED_BY_KEY as SAVED_BY_KEY,
+} from '@wordpress/sync';
 import * as Y from 'yjs';
 
 /**
@@ -153,22 +159,23 @@ export class AwarenessManager {
 
 	private subscribeToCRDTChanges(): void {
 		const now = Date.now();
-		const recordMap = this.awareness.doc.getMap( 'document' );
-		const recordMeta = this.awareness.doc.getMap( 'documentMeta' );
+		const recordMap = this.awareness.doc.getMap( RECORD_KEY );
+		const recordMeta = this.awareness.doc.getMap( RECORD_METADATA_KEY );
 
 		recordMeta.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
 			event.keysChanged.forEach( ( key: string ) => {
 				switch ( key ) {
 					// A remote user has saved the document.
-					case 'savedAt': {
+					case SAVED_AT_KEY: {
 						if ( transaction.local ) {
 							break;
 						}
 
-						const remoteClientId = recordMeta.get( 'savedBy' ) as number;
+						const savedTimestamp = recordMeta.get( SAVED_AT_KEY );
+						const remoteClientId = recordMeta.get( SAVED_BY_KEY );
 
-						// Prevent the "undefined" clientID case.
-						if ( ! remoteClientId ) {
+						// Type / "undefined" guard.
+						if ( 'number' !== typeof remoteClientId || 'number' !== typeof savedTimestamp ) {
 							break;
 						}
 
@@ -176,7 +183,7 @@ export class AwarenessManager {
 
 						if (
 							// Ignore if the savedAt timestamp is older than our session
-							now > ( recordMeta.get( 'savedAt' ) as number ) ||
+							now > savedTimestamp ||
 							// Ignore if we don't have a user state for the client ID
 							! userState ||
 							// Ignore if this is our own saved event (can happen on refresh or reconnect)
@@ -253,7 +260,7 @@ export class AwarenessManager {
 	): void {
 		const { updateEditorState } = dispatch( awarenessStore );
 
-		const ydocument = this.awareness.doc.getMap( 'document' );
+		const ydocument = this.awareness.doc.getMap( RECORD_KEY );
 		const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
 		const editorState = {
 			selection: getSelectionState( selectionStart, selectionEnd, yBlocks ),
