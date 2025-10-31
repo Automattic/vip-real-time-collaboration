@@ -50,14 +50,33 @@
 	.vip-real-time-collaboration-collaborators-list-items {
 		display: flex;
 		flex-direction: column;
-		padding: 0 16px 16px;
+		padding: 0 10px 16px;
 	}
 
 	.vip-real-time-collaboration-collaborators-list-item {
 		display: flex;
 		align-items: center;
-		padding: 6px 0;
+		padding: 6px;
 		gap: 8px;
+		border-radius: 4px;
+		transition: background-color 0.2s ease;
+
+		&[role="button"] {
+			cursor: pointer;
+
+			&:hover {
+				background-color: rgba(0, 0, 0, 0.05);
+			}
+
+			&:active {
+				background-color: rgba(0, 0, 0, 0.08);
+			}
+
+			&:focus-visible {
+				outline: 2px solid var(--wp-admin-theme-color, #007cba);
+				outline-offset: -2px;
+			}
+		}
 
 		&-info {
 			display: flex;
