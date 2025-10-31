@@ -1,17 +1,10 @@
 import { BlockCanvasCover } from '@wordpress/block-editor';
-import {
-	Flex,
-	FlexItem,
-	ToggleControl,
-	__experimentalHeading as Heading,
-	__experimentalText as Text,
-} from '@wordpress/components';
+import { ToggleControl, __experimentalHeading as Heading } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
 import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
-import { Avatar } from './avatar';
 import { Avatars } from './avatars';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
@@ -22,7 +15,6 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { isDevelopment } from '@/utilities/config';
 
 const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
@@ -66,8 +58,6 @@ export function RTCSettingsPanel() {
 	}, [] );
 
 	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
-
-	const activeUsers = useSortedAwarenessUsers();
 
 	return (
 		<>
@@ -136,10 +126,6 @@ export function RTCSettingsPanel() {
 						} }
 					/>
 
-					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
-						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-					</Heading>
-
 					<ToggleControl
 						label="Enters"
 						checked={ isUserEnterNotificationEnabled }
@@ -156,29 +142,6 @@ export function RTCSettingsPanel() {
 						}
 					/>
 				</div>
-
-				<Heading level={ 3 } style={ { marginTop: '24px' } }>
-					{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-				</Heading>
-
-				<Flex direction="column" className="vip-real-time-collaboration-sidebar-users" gap={ 0 }>
-					{ activeUsers.map( userState => (
-						<FlexItem key={ userState.userInfo.clientId }>
-							<Flex
-								direction="row"
-								justify="flex-start"
-								className="vip-real-time-collaboration-sidebar-user-row"
-							>
-								<Avatar
-									key={ userState.userInfo.clientId }
-									showUserColorBorder={ true }
-									userInfo={ userState.userInfo }
-								/>
-								<Text>{ userState.userInfo.name }</Text>
-							</Flex>
-						</FlexItem>
-					) ) }
-				</Flex>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
 		</>
