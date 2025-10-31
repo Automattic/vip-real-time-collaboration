@@ -38,6 +38,7 @@ export function RTCSettingsPanel() {
 		isCursorsEnabled,
 		isDebugToolsEnabled,
 		isSelfAwarenessEnabled,
+		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
 	} = useSelect<
@@ -47,6 +48,7 @@ export function RTCSettingsPanel() {
 			isCursorsEnabled: boolean;
 			isDebugToolsEnabled: boolean;
 			isSelfAwarenessEnabled: boolean;
+			isPostUpdateNotificationEnabled: boolean;
 			isUserEnterNotificationEnabled: boolean;
 			isUserExitNotificationEnabled: boolean;
 		}
@@ -57,6 +59,7 @@ export function RTCSettingsPanel() {
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
 			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
+			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
 		};
@@ -120,6 +123,18 @@ export function RTCSettingsPanel() {
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>
 						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
 					</Heading>
+
+					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
+						{ __( 'Post', 'vip-real-time-collaboration' ) }
+					</Heading>
+
+					<ToggleControl
+						label="Save/Publish"
+						checked={ isPostUpdateNotificationEnabled }
+						onChange={ ( enabled: boolean ) => {
+							setSetting( Setting.POST_UPDATE_NOTIFICATION, enabled );
+						} }
+					/>
 
 					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
 						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }

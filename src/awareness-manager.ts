@@ -4,6 +4,12 @@
 import { type BlockEditorStoreSelectors, store as blockEditorStore } from '@wordpress/block-editor';
 import { dispatch, select, subscribe } from '@wordpress/data';
 import { WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
+import {
+	CRDT_RECORD_MAP_KEY as RECORD_KEY,
+	CRDT_RECORD_METADATA_MAP_KEY as RECORD_METADATA_KEY,
+	CRDT_RECORD_METADATA_SAVED_AT_KEY as SAVED_AT_KEY,
+	CRDT_RECORD_METADATA_SAVED_BY_KEY as SAVED_BY_KEY,
+} from '@wordpress/sync';
 import * as Y from 'yjs';
 
 /**
@@ -153,63 +159,47 @@ export class AwarenessManager {
 
 	private subscribeToCRDTChanges(): void {
 		const now = Date.now();
-		const recordMap = this.awareness.doc.getMap( 'document' );
-		const stateMap = this.awareness.doc.getMap( 'state' );
+		const recordMap = this.awareness.doc.getMap( RECORD_KEY );
+		const recordMeta = this.awareness.doc.getMap( RECORD_METADATA_KEY );
 
-		stateMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
+		recordMeta.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ) => {
 			event.keysChanged.forEach( ( key: string ) => {
 				switch ( key ) {
-					// A remote user has persisted the document (saved).
-					case 'persistedAt': {
+					// A remote user has saved the document.
+					case SAVED_AT_KEY: {
 						if ( transaction.local ) {
 							break;
 						}
 
-						const remoteClientId = stateMap.get( 'persistedBy' ) as number;
+						const savedTimestamp = recordMeta.get( SAVED_AT_KEY );
+						const remoteClientId = recordMeta.get( SAVED_BY_KEY );
+
+						// Type / "undefined" guard.
+						if ( 'number' !== typeof remoteClientId || 'number' !== typeof savedTimestamp ) {
+							break;
+						}
+
 						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was persisted by client ID ${ remoteClientId }.`, {
-							remoteClientId,
-							userState,
-							stateMap,
-						} );
 
 						if (
-							// Ignore if the persistedAt timestamp is older than our session
-							now > ( stateMap.get( 'persistedAt' ) as number ) ||
+							// Ignore if the savedAt timestamp is older than our session
+							now > savedTimestamp ||
 							// Ignore if we don't have a user state for the client ID
 							! userState ||
-							// Ignore if this is our own persisted event (can happen on refresh or reconnect)
+							// Ignore if this is our own saved event (can happen on refresh or reconnect)
 							userState.userInfo.id === this.userInfo.id
 						) {
 							break;
 						}
 
-						const status = recordMap.get( 'status' ) as string;
-						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
-
-						break;
-					}
-
-					// A remote user has restored the document (restored a revision or loaded newer content).
-					case 'restoredAt': {
-						const remoteClientId = stateMap.get( 'restoredBy' ) as number;
-						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was restored by client ID ${ remoteClientId }.`, {
+						this.logger.debug( `Document was saved by client ID ${ remoteClientId }.`, {
 							remoteClientId,
 							userState,
-							stateMap,
+							recordMeta,
 						} );
 
-						if (
-							// Ignore if the restoredAt timestamp is older than our session
-							now > ( stateMap.get( 'restoredAt' ) as number ) ||
-							// Ignore if we don't have a user state for the client ID
-							! userState
-						) {
-							break;
-						}
-
-						sendNotification( NotificationType.PostRestored, userState.userInfo );
+						const status = recordMap.get( 'status' ) as string;
+						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
 
 						break;
 					}
@@ -270,7 +260,7 @@ export class AwarenessManager {
 	): void {
 		const { updateEditorState } = dispatch( awarenessStore );
 
-		const ydocument = this.awareness.doc.getMap( 'document' );
+		const ydocument = this.awareness.doc.getMap( RECORD_KEY );
 		const yBlocks = ydocument.get( 'blocks' ) as Y.Array< SelectableBlock >;
 		const editorState = {
 			selection: getSelectionState( selectionStart, selectionEnd, yBlocks ),
