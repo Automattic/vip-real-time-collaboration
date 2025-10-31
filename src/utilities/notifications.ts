@@ -6,26 +6,16 @@ import { store as settingsStore, Setting } from '@/store/settings-store';
 import type { UserInfo } from '@/store/awareness-store';
 
 export enum NotificationType {
-	PostRestored = 'remote-user-post-restored',
 	PostUpdated = 'remote-user-post-updated',
 	UserEntered = 'remote-user-user-entered',
 	UserExited = 'remote-user-user-exited',
 }
 
-/**
- * Get the content of a post restored notification.
- *
- * @param userInfo the user info of the user related to the notification
- * @returns the content of the post restored notification
- */
-function getPostRestoredNotificationContent( userInfo: UserInfo ): string {
-	let predicate = `${ userInfo.name } restored`;
-	if ( userInfo.isMe ) {
-		predicate = 'Restored';
-	}
-
-	return `${ predicate } newer content from the server.`;
-}
+const NOTIFICATION_TYPE_TO_SETTING_MAP: Record< NotificationType, Setting > = {
+	[ NotificationType.PostUpdated ]: Setting.POST_UPDATE_NOTIFICATION,
+	[ NotificationType.UserEntered ]: Setting.USER_ENTER_NOTIFICATION,
+	[ NotificationType.UserExited ]: Setting.USER_EXIT_NOTIFICATION,
+};
 
 /**
  * Get the content of a post updated or draft saved notification.
@@ -68,19 +58,13 @@ function shouldSendNotification(
 		return false;
 	}
 
-	// If notifications for user joining is disabled, skip.
-	if (
-		type === NotificationType.UserEntered &&
-		! select( settingsStore ).getSetting( Setting.USER_ENTER_NOTIFICATION )
-	) {
-		return false;
+	// If the notification type has no settings associated with it, send it.
+	if ( ! ( type in NOTIFICATION_TYPE_TO_SETTING_MAP ) ) {
+		return true;
 	}
 
-	// If notifications for user leaving is disabled, skip.
-	if (
-		type === NotificationType.UserExited &&
-		! select( settingsStore ).getSetting( Setting.USER_EXIT_NOTIFICATION )
-	) {
+	// If the setting for this notification type is disabled, skip.
+	if ( ! select( settingsStore ).getSetting( NOTIFICATION_TYPE_TO_SETTING_MAP[ type ] ) ) {
 		return false;
 	}
 
@@ -92,6 +76,7 @@ function shouldSendNotification(
 		return false;
 	}
 
+	// Otherwise, send the notification.
 	return true;
 }
 
@@ -101,8 +86,6 @@ function getContentForNotificationType(
 	status?: string
 ): string {
 	switch ( type ) {
-		case NotificationType.PostRestored:
-			return getPostRestoredNotificationContent( userInfo );
 		case NotificationType.PostUpdated:
 			return getPostUpdatedNotificationContent( userInfo, status ?? '' );
 		case NotificationType.UserEntered:
