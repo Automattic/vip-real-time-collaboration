@@ -99,8 +99,8 @@ const drawUserSelections = (
 
 	// Draw cursors
 	userSelections.forEach( ( { userName, clientId, selection, color, isMe } ) => {
-		if ( isMe && drawType === DrawType.OtherUsers ) {
-			// Skip drawing the local user's cursor.
+		if ( isMe ) {
+			// Skip current user's cursor - they're never shown in the UI
 			return;
 		}
 

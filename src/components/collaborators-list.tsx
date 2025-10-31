@@ -15,6 +15,7 @@ interface CollaboratorsListProps {
 
 /**
  * Renders a list showing all active collaborators with their details.
+ * Note: activeUsers should already exclude the current user (filtered by parent component).
  */
 export function CollaboratorsList( {
 	activeUsers,

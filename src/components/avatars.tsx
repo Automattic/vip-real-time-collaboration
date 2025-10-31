@@ -1,15 +1,9 @@
 import { Button } from '@wordpress/components';
-import { useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 
 import { Avatar } from '@/components/avatar';
 import { CollaboratorsList } from '@/components/collaborators-list';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import {
-	store as rtcSettingsStore,
-	Setting,
-	type SettingsStoreSelectors,
-} from '@/store/settings-store';
 
 import '@/components/avatars.scss';
 
@@ -19,26 +13,23 @@ import '@/components/avatars.scss';
  */
 export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
-	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >(
-		select => select( rtcSettingsStore ).getSetting( Setting.SELF_AWARENESS ),
-		[]
-	);
+
+	// Filter out current user - we never show ourselves in the list
+	const otherActiveUsers = activeUsers.filter( user => ! user.userInfo.isMe );
 
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
-	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
-		// Hide avatars when there's only one user.
-		// This also avoids showing a single user when navigating away from the editor
-		// after the connection is closed but before the page reloads.
+	if ( otherActiveUsers.length === 0 ) {
+		// Hide avatars when there are no other users
 		return null;
 	}
 
-	const visibleUsers = activeUsers.slice( 0, 3 );
-	const remainingUsers = activeUsers.slice( 3 );
+	const visibleUsers = otherActiveUsers.slice( 0, 3 );
+	const remainingUsers = otherActiveUsers.slice( 3 );
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
-	return visibleUsers.length > 1 ? (
+	return visibleUsers.length > 0 ? (
 		<>
 			<Button
 				className="vip-real-time-collaboration-avatars-container"
@@ -66,7 +57,7 @@ export function Avatars() {
 			</Button>
 			{ isPopoverVisible && (
 				<CollaboratorsList
-					activeUsers={ activeUsers }
+					activeUsers={ otherActiveUsers }
 					popoverAnchor={ popoverAnchor }
 					setIsPopoverVisible={ setIsPopoverVisible }
 				/>
