@@ -173,11 +173,6 @@ export class AwarenessManager {
 						}
 
 						const userState = this.getStates().get( remoteClientId );
-						this.logger.debug( `Document was saved by client ID ${ remoteClientId }.`, {
-							remoteClientId,
-							userState,
-							recordMeta,
-						} );
 
 						if (
 							// Ignore if the savedAt timestamp is older than our session
@@ -189,6 +184,12 @@ export class AwarenessManager {
 						) {
 							break;
 						}
+
+						this.logger.debug( `Document was saved by client ID ${ remoteClientId }.`, {
+							remoteClientId,
+							userState,
+							recordMeta,
+						} );
 
 						const status = recordMap.get( 'status' ) as string;
 						sendNotification( NotificationType.PostUpdated, userState.userInfo, status );
