@@ -14,6 +14,10 @@ function modernize( config, additionalScripts = {}, additionalPlugins = [], watc
 			...config.entry(),
 			...additionalScripts,
 		},
+		externals: {
+			...config.externals,
+			'@wordpress/sync': 'wp.sync',
+		},
 		module: {
 			rules: config.module.rules.concat( [
 				{
