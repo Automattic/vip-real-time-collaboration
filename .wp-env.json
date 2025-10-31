@@ -11,5 +11,6 @@
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
   },
+  "core": "WordPress/WordPress#master",
   "plugins": [ ".", "../gutenberg" ]
 }
