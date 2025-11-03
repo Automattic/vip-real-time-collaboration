@@ -54,28 +54,35 @@
 	}
 
 	.vip-real-time-collaboration-collaborators-list-item {
+		// Reset button styles
+		all: unset;
+		box-sizing: border-box;
+
+		// Layout styles
 		display: flex;
 		align-items: center;
 		padding: 6px;
 		gap: 8px;
 		border-radius: 4px;
+		width: 100%;
+		cursor: pointer;
 		transition: background-color 0.2s ease;
 
-		&[role="button"] {
-			cursor: pointer;
+		&:hover:not(:disabled) {
+			background-color: rgba(0, 0, 0, 0.05);
+		}
 
-			&:hover {
-				background-color: rgba(0, 0, 0, 0.05);
-			}
+		&:active:not(:disabled) {
+			background-color: rgba(0, 0, 0, 0.08);
+		}
 
-			&:active {
-				background-color: rgba(0, 0, 0, 0.08);
-			}
+		&:focus-visible {
+			outline: 2px solid var(--wp-admin-theme-color, #007cba);
+			outline-offset: -2px;
+		}
 
-			&:focus-visible {
-				outline: 2px solid var(--wp-admin-theme-color, #007cba);
-				outline-offset: -2px;
-			}
+		&:disabled {
+			cursor: default;
 		}
 
 		&-info {

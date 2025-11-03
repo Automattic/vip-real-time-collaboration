@@ -22,19 +22,14 @@ export function CollaboratorsList( {
 	popoverAnchor,
 	setIsPopoverVisible,
 }: CollaboratorsListProps ) {
-	const handleCollaboratorClick = ( clientId: number, isConnected: boolean ) => {
-		if ( ! isConnected ) {
-			// Don't scroll to disconnected users
-			return;
-		}
-
+	const handleCollaboratorClick = ( clientId: number ) => {
 		const success = cursorRegistry.scrollToCursor( clientId, {
 			behavior: 'smooth',
 			block: 'center',
 			highlightDuration: 2000,
 		} );
 
-		// Optionally close the popover after successful scroll
+		// Close the popover after successful scroll
 		if ( success ) {
 			setIsPopoverVisible( false );
 		}
@@ -64,29 +59,13 @@ export function CollaboratorsList( {
 				</div>
 				<div className="vip-real-time-collaboration-collaborators-list-items">
 					{ activeUsers.map( userState => (
-						<div
+						<button
 							key={ userState.userInfo.clientId }
 							className="vip-real-time-collaboration-collaborators-list-item"
+							onClick={ () => handleCollaboratorClick( userState.userInfo.clientId ) }
+							disabled={ ! userState.userInfo.isConnected }
 							style={ {
 								opacity: userState.userInfo.isConnected ? 1 : 0.5,
-								cursor: userState.userInfo.isConnected ? 'pointer' : 'default',
-							} }
-							onClick={ () =>
-								handleCollaboratorClick(
-									userState.userInfo.clientId,
-									userState.userInfo.isConnected
-								)
-							}
-							role="button"
-							tabIndex={ 0 }
-							onKeyDown={ event => {
-								if ( event.key === 'Enter' || event.key === ' ' ) {
-									event.preventDefault();
-									handleCollaboratorClick(
-										userState.userInfo.clientId,
-										userState.userInfo.isConnected
-									);
-								}
 							} }
 						>
 							<Avatar userInfo={ userState.userInfo } showUserColorBorder={ true } size="medium" />
@@ -98,7 +77,7 @@ export function CollaboratorsList( {
 									{ userState.userInfo.email }
 								</div>
 							</div>
-						</div>
+						</button>
 					) ) }
 				</div>
 			</div>
