@@ -68,9 +68,7 @@ class CursorRegistry {
 	 */
 	public removeAll = (): void => {
 		// Remove each cursor element using stored refs
-		this.cursorMap.forEach( element => {
-			element.remove();
-		} );
+		this.cursorMap.forEach( element => element.remove() );
 		// Clear the registry
 		this.cursorMap.clear();
 	};
