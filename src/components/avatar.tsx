@@ -29,12 +29,5 @@ export function Avatar( {
 		'--user-color': userInfo.color,
 	};
 
-	return (
-		<div
-			className={ className }
-			style={ avatarStyles }
-			title={ userInfo.name }
-			aria-label={ userInfo.name }
-		/>
-	);
+	return <div className={ className } style={ avatarStyles } aria-hidden="true" />;
 }
