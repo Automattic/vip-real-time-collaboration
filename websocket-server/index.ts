@@ -1,6 +1,7 @@
-import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
+import { getYDoc, setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
+import * as Y from 'yjs';
 import { WebSocketServer } from 'ws';
 
 import {
@@ -104,7 +105,10 @@ function verifyToken( token: string ): SyncTokenPayload {
 	return jwtPayload;
 }
 
-function getConnectionId( request: http.IncomingMessage ): string | null {
+function getPropertyFromJWT(
+	request: http.IncomingMessage,
+	property: keyof SyncTokenPayload
+): string | number | null {
 	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
 	const authToken = searchParams.get( 'auth' );
 	if ( ! authToken ) {
@@ -113,7 +117,7 @@ function getConnectionId( request: http.IncomingMessage ): string | null {
 
 	try {
 		const jwtPayload = verifyToken( authToken );
-		return jwtPayload.connection_id;
+		return jwtPayload[ property ];
 	} catch {
 		return null;
 	}
@@ -203,7 +207,8 @@ setPersistence( new NoopPersistenceProvider() );
  */
 wss.on( 'connection', ( ws, request ) => {
 	const connectionStartTime = Date.now();
-	const connectionId = getConnectionId( request );
+	const connectionId = getPropertyFromJWT( request, 'connection_id' ) as string | null;
+	const roomName = getPropertyFromJWT( request, 'room_name' ) as string | null;
 
 	/**
 	 * Set up the connection
@@ -211,6 +216,43 @@ wss.on( 'connection', ( ws, request ) => {
 	setupWSConnection( ws, request );
 
 	recordConnectionOpen( connectionId );
+
+	if ( roomName ) {
+		const doc = getYDoc( roomName );
+		if ( doc ) {
+			const recordMap = doc.getMap( 'document' );
+			recordMap.observe( ( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ): void => {
+				// @ts-ignore
+				if ( ! event.keysChanged || event.keysChanged.size === 0 ) {
+					return;
+				}
+
+				// @ts-ignore
+				event.keysChanged.forEach( key => {
+					console.log( `Entity updated - Key changed: ${ key }` );
+				} );
+			} );
+
+			const recordMetaMap = doc.getMap( 'documentMeta' );
+			recordMetaMap.observe(
+				( event: Y.YMapEvent< unknown >, transaction: Y.Transaction ): void => {
+					// @ts-ignore
+					if ( ! event.keysChanged || event.keysChanged.size === 0 ) {
+						return;
+					}
+
+					// @ts-ignore
+					event.keysChanged.forEach( key => {
+						switch ( key ) {
+							case 'savedAt':
+								console.log( 'Entity updated successfully' );
+								break;
+						}
+					} );
+				}
+			);
+		}
+	}
 
 	/**
 	 * Track message metrics
