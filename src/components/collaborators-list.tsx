@@ -1,3 +1,4 @@
+import { speak } from '@wordpress/a11y';
 import { Popover, Button } from '@wordpress/components';
 import { close } from '@wordpress/icons';
 
@@ -23,11 +24,18 @@ export function CollaboratorsList( {
 	setIsPopoverVisible,
 }: CollaboratorsListProps ) {
 	const handleCollaboratorClick = ( clientId: number ) => {
+		const userName = activeUsers.find( user => user.userInfo.clientId === clientId )?.userInfo.name;
+
 		const success = cursorRegistry.scrollToCursor( clientId, {
 			behavior: 'smooth',
 			block: 'center',
 			highlightDuration: 2000,
 		} );
+
+		// Announce the action to screen readers
+		if ( success && userName ) {
+			speak( `Scrolled to ${ userName }'s cursor`, 'polite' );
+		}
 
 		// Close the popover after successful scroll
 		if ( success ) {
@@ -64,6 +72,7 @@ export function CollaboratorsList( {
 							className="vip-real-time-collaboration-collaborators-list-item"
 							onClick={ () => handleCollaboratorClick( userState.userInfo.clientId ) }
 							disabled={ ! userState.userInfo.isConnected }
+							aria-description="Clicking scrolls to cursor position in the editor"
 							style={ {
 								opacity: userState.userInfo.isConnected ? 1 : 0.5,
 							} }
