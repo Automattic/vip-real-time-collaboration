@@ -36,6 +36,7 @@ export function Avatars() {
 				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
 				isPressed={ isPopoverVisible }
 				ref={ setPopoverAnchor }
+				aria-label={ `Collaborators list, ${ otherActiveUsers.length } online` }
 			>
 				{ visibleUsers.map( userState => (
 					<Avatar

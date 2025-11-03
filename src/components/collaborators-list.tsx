@@ -54,7 +54,12 @@ export function CollaboratorsList( {
 						<span> { activeUsers.length } </span>
 					</div>
 					<div className="vip-real-time-collaboration-collaborators-list-header-action">
-						<Button icon={ close } iconSize={ 16 } onClick={ () => setIsPopoverVisible( false ) } />
+						<Button
+							icon={ close }
+							iconSize={ 16 }
+							label="Close Collaborators List"
+							onClick={ () => setIsPopoverVisible( false ) }
+						/>
 					</div>
 				</div>
 				<div className="vip-real-time-collaboration-collaborators-list-items">
