@@ -1,48 +1,67 @@
-import { useSelect } from '@wordpress/data';
+import { Button } from '@wordpress/components';
+import { useState } from '@wordpress/element';
 
 import { Avatar } from '@/components/avatar';
+import { CollaboratorsList } from '@/components/collaborators-list';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import {
-	store as rtcSettingsStore,
-	Setting,
-	type SettingsStoreSelectors,
-} from '@/store/settings-store';
+
+import '@/components/avatars.scss';
 
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
+ * Shows a popover with all users on hover.
  */
 export function Avatars() {
 	const activeUsers = useSortedAwarenessUsers();
-	const isSelfAwarenessEnabled = useSelect< SettingsStoreSelectors, boolean >(
-		select => select( rtcSettingsStore ).getSetting( Setting.SELF_AWARENESS ),
-		[]
-	);
 
-	if ( activeUsers.length <= 1 && ! isSelfAwarenessEnabled ) {
-		// Hide avatars when there's only one user.
-		// This also avoids showing a single user when navigating away from the editor
-		// after the connection is closed but before the page reloads.
+	// Filter out current user - we never show ourselves in the list
+	const otherActiveUsers = activeUsers.filter( user => ! user.userInfo.isMe );
+
+	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
+	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
+
+	if ( otherActiveUsers.length === 0 ) {
+		// Hide avatars when there are no other users
 		return null;
 	}
 
-	const visibleUsers = activeUsers.slice( 0, 3 );
-	const remainingUsers = activeUsers.slice( 3 );
+	const visibleUsers = otherActiveUsers.slice( 0, 3 );
+	const remainingUsers = otherActiveUsers.slice( 3 );
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
-	return visibleUsers.length > 1 ? (
+	return visibleUsers.length > 0 ? (
 		<>
-			{ visibleUsers.map( userState => (
-				<Avatar
-					key={ userState.userInfo.clientId }
-					userInfo={ userState.userInfo }
-					showUserColorBorder={ false }
-				/>
-			) ) }
+			<Button
+				className="vip-real-time-collaboration-avatars-container"
+				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
+				isPressed={ isPopoverVisible }
+				ref={ setPopoverAnchor }
+				aria-label={ `Collaborators list, ${ otherActiveUsers.length } online` }
+			>
+				{ visibleUsers.map( userState => (
+					<Avatar
+						key={ userState.userInfo.clientId }
+						userInfo={ userState.userInfo }
+						showUserColorBorder={ false }
+						size="small"
+					/>
+				) ) }
 
-			{ remainingUsers.length > 0 && (
-				<div className="vip-real-time-collaboration-avatar-remaining" title={ remainingUsersText }>
-					+{ remainingUsers.length }
-				</div>
+				{ remainingUsers.length > 0 && (
+					<div
+						className="vip-real-time-collaboration-avatar-remaining"
+						title={ remainingUsersText }
+					>
+						+{ remainingUsers.length }
+					</div>
+				) }
+			</Button>
+			{ isPopoverVisible && (
+				<CollaboratorsList
+					activeUsers={ otherActiveUsers }
+					popoverAnchor={ popoverAnchor }
+					setIsPopoverVisible={ setIsPopoverVisible }
+				/>
 			) }
 		</>
 	) : null;

@@ -13,6 +13,7 @@ const baseUserInfo: UserInfo = {
 	browserType: 'chrome',
 	isConnected: true,
 	isMe: false,
+	email: 'alice@example.com',
 };
 
 describe( 'notifications', () => {
