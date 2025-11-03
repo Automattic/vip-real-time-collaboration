@@ -8,7 +8,10 @@ declare module '@wordpress/sync' {
 	type ObjectID = string;
 	type ObjectType = string;
 
-	interface ObjectData extends Record< string, unknown > {}
+	const CRDT_RECORD_MAP_KEY: string;
+	const CRDT_RECORD_METADATA_MAP_KEY: string;
+	const CRDT_RECORD_METADATA_SAVED_AT_KEY: string;
+	const CRDT_RECORD_METADATA_SAVED_BY_KEY: string;
 
 	interface ProviderCreatorResult {
 		destroy: () => void;

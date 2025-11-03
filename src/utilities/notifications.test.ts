@@ -159,40 +159,37 @@ describe( 'notifications', () => {
 					{ id: 'remote-user-post-updated-123', isDismissible: false, type: 'snackbar' },
 				] );
 			} );
-		} );
 
-		describe( 'PostRestored notification type', () => {
-			it( 'user is not me', () => {
-				sendNotification( NotificationType.PostRestored, baseUserInfo );
+			it( 'notification disabled for draft status', () => {
+				getSettingMock.mock.mockImplementationOnce( () => false );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'draft' );
 
-				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
+				assert.strictEqual(
+					createNoticeMock.mock.callCount(),
+					0,
+					'createNotice should not be called'
+				);
 				assert.strictEqual(
 					createNoticeMock.mock.calls.length,
-					1,
-					'createNotice should be called'
+					0,
+					'createNotice should not be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
-					'info',
-					'Alice restored newer content from the server.',
-					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
-				] );
 			} );
 
-			it( 'user is me', () => {
-				const meUserInfo = { ...baseUserInfo, isMe: true };
-				sendNotification( NotificationType.PostRestored, meUserInfo );
+			it( 'notification disabled for publish status', () => {
+				getSettingMock.mock.mockImplementationOnce( () => false );
+				sendNotification( NotificationType.PostUpdated, baseUserInfo, 'publish' );
 
-				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
+				assert.strictEqual(
+					createNoticeMock.mock.callCount(),
+					0,
+					'createNotice should not be called'
+				);
 				assert.strictEqual(
 					createNoticeMock.mock.calls.length,
-					1,
-					'createNotice should be called'
+					0,
+					'createNotice should not be called'
 				);
-				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
-					'info',
-					'Restored newer content from the server.',
-					{ id: 'remote-user-post-restored-123', isDismissible: false, type: 'snackbar' },
-				] );
 			} );
 		} );
 

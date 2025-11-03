@@ -12,6 +12,7 @@ export enum Setting {
 	DEBUG_TOOLS = 'Debug_Tools',
 	LOG_TELEMETRY_USING_LOGGER = 'Log_Telemetry_Using_Logger',
 	SELF_AWARENESS = 'Self_Awareness',
+	POST_UPDATE_NOTIFICATION = 'Post_Update_Notification',
 	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
 	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
 }
@@ -22,6 +23,7 @@ interface SettingsState {
 	[ Setting.DEBUG_TOOLS ]: boolean;
 	[ Setting.LOG_TELEMETRY_USING_LOGGER ]: boolean;
 	[ Setting.SELF_AWARENESS ]: boolean;
+	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
 	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
 	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
 }
@@ -32,6 +34,7 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.DEBUG_TOOLS ]: false,
 	[ Setting.LOG_TELEMETRY_USING_LOGGER ]: false,
 	[ Setting.SELF_AWARENESS ]: false,
+	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,
 };

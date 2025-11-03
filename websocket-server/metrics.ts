@@ -1,5 +1,6 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
+
 import type { RawData, WebSocketServer } from 'ws';
 
 /**
@@ -8,6 +9,7 @@ import type { RawData, WebSocketServer } from 'ws';
  * ------------------------------------------------------------
  */
 const METRICS_MAINTENANCE_INTERVAL = 60 * 1000; // 60 seconds
+const METRICS_NAMESPACE = 'wpvip_rtc';
 
 /**
  * ------------------------------------------------------------
@@ -31,40 +33,40 @@ const recentDisconnects = new Map< string, number >(); // connection_id -> disco
  * ------------------------------------------------------------
  */
 const connectedClientsGauge = new Gauge( {
-	name: 'websocket_connected_clients',
+	name: `${ METRICS_NAMESPACE }_connected_clients`,
 	help: 'Number of currently connected WebSocket clients',
 } );
 
 const messagesCounter = new Counter( {
-	name: 'websocket_messages_total',
+	name: `${ METRICS_NAMESPACE }_messages_total`,
 	help: 'Total number of WebSocket messages exchanged',
 } );
 
 const messageBytesCounter = new Counter( {
-	name: 'websocket_message_bytes_total',
+	name: `${ METRICS_NAMESPACE }_message_bytes_total`,
 	help: 'Total bytes of WebSocket messages',
 } );
 
 const authFailuresCounter = new Counter( {
-	name: 'websocket_auth_failures_total',
+	name: `${ METRICS_NAMESPACE }_auth_failures_total`,
 	help: 'Total number of WebSocket authentication failures',
 	labelNames: [ 'reason' ],
 } );
 
 const connectionCloseCounter = new Counter( {
-	name: 'websocket_connections_closed_total',
+	name: `${ METRICS_NAMESPACE }_connections_closed_total`,
 	help: 'Total number of WebSocket connections closed',
 	labelNames: [ 'code' ],
 } );
 
 const connectionDurationHistogram = new Histogram( {
-	name: 'websocket_connection_duration_seconds',
+	name: `${ METRICS_NAMESPACE }_connection_duration_seconds`,
 	help: 'Duration of WebSocket connections in seconds',
 	buckets: [ 1, 5, 15, 30, 60, 300, 900, 1800, 3600, 14400 ], // 1s to 4h
 } );
 
 const reconnectionTimeHistogram = new Histogram( {
-	name: 'websocket_reconnection_time_seconds',
+	name: `${ METRICS_NAMESPACE }_reconnection_time_seconds`,
 	help: 'Time between WebSocket disconnection and reconnection in seconds',
 	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60 ], // 100ms to 60s
 } );
@@ -192,6 +194,12 @@ function checkReconnection( connectionId: string | null ): void {
  * ------------------------------------------------------------
  */
 export function createMetricsServer(): http.Server {
+	// This is technically a type mismatch, but the function is async for syntactic
+	// benefits. Node.js ignores the return value of the function and manages the
+	// lifecycle of the request via `res` -- e.g., when `res.end()` is called, not
+	// when the promise resolves.
+	//
+	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	return http.createServer( async ( request, response ) => {
 		const pathname = getRequestPathname( request );
 

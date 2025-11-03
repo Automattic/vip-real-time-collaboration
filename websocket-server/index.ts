@@ -2,6 +2,7 @@ import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http from 'http';
 import jwt from 'jsonwebtoken';
 import { WebSocketServer } from 'ws';
+
 import {
 	recordMessage,
 	recordAuthFailure,
@@ -169,7 +170,7 @@ function isRequestAuthenticated( request: http.IncomingMessage ): AuthResult {
  * Server Configuration
  * ------------------------------------------------------------
  */
-const server = http.createServer( async ( request, response ) => {
+const server = http.createServer( ( request, response ) => {
 	const pathname = getRequestPathname( request );
 
 	if ( [ '/cache-healthcheck', '/health', '/ready' ].includes( pathname ) ) {
