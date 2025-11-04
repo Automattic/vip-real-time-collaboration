@@ -17,8 +17,9 @@ interface ScrollToCursorOptions {
  * 2. Storing pointers to the cursor elements in the awareness store might be a
  *    better solution, but would require broader refactoring.
  *
- * For now, we create an instance of this registry in a React ref and pass it
- * down to the components that need it.
+ * For now, we create a single instance of this registry and pass it down to the
+ * components that need it. It's important that we create a single instance and
+ * not a new instance per component or render; use useRef to accomplish this.
  */
 export class CursorRegistry {
 	private cursorMap: Map< number, HTMLElement > = new Map();

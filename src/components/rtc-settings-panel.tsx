@@ -60,6 +60,9 @@ export function RTCSettingsPanel() {
 	}, [] );
 
 	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
+
+	// A single instance of the cursor registry is shared between Avatars and
+	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
 	return (
