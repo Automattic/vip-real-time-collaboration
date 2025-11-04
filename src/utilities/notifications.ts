@@ -1,7 +1,7 @@
-import { dispatch } from '@wordpress/data';
+import { dispatch, select } from '@wordpress/data';
 import { store as noticesStore } from '@wordpress/notices';
 
-import { getSettingFromConfig, SettingKey } from './config';
+import { store as settingsStore, Setting } from '@/store/settings-store';
 
 import type { UserInfo } from '@/store/awareness-store';
 
@@ -71,7 +71,7 @@ function shouldSendNotification(
 	// If notifications for user joining is disabled, skip.
 	if (
 		type === NotificationType.UserEntered &&
-		! getSettingFromConfig( SettingKey.ENABLE_USER_ENTER_NOTIFICATION )
+		! select( settingsStore ).getSetting( Setting.USER_ENTER_NOTIFICATION )
 	) {
 		return false;
 	}
@@ -79,7 +79,7 @@ function shouldSendNotification(
 	// If notifications for user leaving is disabled, skip.
 	if (
 		type === NotificationType.UserExited &&
-		! getSettingFromConfig( SettingKey.ENABLE_USER_EXIT_NOTIFICATION )
+		! select( settingsStore ).getSetting( Setting.USER_EXIT_NOTIFICATION )
 	) {
 		return false;
 	}
