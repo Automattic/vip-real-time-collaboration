@@ -3,13 +3,14 @@ import { Popover, Button } from '@wordpress/components';
 import { close } from '@wordpress/icons';
 
 import { Avatar } from '@/components/avatar';
-import { cursorRegistry } from '@/contexts/cursor-registry-context';
 import { type UserState } from '@/store/awareness-store';
+import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/collaborators-list.scss';
 
 interface CollaboratorsListProps {
 	activeUsers: UserState[];
+	cursorRegistry: CursorRegistry;
 	popoverAnchor?: HTMLElement | null;
 	setIsPopoverVisible: ( isVisible: boolean ) => void;
 }
@@ -20,6 +21,7 @@ interface CollaboratorsListProps {
  */
 export function CollaboratorsList( {
 	activeUsers,
+	cursorRegistry,
 	popoverAnchor,
 	setIsPopoverVisible,
 }: CollaboratorsListProps ) {

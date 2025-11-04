@@ -2,9 +2,9 @@ import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
 import { AwarenessManager } from '@/awareness-manager';
-import { cursorRegistry } from '@/contexts/cursor-registry-context';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
+import { type CursorRegistry } from '@/utilities/cursor-registry';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
 
@@ -26,7 +26,8 @@ const logger = new Logger( 'use-render-cursors' );
  */
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
-	blockEditorDocument: Document | null
+	blockEditorDocument: Document | null,
+	cursorRegistry: CursorRegistry
 ) {
 	const renderCursorsRef = useRef< () => void >();
 
@@ -57,12 +58,18 @@ export function useRenderCursors(
 				isMe: user.userInfo.isMe,
 			} ) );
 
-			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );
+			drawUserSelections(
+				overlayRef.current,
+				blockEditorDocument,
+				userSelections,
+				drawType,
+				cursorRegistry
+			);
 		};
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
+	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument, cursorRegistry ] );
 
 	return renderCursorsRef;
 }
@@ -84,7 +91,8 @@ const drawUserSelections = (
 		color: string;
 		isMe: boolean;
 	}[],
-	drawType: DrawType
+	drawType: DrawType,
+	cursorRegistry: CursorRegistry
 ) => {
 	if ( ! overlay || ! editorDocument ) {
 		return;

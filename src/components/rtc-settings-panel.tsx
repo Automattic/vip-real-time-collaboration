@@ -2,6 +2,7 @@ import { BlockCanvasCover } from '@wordpress/block-editor';
 import { ToggleControl, __experimentalHeading as Heading } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
+import { useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
@@ -16,6 +17,7 @@ import {
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
 import { isDevelopment } from '@/utilities/config';
+import { CursorRegistry } from '@/utilities/cursor-registry';
 
 const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
@@ -58,18 +60,19 @@ export function RTCSettingsPanel() {
 	}, [] );
 
 	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
+	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
 	return (
 		<>
 			{ isAvatarsEnabled && (
 				<EditorPresence>
-					<Avatars />
+					<Avatars cursorRegistry={ cursorRegistry.current } />
 				</EditorPresence>
 			) }
 			<BlockCanvasCover.Fill>
 				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
 					<>
-						<RTCOverlay containerRef={ containerRef } />
+						<RTCOverlay containerRef={ containerRef } cursorRegistry={ cursorRegistry.current } />
 						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 						) }

@@ -1,13 +1,3 @@
-/**
- * Cursor Registry - Singleton pattern
- *
- * This uses a singleton pattern instead of React Context because WordPress's Slot/Fill
- * implementation doesn't properly share Context between Fill components.
- *
- * EditorPresence and BlockCanvasCover.Fill appear to break Context propagation.
- * The singleton pattern works reliably across these boundaries.
- */
-
 interface ScrollToCursorOptions {
 	behavior?: ScrollBehavior;
 	block?: ScrollLogicalPosition;
@@ -16,31 +6,35 @@ interface ScrollToCursorOptions {
 }
 
 /**
- * Singleton cursor registry that stores references to cursor elements.
- * Uses arrow functions to preserve `this` binding when methods are destructured.
+ * Cursor Registry
+ * ===
+ * This registry stores references to cursor elements so that we can access them
+ * in different parts of the component tree. This would more ideally be solved
+ * with React context or state in the awareness store, but:
+ *
+ * 1. EditorPresence and BlockCanvasCover slot/fill break context propagation. We
+ *    don't currently have a way to provide context to both the slot and fill.
+ * 2. Storing pointers to the cursor elements in the awareness store might be a
+ *    better solution, but would require broader refactoring.
+ *
+ * For now, we create an instance of this registry in a React ref and pass it
+ * down to the components that need it.
  */
-class CursorRegistry {
+export class CursorRegistry {
 	private cursorMap: Map< number, HTMLElement > = new Map();
 
 	/**
 	 * Register a cursor element when it's created
 	 */
-	public registerCursor = ( clientId: number, element: HTMLElement ): void => {
+	public registerCursor( clientId: number, element: HTMLElement ): void {
 		this.cursorMap.set( clientId, element );
-	};
-
-	/**
-	 * Get a cursor element by clientId
-	 */
-	public getCursorElement = ( clientId: number ): HTMLElement | null => {
-		return this.cursorMap.get( clientId ) ?? null;
-	};
+	}
 
 	/**
 	 * Scroll to a cursor by clientId
 	 * @returns true if cursor was found and scrolled to, false otherwise
 	 */
-	public scrollToCursor = ( clientId: number, options?: ScrollToCursorOptions ): boolean => {
+	public scrollToCursor( clientId: number, options?: ScrollToCursorOptions ): boolean {
 		const cursorElement = this.cursorMap.get( clientId );
 
 		if ( ! cursorElement ) {
@@ -60,23 +54,23 @@ class CursorRegistry {
 		}
 
 		return true;
-	};
+	}
 
 	/**
 	 * Remove all cursor elements from DOM and clear the registry.
 	 * Uses stored refs instead of DOM queries for better performance.
 	 */
-	public removeAll = (): void => {
+	public removeAll(): void {
 		// Remove each cursor element using stored refs
 		this.cursorMap.forEach( element => element.remove() );
 		// Clear the registry
 		this.cursorMap.clear();
-	};
+	}
 
 	/**
 	 * Add a temporary highlight effect to the cursor
 	 */
-	private highlightCursor = ( element: HTMLElement, duration: number ): void => {
+	private highlightCursor( element: HTMLElement, duration: number ): void {
 		// Add highlight class
 		element.classList.add( 'vip-real-time-collaboration-cursor-highlighted' );
 
@@ -84,8 +78,5 @@ class CursorRegistry {
 		setTimeout( () => {
 			element.classList.remove( 'vip-real-time-collaboration-cursor-highlighted' );
 		}, duration );
-	};
+	}
 }
-
-// Export singleton instance
-export const cursorRegistry = new CursorRegistry();
