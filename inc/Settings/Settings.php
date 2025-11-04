@@ -32,6 +32,7 @@ final class Settings {
 	/**
 	 * Get the default options for the plugin.
 	 *
+	 * @return array The default options.
 	 */
 	public static function get_default_options(): array {
 		$default_options = [];
@@ -44,10 +45,13 @@ final class Settings {
 	/**
 	 * Sanitize settings before saving.
 	 *
-	 * @param mixed $input The input values from the form.
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
+	 *
+	 * @param array $input The input values from the form.
+	 *
 	 * @return array The sanitized settings.
 	 */
-	public static function sanitize_settings( mixed $input ): array {
+	public static function sanitize_settings( array $input ): array {
 		$sanitized = [];
 
 		// Handle checkbox - if not set in input, it means unchecked.
@@ -58,8 +62,6 @@ final class Settings {
 
 	/**
 	 * Register the settings for the settings page
-	 *
-	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public static function register_settings(): void {
 		register_setting(
