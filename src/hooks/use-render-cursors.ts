@@ -2,6 +2,7 @@ import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
 import { AwarenessManager } from '@/awareness-manager';
+import { cursorRegistry } from '@/contexts/cursor-registry-context';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
 import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
 import { Logger } from '@/utilities/logger';
@@ -49,6 +50,7 @@ export function useRenderCursors(
 		renderCursorsRef.current = () => {
 			const userSelections = sortedUsers.map( user => ( {
 				userName: user.userInfo.name,
+				clientId: user.userInfo.clientId,
 				// Replace local user's selection with the current selection from the editor state.
 				selection: user.editorState?.selection ?? { type: SelectionType.None },
 				color: user.userInfo.color,
@@ -75,7 +77,13 @@ export function useRenderCursors(
 const drawUserSelections = (
 	overlay: HTMLElement | null,
 	editorDocument: Document | null,
-	userSelections: { userName: string; selection: SelectionState; color: string; isMe: boolean }[],
+	userSelections: {
+		userName: string;
+		clientId: number;
+		selection: SelectionState;
+		color: string;
+		isMe: boolean;
+	}[],
 	drawType: DrawType
 ) => {
 	if ( ! overlay || ! editorDocument ) {
@@ -83,17 +91,13 @@ const drawUserSelections = (
 	}
 
 	// Clear up previous state
-	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
-	userContainers.forEach( container => {
-		container.remove();
-	} );
+	cursorRegistry.removeAll();
 
 	if ( drawType === DrawType.None ) {
 		return;
 	}
 
-	// Draw cursors
-	userSelections.forEach( ( { userName, selection, color, isMe } ) => {
+	userSelections.forEach( ( { userName, clientId, selection, color, isMe } ) => {
 		if ( isMe && drawType === DrawType.OtherUsers ) {
 			// Skip drawing the local user's cursor.
 			return;
@@ -152,6 +156,9 @@ const drawUserSelections = (
 			userContainer.appendChild( label );
 
 			overlay.appendChild( userContainer );
+
+			// Register cursor in the registry
+			cursorRegistry.registerCursor( clientId, userContainer );
 		}
 	} );
 };

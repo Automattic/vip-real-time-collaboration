@@ -29,11 +29,8 @@ jobs:
       - name: Check formatting
         run: npm run format:check
 
-      - name: Lint JS/TS
+      - name: Lint JS/TS && TS types
         run: npm run lint:js
-
-      - name: Check types
-        run: npm run check-types
 
   phpcs:
     name: phpcs
