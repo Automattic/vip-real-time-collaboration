@@ -2,6 +2,8 @@
 
 namespace VIPRealTimeCollaboration\Compatibility;
 
+use VIPRealTimeCollaboration\Settings\Settings;
+
 defined( 'ABSPATH' ) || exit();
 
 /**
@@ -96,6 +98,14 @@ final class Compatibility {
 		$value = constant( 'VIP_RTC_WS_URL' );
 
 		return is_string( $value ) && '' !== $value;
+	}
+
+	public static function is_plugin_disabled_via_settings(): bool {
+		// Get the option.
+		/** @var array<string> */
+		$options = get_option( Settings::OPTION_NAME, [] );
+
+		return isset( $options['enable-vip-rtc'] ) && false === (bool) $options['enable-vip-rtc'];
 	}
 
 	/**

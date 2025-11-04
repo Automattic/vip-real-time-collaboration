@@ -6,80 +6,57 @@ defined( 'ABSPATH' ) || exit();
 
 final class Settings {
 	private const SETTINGS_PAGE_SLUG = 'vip-real-time-collaboration-settings';
-	private const OPTION_NAME = 'vip_real_time_collaboration_settings';
-
-	/**
-	 * Get settings configuration.
-	 *
-	 * Returns settings configuration with translated strings.
-	 * This method approach allows us to use literal strings with __() for i18n tools.
-	 *
-	 * @return array<array{
-	 *   id: string,
-	 *   title: string,
-	 *   description?: string,
-	 *   fields?: array<array{id: string, title: string, label: string, default?: bool}>,
-	 *   subsections?: array<array{id: string, title: string, fields: array<array{id: string, title: string, label: string, default?: bool}>}>
-	 * }>
-	 */
-	private static function get_settings_config(): array {
-		return [
-			[
-				'id' => 'awareness-settings',
-				'title' => __( 'Awareness', 'vip-real-time-collaboration' ),
-				'description' => __( 'Configure how you see other collaborators while editing.', 'vip-real-time-collaboration' ),
-				'fields' => [
-					[
-						'id' => 'enable-awareness-avatars',
-						'title' => __( 'Enable awareness avatars', 'vip-real-time-collaboration' ),
-						'label' => __( 'Show avatars of other users currently editing the post', 'vip-real-time-collaboration' ),
-					],
-					[
-						'id' => 'enable-awareness-cursors',
-						'title' => __( 'Enable awareness cursors', 'vip-real-time-collaboration' ),
-						'label' => __( 'Show cursors of other users currently editing the post', 'vip-real-time-collaboration' ),
-					],
-					[
-						'id' => 'enable-self-awareness',
-						'title' => __( 'Enable self awareness', 'vip-real-time-collaboration' ),
-						'label' => __( 'Show your own cursor while editing', 'vip-real-time-collaboration' ),
-					],
-				],
-			],
-			[
-				'id' => 'notifications-settings',
-				'title' => __( 'Notifications', 'vip-real-time-collaboration' ),
-				'description' => __( 'Configure notifications you receive in the block editor.', 'vip-real-time-collaboration' ),
-				'subsections' => [
-					[
-						'id' => 'collaborator-notifications-settings',
-						'title' => __( 'Collaborators', 'vip-real-time-collaboration' ),
-						'fields' => [
-							[
-								'id' => 'enable-user-enter-notification',
-								'title' => __( 'User enters', 'vip-real-time-collaboration' ),
-								'label' => __( 'Show notifications when other users start editing the post', 'vip-real-time-collaboration' ),
-							],
-							[
-								'id' => 'enable-user-exit-notification',
-								'title' => __( 'User exits', 'vip-real-time-collaboration' ),
-								'label' => __( 'Show notifications when other users stop editing the post', 'vip-real-time-collaboration' ),
-								'default' => false,
-							],
-						],
-					],
-				],
-			],
-		];
-	}
+	public const OPTION_NAME = 'vip_real_time_collaboration_settings';
 
 	public function __construct() {
+		add_action( 'admin_init', [ __CLASS__, 'initialize_options' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
 	}
 
+	public static function initialize_options(): void {
+		$default_options = self::get_default_options();
+
+		/** @var array<string> */
+		$existing_options = get_option( self::OPTION_NAME, [] );
+
+		// Add default options if they don't exist.
+		if ( empty( $existing_options ) ) {
+			add_option( self::OPTION_NAME, $default_options );
+		}
+	}
+
+	public static function get_default_options(): array {
+		$default_options = [];
+
+		$default_options['enable-vip-rtc'] = true;
+
+		return $default_options;
+	}
+
+	/**
+	 * Sanitize settings before saving.
+	 *
+	 * @param mixed $input The input values from the form.
+	 * @return array The sanitized settings.
+	 */
+	public static function sanitize_settings( mixed $input ): array {
+		$sanitized = [];
+
+		// Handle checkbox - if not set in input, it means unchecked.
+		$sanitized['enable-vip-rtc'] = isset( $input['enable-vip-rtc'] ) && '1' === $input['enable-vip-rtc'];
+
+		return $sanitized;
+	}
+
 	public static function register_settings(): void {
-		register_setting( self::SETTINGS_PAGE_SLUG, self::OPTION_NAME );
+		register_setting(
+			self::SETTINGS_PAGE_SLUG,
+			self::OPTION_NAME,
+			[
+				'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
+			]
+		);
 
 		// Add instructions section.
 		add_settings_section(
@@ -89,95 +66,18 @@ final class Settings {
 			self::SETTINGS_PAGE_SLUG
 		);
 
-		// Register all sections and fields from configuration.
-		foreach ( self::get_settings_config() as $section ) {
-			self::register_section( $section );
-		}
-	}
-
-	/**
-	 * Register a settings section and its fields.
-	 *
-	 * @param array{
-	 *   id: string,
-	 *   title: string,
-	 *   description?: string,
-	 *   fields?: array<array{id: string, title: string, label: string, default?: bool}>,
-	 *   subsections?: array<array{id: string, title: string, fields: array<array{id: string, title: string, label: string, default?: bool}>}>
-	 * } $section_config Section configuration array.
-	 */
-	private static function register_section( array $section_config ): void {
-		// Register the main section.
-		add_settings_section(
-			$section_config['id'],
-			$section_config['title'],
-			[ __CLASS__, 'render_section_description' ],
-			self::SETTINGS_PAGE_SLUG
-		);
-
-		// Register fields for this section.
-		if ( isset( $section_config['fields'] ) ) {
-			foreach ( $section_config['fields'] as $field ) {
-				self::register_field( $field, $section_config['id'] );
-			}
-		}
-
-		// Register subsections if they exist.
-		if ( isset( $section_config['subsections'] ) ) {
-			foreach ( $section_config['subsections'] as $subsection ) {
-				add_settings_section(
-					$subsection['id'],
-					$subsection['title'],
-					'__return_null',
-					self::SETTINGS_PAGE_SLUG
-				);
-
-				if ( isset( $subsection['fields'] ) ) {
-					foreach ( $subsection['fields'] as $field ) {
-						self::register_field( $field, $subsection['id'] );
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Register a settings field.
-	 *
-	 * @param array{id: string, title: string, label: string, default?: bool} $field_config Field configuration array.
-	 * @param string $section_id Section identifier.
-	 */
-	private static function register_field( array $field_config, string $section_id ): void {
 		/** @psalm-suppress InvalidArgument */ // WordPress Settings API allows custom args.
 		add_settings_field(
-			$field_config['id'],
-			$field_config['title'],
+			'enable-vip-rtc',
+			__( 'Enable VIP Real-Time Collaboration', 'vip-real-time-collaboration' ),
 			[ __CLASS__, 'display_settings_checkbox' ],
 			self::SETTINGS_PAGE_SLUG,
-			$section_id,
+			'plugin-settings',
 			[
-				'label' => $field_config['label'],
-				'id' => $field_config['id'],
-				'default' => $field_config['default'] ?? true,
+				'label' => __( 'Enable the VIP Real-Time Collaboration plugin', 'vip-real-time-collaboration' ),
+				'id' => 'enable-vip-rtc',
 			]
 		);
-	}
-
-	/**
-	 * Render section description.
-	 *
-	 * @param array $args Section arguments.
-	 */
-	public static function render_section_description( array $args ): void {
-		// Find the section configuration by ID.
-		foreach ( self::get_settings_config() as $section ) {
-			if ( $section['id'] === $args['id'] && isset( $section['description'] ) ) {
-				?>
-				<p class="description"><?php echo esc_html( $section['description'] ); ?></p>
-				<?php
-				return;
-			}
-		}
 	}
 
 	/**
@@ -218,9 +118,9 @@ final class Settings {
 	 * @param array{id: string, label: string, default?: bool} $args Field arguments (label, id, default).
 	 */
 	public static function display_settings_checkbox( array $args ): void {
-		/** @var array<string, mixed>|false */
-		$options = get_option( self::OPTION_NAME );
-		$value = is_array( $options ) && isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : ( $args['default'] ?? true );
+		/** @var array<string> */
+		$options = get_option( self::OPTION_NAME, [] );
+		$value = isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : true;
 		$field_name = self::OPTION_NAME . '[' . $args['id'] . ']';
 		?>
 		<label for="<?php echo esc_attr( $args['id'] ); ?>">
