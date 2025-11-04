@@ -14,6 +14,9 @@ final class Settings {
 		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
 	}
 
+	/**
+	 * Initialize the options necessary for the plugin, using the default options if they don't exist.
+	 */
 	public static function initialize_options(): void {
 		$default_options = self::get_default_options();
 
@@ -26,6 +29,10 @@ final class Settings {
 		}
 	}
 
+	/**
+	 * Get the default options for the plugin.
+	 *
+	 */
 	public static function get_default_options(): array {
 		$default_options = [];
 
@@ -49,6 +56,11 @@ final class Settings {
 		return $sanitized;
 	}
 
+	/**
+	 * Register the settings for the settings page
+	 *
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
+	 */
 	public static function register_settings(): void {
 		register_setting(
 			self::SETTINGS_PAGE_SLUG,
