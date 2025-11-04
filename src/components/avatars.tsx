@@ -4,14 +4,19 @@ import { useState } from '@wordpress/element';
 import { Avatar } from '@/components/avatar';
 import { CollaboratorsList } from '@/components/collaborators-list';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
+import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/avatars.scss';
+
+interface AvatarsProps {
+	cursorRegistry: CursorRegistry;
+}
 
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  * Shows a popover with all users on hover.
  */
-export function Avatars() {
+export function Avatars( { cursorRegistry }: AvatarsProps ) {
 	const activeUsers = useSortedAwarenessUsers();
 
 	// Filter out current user - we never show ourselves in the list
@@ -59,6 +64,7 @@ export function Avatars() {
 			{ isPopoverVisible && (
 				<CollaboratorsList
 					activeUsers={ otherActiveUsers }
+					cursorRegistry={ cursorRegistry }
 					popoverAnchor={ popoverAnchor }
 					setIsPopoverVisible={ setIsPopoverVisible }
 				/>

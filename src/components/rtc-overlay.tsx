@@ -3,17 +3,19 @@ import { useRef, useState, useEffect } from '@wordpress/element';
 
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
+import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
 	containerRef: React.MutableRefObject< HTMLElement | null >;
+	cursorRegistry: CursorRegistry;
 }
 
 /**
  * This component is responsible for rendering awareness components within the editor iframe.
  */
-export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
+export function RTCOverlay( { containerRef, cursorRegistry }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
 	const [ document, setDocument ] = useState< Document | null >( null );
 
@@ -32,7 +34,7 @@ export function RTCOverlay( { containerRef }: RTCOverlayProps ) {
 		}
 	}, [] );
 
-	const renderCursorsRef = useRenderCursors( overlayRef, document );
+	const renderCursorsRef = useRenderCursors( overlayRef, document, cursorRegistry );
 
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.
