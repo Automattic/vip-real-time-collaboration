@@ -37,10 +37,10 @@ final class Settings {
 	 * Sanitize settings before saving.
 	 *
 	 * @param array $input The input values from the form.
-	 * @return array The sanitized settings.
 	 *
-	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
+	 * @return array The sanitized settings.
 	 */
+	// @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	public static function sanitize_settings( ?array $input = [] ): array {
 		$sanitized = [];
 
