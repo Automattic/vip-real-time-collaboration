@@ -15,7 +15,7 @@ final class Settings {
 
 	public static function is_vip_rtc_enabled(): bool {
 		/** @var array<string> */
-		$options = get_option( self::OPTION_NAME, [] );
+		$options = get_option( self::OPTION_NAME, self::get_default_options() );
 
 		return isset( $options['enable-vip-rtc'] ) && (bool) $options['enable-vip-rtc'];
 	}
@@ -36,11 +36,10 @@ final class Settings {
 	/**
 	 * Sanitize settings before saving.
 	 *
-	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
-	 *
 	 * @param array $input The input values from the form.
-	 *
 	 * @return array The sanitized settings.
+	 *
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public static function sanitize_settings( ?array $input = [] ): array {
 		$sanitized = [];
@@ -107,7 +106,6 @@ final class Settings {
 		?>
 		<div id="vip-real-time-collaboration-settings-wrapper" class="wrap">
 			<h1><?php esc_html_e( 'VIP Real-Time Collaboration Settings', 'vip-real-time-collaboration' ); ?></h1>
-			<?php settings_errors(); ?>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( self::SETTINGS_PAGE_SLUG );
@@ -126,7 +124,7 @@ final class Settings {
 	 */
 	public static function display_settings_checkbox( array $args ): void {
 		/** @var array<string> */
-		$options = get_option( self::OPTION_NAME, [] );
+		$options = get_option( self::OPTION_NAME, self::get_default_options() );
 		$value = isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : true;
 		$field_name = self::OPTION_NAME . '[' . $args['id'] . ']';
 		?>
