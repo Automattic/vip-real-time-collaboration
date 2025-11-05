@@ -9,24 +9,15 @@ final class Settings {
 	public const OPTION_NAME = 'vip_real_time_collaboration_settings';
 
 	public function __construct() {
-		add_action( 'admin_init', [ __CLASS__, 'initialize_options' ] );
 		add_action( 'admin_init', [ $this, 'register_settings' ] );
 		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
 	}
 
-	/**
-	 * Initialize the options necessary for the plugin, using the default options if they don't exist.
-	 */
-	public static function initialize_options(): void {
-		$default_options = self::get_default_options();
-
+	public static function is_vip_rtc_enabled(): bool {
 		/** @var array<string> */
-		$existing_options = get_option( self::OPTION_NAME, [] );
+		$options = get_option( self::OPTION_NAME, [] );
 
-		// Add default options if they don't exist.
-		if ( empty( $existing_options ) ) {
-			add_option( self::OPTION_NAME, $default_options );
-		}
+		return isset( $options['enable-vip-rtc'] ) && (bool) $options['enable-vip-rtc'];
 	}
 
 	/**
@@ -51,7 +42,7 @@ final class Settings {
 	 *
 	 * @return array The sanitized settings.
 	 */
-	public static function sanitize_settings( array $input ): array {
+	public static function sanitize_settings( ?array $input = [] ): array {
 		$sanitized = [];
 
 		// Handle checkbox - if not set in input, it means unchecked.
@@ -68,6 +59,8 @@ final class Settings {
 			self::SETTINGS_PAGE_SLUG,
 			self::OPTION_NAME,
 			[
+				'type' => 'array',
+				'default' => self::get_default_options(),
 				'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
 			]
 		);

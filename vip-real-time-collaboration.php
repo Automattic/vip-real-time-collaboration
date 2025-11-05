@@ -52,14 +52,25 @@ add_action( 'plugins_loaded', static function (): void {
 		return;
 	}
 
+	// Initialize the core classes needed to run the barebones plugin, even if RTC is disabled.
+	new Settings();
+	// This needs to be intialized to account for manually enabling the experiment via the GB settings.
+	// That also needs to be reflected even if RTC is disabled.
+	new Compatibility();
+
+	// If RTC is disabled, return early.
+	if ( ! Settings::is_vip_rtc_enabled() ) {
+		return;
+	}
+
+	// Load the rest of the plugin, that actually provides RTC functionality.
+
 	// Initialize permission system
 	SyncPermissions::init();
 
 	new Assets();
-	new Compatibility();
 	new Overrides();
 	new RestApi();
-	new Settings();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );
