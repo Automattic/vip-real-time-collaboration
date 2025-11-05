@@ -81,7 +81,7 @@ final class Settings {
 			self::SETTINGS_PAGE_SLUG,
 			'plugin-settings',
 			[
-				'label' => __( 'Enable the VIP Real-Time Collaboration plugin', 'vip-real-time-collaboration' ),
+				'label' => __( 'Disabling this, will disable the VIP Real-Time Collaboration plugin. This can be used in case of an emergency.', 'vip-real-time-collaboration' ),
 				'id' => 'enable-vip-rtc',
 			]
 		);
