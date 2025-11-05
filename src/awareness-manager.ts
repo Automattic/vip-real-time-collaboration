@@ -21,6 +21,7 @@ import {
 	type WordPressUserInfo,
 	store as awarenessStore,
 } from '@/store/awareness-store';
+import { SessionActivityController } from '@/telemetry/session-stats';
 import { getBrowserName } from '@/utilities/browser';
 import {
 	AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS,
@@ -68,6 +69,7 @@ export class AwarenessManager {
 		}
 
 		AwarenessManager.__instance = new AwarenessManager( awareness, await getCurrentUserInfo() );
+		SessionActivityController.initialize( awareness );
 	}
 
 	public static setConnectionStatus( clientId: number, isConnected: boolean ): void {
