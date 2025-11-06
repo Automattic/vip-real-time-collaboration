@@ -1,7 +1,11 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
-import { store as rtcSettingsStore, SettingsStoreSelectors } from '../store/settings-store';
+import {
+	store as rtcSettingsStore,
+	Setting,
+	SettingsStoreSelectors,
+} from '../store/settings-store';
 import {
 	AwarenessStoreSelectors,
 	UserState,
@@ -23,11 +27,12 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 		SettingsStoreSelectors,
 		{ isAwarenessCursorsEnabled: boolean; isSelfAwarenessEnabled: boolean }
 	>( select => {
+		const { getSetting } = select( rtcSettingsStore );
 		return {
-			isAwarenessCursorsEnabled: select( rtcSettingsStore ).isAwarenessCursorsEnabled(),
-			isSelfAwarenessEnabled: select( rtcSettingsStore ).isSelfAwarenessEnabled(),
+			isAwarenessCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
+			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
 		};
-	} );
+	}, [] );
 
 	// Draw block highlights
 	useEffect( () => {
@@ -53,14 +58,14 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			.map( userState => {
 				const isWholeBlockSelected =
 					userState.editorState?.selection?.type === SelectionType.WholeBlock;
-				const shouldDrawUser = userState.isMe ? isSelfAwarenessEnabled : true;
+				const shouldDrawUser = userState.userInfo.isMe ? isSelfAwarenessEnabled : true;
 
 				if ( isWholeBlockSelected && shouldDrawUser ) {
-					const selection = userState.editorState.selection as SelectionWholeBlock;
+					const selection = userState.editorState?.selection as SelectionWholeBlock;
 
 					return {
 						blockId: selection.blockId,
-						color: userState.color,
+						color: userState.userInfo.color,
 					};
 				}
 

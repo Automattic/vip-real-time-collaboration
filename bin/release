@@ -51,13 +51,31 @@ rm "${php_file}.bak"
 
 echo "Updated $php_file from $current_version to $new_version"
 
+# Get current version from package.json
+package_file="package.json"
+package_lock_file="package-lock.json"
+current_version_pkg=$(sed -n 's/.*"version": "\([0-9.]*\)".*/\1/p' "$package_file")
+
+# Update package.json
+sed -i.bak "s/\"version\": \"$current_version_pkg\"/\"version\": \"$new_version\"/" "$package_file"
+rm "${package_file}.bak"
+
+echo "Updated $package_file from $current_version_pkg to $new_version"
+
 echo "Version bump complete: $new_version"
+
+# Update package-lock.json
+npm install
+
+echo "Updated package-lock.json with new version."
 
 # Create a new branch for the release
 git checkout -b release/v"$new_version"
 
 # Commit the changes
 git add "$php_file"
+git add "$package_file"
+git add "$package_lock_file"
 git commit -m "v$new_version"
 
 echo "Changes committed to release/v$new_version branch. Push the branch to the remote repository and create a pull request."

@@ -1,18 +1,25 @@
 import { User } from '@wordpress/core-data';
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 import { type SelectionState } from '@/utilities/selection';
-import { areUserStatesEqual } from '@/utilities/user';
+import { areEditorStatesEqual, areUserInfosEqual, areUserStatesEqual } from '@/utilities/user';
 
 const STORE_NAME = 'vip-real-time-collaboration/awareness';
 
-export type WordPressUserInfo = Pick< User, 'id' | 'name' > & { avatarUrl?: string };
+export type WordPressUserInfo = Pick< User, 'id' | 'name' | 'email' > & {
+	avatarUrl?: string;
+};
 
-export interface UserState extends WordPressUserInfo {
-	browserType: string;
+export interface UserState {
+	editorState?: EditorState;
+	userInfo: UserInfo;
+}
+
+export interface UserInfo extends WordPressUserInfo {
 	clientId: number;
+	browserType: string;
 	color: string;
-	editorState: EditorState;
 	isConnected: boolean;
 	isMe: boolean;
 }
@@ -25,9 +32,9 @@ export interface AwarenessStore {
 	userMap: Map< number, UserState >;
 }
 
-interface PatchUserAction {
-	type: 'PATCH_USER';
-	payload: { clientId: number; userState: Partial< UserState > };
+interface PatchUserInfoAction {
+	type: 'PATCH_USER_INFO';
+	payload: { clientId: number; userInfo: Partial< UserInfo > };
 }
 
 interface RemoveUserAction {
@@ -35,9 +42,9 @@ interface RemoveUserAction {
 	payload: { clientId: number };
 }
 
-interface SetCurrentUserSelectionAction {
-	type: 'SET_CURRENT_USER_SELECTION';
-	payload: { selection: SelectionState };
+interface UpdateEditorStateAction {
+	type: 'UPDATE_EDITOR_STATE';
+	payload: { clientId: number; editorState: EditorState };
 }
 
 interface UpsertUserAction {
@@ -46,9 +53,9 @@ interface UpsertUserAction {
 }
 
 type AwarenessAction =
-	| PatchUserAction
+	| PatchUserInfoAction
 	| RemoveUserAction
-	| SetCurrentUserSelectionAction
+	| UpdateEditorStateAction
 	| UpsertUserAction;
 
 const DEFAULT_STATE: AwarenessStore = {
@@ -56,15 +63,20 @@ const DEFAULT_STATE: AwarenessStore = {
 };
 
 const actions = {
-	patchUser: ( clientId: number, userState: Partial< UserState > ): AwarenessAction => ( {
-		type: 'PATCH_USER',
-		payload: { clientId, userState },
+	patchUserInfo: ( clientId: number, userInfo: Partial< UserInfo > ): AwarenessAction => ( {
+		type: 'PATCH_USER_INFO',
+		payload: { clientId, userInfo },
 	} ),
 
 	// Call when a user leaves the editor (after a delay)
 	removeUser: ( clientId: number ): AwarenessAction => ( {
 		type: 'REMOVE_USER',
 		payload: { clientId },
+	} ),
+
+	updateEditorState: ( clientId: number, editorState: EditorState ): AwarenessAction => ( {
+		type: 'UPDATE_EDITOR_STATE',
+		payload: { clientId, editorState },
 	} ),
 
 	upsertUser: ( clientId: number, userState: UserState ): AwarenessAction => ( {
@@ -75,31 +87,67 @@ const actions = {
 
 const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessStore => {
 	switch ( action.type ) {
-		case 'PATCH_USER': {
-			if ( state.userMap.has( action.payload.clientId ) ) {
-				// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-				const existingState = state.userMap.get( action.payload.clientId )!;
-				const updatedState = {
-					...existingState,
-					...action.payload.userState,
-				};
-
-				if ( ! areUserStatesEqual( existingState, updatedState ) ) {
-					state.userMap.set( action.payload.clientId, updatedState );
-
-					return {
-						...state,
-						userMap: new Map( state.userMap ),
-					};
-				}
+		case 'PATCH_USER_INFO': {
+			if ( ! state.userMap.has( action.payload.clientId ) ) {
+				return state;
 			}
 
-			// No changes, don't update the state.
-			return state;
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			const existingState = state.userMap.get( action.payload.clientId )!;
+			const updatedState = {
+				...existingState,
+				userInfo: {
+					...existingState.userInfo,
+					...action.payload.userInfo,
+				},
+			};
+
+			if ( areUserInfosEqual( existingState.userInfo, updatedState.userInfo ) ) {
+				// No changes, don't update the state.
+				return state;
+			}
+
+			state.userMap.set( action.payload.clientId, updatedState );
+
+			return {
+				...state,
+				userMap: new Map( state.userMap ),
+			};
 		}
 
 		case 'REMOVE_USER': {
+			const existingState = state.userMap.get( action.payload.clientId );
+
+			if ( existingState?.userInfo ) {
+				sendNotification( NotificationType.UserExited, existingState.userInfo );
+			}
+
 			state.userMap.delete( action.payload.clientId );
+
+			return {
+				...state,
+				userMap: new Map( state.userMap ),
+			};
+		}
+
+		case 'UPDATE_EDITOR_STATE': {
+			if ( ! state.userMap.has( action.payload.clientId ) ) {
+				return state;
+			}
+
+			// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+			const existingState = state.userMap.get( action.payload.clientId )!;
+			const updatedState = {
+				...existingState,
+				editorState: action.payload.editorState,
+			};
+
+			if ( areEditorStatesEqual( existingState.editorState, updatedState.editorState ) ) {
+				// No changes, don't update the state.
+				return state;
+			}
+
+			state.userMap.set( action.payload.clientId, updatedState );
 
 			return {
 				...state,
@@ -116,6 +164,9 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 					// No changes, don't update the state.
 					return state;
 				}
+			} else {
+				const { userInfo } = action.payload.userState;
+				sendNotification( NotificationType.UserEntered, userInfo );
 			}
 
 			state.userMap.set( action.payload.clientId, action.payload.userState );
@@ -141,7 +192,7 @@ const selectors = {
 	isDisconnected( state: AwarenessStore ): boolean {
 		return (
 			Array.from( selectors.getActiveUsers( state ).values() ).findIndex(
-				user => user.isMe && false === user.isConnected
+				user => user.userInfo.isMe && false === user.userInfo.isConnected
 			) !== -1
 		);
 	},

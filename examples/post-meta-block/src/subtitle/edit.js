@@ -1,11 +1,11 @@
 /**
  * External dependencies
  */
-import { __ } from '@wordpress/i18n';
 import { useBlockProps } from '@wordpress/block-editor';
 import { TextControl } from '@wordpress/components';
-import { useSelect } from '@wordpress/data';
 import { useEntityProp } from '@wordpress/core-data';
+import { useSelect } from '@wordpress/data';
+import { __ } from '@wordpress/i18n';
 
 /**
  * A "post meta block" that allows the user to provide a subtitle for the post.

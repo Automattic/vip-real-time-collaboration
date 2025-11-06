@@ -3,7 +3,8 @@ import { useEffect, useRef } from '@wordpress/element';
 
 import { AwarenessManager } from '@/awareness-manager';
 import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
-import { store as rtcSettingsStore, SettingsStoreSelectors } from '@/store/settings-store';
+import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
+import { type CursorRegistry } from '@/utilities/cursor-registry';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
 
@@ -25,14 +26,15 @@ const logger = new Logger( 'use-render-cursors' );
  */
 export function useRenderCursors(
 	overlayRef: MutableRefObject< HTMLElement | null >,
-	blockEditorDocument: Document | null
+	blockEditorDocument: Document | null,
+	cursorRegistry: CursorRegistry
 ) {
 	const renderCursorsRef = useRef< () => void >();
 
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
-		const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = select( rtcSettingsStore );
-		if ( isAwarenessCursorsEnabled() ) {
-			if ( isSelfAwarenessEnabled() ) {
+		const { getSetting } = select( rtcSettingsStore );
+		if ( getSetting( Setting.AWARENESS_CURSORS ) ) {
+			if ( getSetting( Setting.SELF_AWARENESS ) ) {
 				return DrawType.All;
 			}
 
@@ -40,7 +42,7 @@ export function useRenderCursors(
 		}
 
 		return DrawType.None;
-	} );
+	}, [] );
 
 	const sortedUsers = useSortedAwarenessUsers();
 
@@ -48,19 +50,26 @@ export function useRenderCursors(
 	useEffect( () => {
 		renderCursorsRef.current = () => {
 			const userSelections = sortedUsers.map( user => ( {
-				userName: user.name,
+				userName: user.userInfo.name,
+				clientId: user.userInfo.clientId,
 				// Replace local user's selection with the current selection from the editor state.
-				selection: user.editorState.selection ?? { type: SelectionType.None },
-				color: user.color,
-				isMe: user.isMe,
+				selection: user.editorState?.selection ?? { type: SelectionType.None },
+				color: user.userInfo.color,
+				isMe: user.userInfo.isMe,
 			} ) );
 
-			drawUserSelections( overlayRef.current, blockEditorDocument, userSelections, drawType );
+			drawUserSelections(
+				overlayRef.current,
+				blockEditorDocument,
+				userSelections,
+				drawType,
+				cursorRegistry
+			);
 		};
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument ] );
+	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument, cursorRegistry ] );
 
 	return renderCursorsRef;
 }
@@ -75,25 +84,28 @@ export function useRenderCursors(
 const drawUserSelections = (
 	overlay: HTMLElement | null,
 	editorDocument: Document | null,
-	userSelections: { userName: string; selection: SelectionState; color: string; isMe: boolean }[],
-	drawType: DrawType
+	userSelections: {
+		userName: string;
+		clientId: number;
+		selection: SelectionState;
+		color: string;
+		isMe: boolean;
+	}[],
+	drawType: DrawType,
+	cursorRegistry: CursorRegistry
 ) => {
 	if ( ! overlay || ! editorDocument ) {
 		return;
 	}
 
 	// Clear up previous state
-	const userContainers = overlay.querySelectorAll( '.vip-real-time-collaboration-user' );
-	userContainers.forEach( container => {
-		container.remove();
-	} );
+	cursorRegistry.removeAll();
 
 	if ( drawType === DrawType.None ) {
 		return;
 	}
 
-	// Draw cursors
-	userSelections.forEach( ( { userName, selection, color, isMe } ) => {
+	userSelections.forEach( ( { userName, clientId, selection, color, isMe } ) => {
 		if ( isMe && drawType === DrawType.OtherUsers ) {
 			// Skip drawing the local user's cursor.
 			return;
@@ -152,6 +164,9 @@ const drawUserSelections = (
 			userContainer.appendChild( label );
 
 			overlay.appendChild( userContainer );
+
+			// Register cursor in the registry
+			cursorRegistry.registerCursor( clientId, userContainer );
 		}
 	} );
 };

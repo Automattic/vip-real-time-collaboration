@@ -1,28 +1,33 @@
-import { UserState } from '@/store/awareness-store';
+import { UserInfo } from '@/store/awareness-store';
+
+import '@/components/avatar.scss';
+
+type AvatarSize = 'small' | 'medium';
 
 /**
  * Renders a circular avatar bubble for a user with an optional border.
  */
 export function Avatar( {
-	userState,
+	userInfo,
 	showUserColorBorder,
+	size = 'small',
 }: {
-	userState: UserState;
+	userInfo: UserInfo;
 	showUserColorBorder?: boolean;
+	size?: AvatarSize;
 } ) {
-	const style = {
-		border: showUserColorBorder === true ? `2px solid ${ userState.color }` : undefined,
-		opacity: userState.isConnected ? 1 : 0.5,
+	const className = [
+		'vip-real-time-collaboration-avatar',
+		`vip-real-time-collaboration-avatar--${ size }`,
+		showUserColorBorder && 'vip-real-time-collaboration-avatar--with-color-border',
+	]
+		.filter( Boolean )
+		.join( ' ' );
+
+	const avatarStyles: React.CSSProperties & Record< `--${ string }`, string > = {
+		'--avatar-url': `url(${ userInfo.avatarUrl })`,
+		'--user-color': userInfo.color,
 	};
 
-	return (
-		<div className="vip-real-time-collaboration-avatar">
-			<img
-				alt={ userState.name }
-				src={ userState.avatarUrl }
-				style={ style }
-				title={ userState.name }
-			/>
-		</div>
-	);
+	return <div className={ className } style={ avatarStyles } aria-hidden="true" />;
 }

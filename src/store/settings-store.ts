@@ -6,36 +6,40 @@ import { loadFromLocalStorage, saveToLocalStorage } from '@/utilities/local-stor
 const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
+export enum Setting {
+	AWARENESS_AVATARS = 'Awareness_Avatars',
+	AWARENESS_CURSORS = 'Awareness_Cursors',
+	DEBUG_TOOLS = 'Debug_Tools',
+	SELF_AWARENESS = 'Self_Awareness',
+	POST_UPDATE_NOTIFICATION = 'Post_Update_Notification',
+	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
+	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
+}
+
 interface SettingsState {
-	isAwarenessAvatarsEnabled: boolean;
-	isAwarenessCursorsEnabled: boolean;
-	isDebugToolsEnabled: boolean;
-	isSelfAwarenessEnabled: boolean;
+	[ Setting.AWARENESS_AVATARS ]: boolean;
+	[ Setting.AWARENESS_CURSORS ]: boolean;
+	[ Setting.DEBUG_TOOLS ]: boolean;
+	[ Setting.SELF_AWARENESS ]: boolean;
+	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
+	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
+	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
-	isAwarenessAvatarsEnabled: true,
-	isAwarenessCursorsEnabled: true,
-	isDebugToolsEnabled: false,
-	isSelfAwarenessEnabled: false,
+	[ Setting.AWARENESS_AVATARS ]: true,
+	[ Setting.AWARENESS_CURSORS ]: true,
+	[ Setting.DEBUG_TOOLS ]: false,
+	[ Setting.SELF_AWARENESS ]: false,
+	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
+	[ Setting.USER_ENTER_NOTIFICATION ]: true,
+	[ Setting.USER_EXIT_NOTIFICATION ]: false,
 };
 
 const actions = {
-	setAwarenessAvatarsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_AWARENESS_AVATARS_ENABLED',
-		payload: enabled,
-	} ),
-	setAwarenessCursorsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_AWARENESS_CURSORS_ENABLED',
-		payload: enabled,
-	} ),
-	setDebugToolsEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_DEBUG_TOOLS_ENABLED',
-		payload: enabled,
-	} ),
-	setSelfAwarenessEnabled: ( enabled: boolean ): SettingsAction => ( {
-		type: 'SET_SELF_AWARENESS_ENABLED',
-		payload: enabled,
+	setSetting: ( setting: Setting, enabled: boolean ): SettingsAction => ( {
+		type: 'SET_SETTING',
+		payload: { setting, enabled },
 	} ),
 };
 
@@ -44,37 +48,10 @@ const reducer = (
 	action: SettingsAction
 ): SettingsState => {
 	switch ( action.type ) {
-		case 'SET_AWARENESS_AVATARS_ENABLED': {
+		case 'SET_SETTING': {
 			const newState = {
 				...state,
-				isAwarenessAvatarsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_AWARENESS_CURSORS_ENABLED': {
-			const newState = {
-				...state,
-				isAwarenessCursorsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_DEBUG_TOOLS_ENABLED': {
-			const newState = {
-				...state,
-				isDebugToolsEnabled: action.payload,
-			};
-
-			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
-			return newState;
-		}
-		case 'SET_SELF_AWARENESS_ENABLED': {
-			const newState = {
-				...state,
-				isSelfAwarenessEnabled: action.payload,
+				[ action.payload.setting ]: action.payload.enabled,
 			};
 
 			saveToLocalStorage( LOCAL_STORAGE_KEY, newState );
@@ -86,30 +63,21 @@ const reducer = (
 };
 
 const selectors = {
-	isAwarenessAvatarsEnabled( state: SettingsState ) {
-		const { isAwarenessAvatarsEnabled } = state;
-		return isAwarenessAvatarsEnabled;
-	},
-	isAwarenessCursorsEnabled( state: SettingsState ) {
-		const { isAwarenessCursorsEnabled } = state;
-		return isAwarenessCursorsEnabled;
-	},
-	isDebugToolsEnabled( state: SettingsState ) {
-		return isDevelopment() ? state.isDebugToolsEnabled : false;
-	},
-	isSelfAwarenessEnabled( state: SettingsState ) {
-		const { isSelfAwarenessEnabled } = state;
-		return isSelfAwarenessEnabled;
+	getSetting( state: SettingsState, setting: Setting ): boolean {
+		// Special handling for debug tools - only available in development
+		if ( setting === Setting.DEBUG_TOOLS ) {
+			return isDevelopment() ? state[ setting ] : false;
+		}
+		return state[ setting ];
 	},
 };
 
 type SettingsAction = {
-	type:
-		| 'SET_AWARENESS_AVATARS_ENABLED'
-		| 'SET_AWARENESS_CURSORS_ENABLED'
-		| 'SET_DEBUG_TOOLS_ENABLED'
-		| 'SET_SELF_AWARENESS_ENABLED';
-	payload: boolean;
+	type: 'SET_SETTING';
+	payload: {
+		setting: Setting;
+		enabled: boolean;
+	};
 };
 
 export const store = createReduxStore( STORE_NAME, {
@@ -123,15 +91,9 @@ export const store = createReduxStore( STORE_NAME, {
 export type { SettingsState };
 
 export type SettingsStoreActions = {
-	setAwarenessAvatarsEnabled: ( enabled: boolean ) => void;
-	setAwarenessCursorsEnabled: ( enabled: boolean ) => void;
-	setDebugToolsEnabled: ( enabled: boolean ) => void;
-	setSelfAwarenessEnabled: ( enabled: boolean ) => void;
+	setSetting: ( setting: Setting, enabled: boolean ) => void;
 };
 
 export type SettingsStoreSelectors = {
-	isAwarenessAvatarsEnabled: () => boolean;
-	isAwarenessCursorsEnabled: () => boolean;
-	isDebugToolsEnabled: () => boolean;
-	isSelfAwarenessEnabled: () => boolean;
+	getSetting: ( setting: Setting ) => boolean;
 };
