@@ -46,6 +46,10 @@ export class SessionStats {
 	 * @param logger The Logger instance to use for logging
 	 */
 	constructor( private awareness: Awareness, private logger: Logger ) {
+		if ( ! this.awareness?.doc ) {
+			throw new Error( 'Awareness document is not available' );
+		}
+
 		this.sessionMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
 	}
 

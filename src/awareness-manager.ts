@@ -21,7 +21,7 @@ import {
 	type WordPressUserInfo,
 	store as awarenessStore,
 } from '@/store/awareness-store';
-import { SessionActivityController } from '@/telemetry/session-stats';
+import { SessionActivityManager } from '@/telemetry/session-stats';
 import { getBrowserName } from '@/utilities/browser';
 import {
 	AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS,
@@ -51,6 +51,7 @@ interface AwarenessStateChange {
 export class AwarenessManager {
 	private static __instance: AwarenessManager;
 	private logger: Logger = new Logger( 'awareness-manager' );
+	private sessionActivityManager: SessionActivityManager;
 
 	private constructor( private awareness: Awareness, private userInfo: WordPressUserInfo ) {
 		this.setCurrentUserState();
@@ -58,6 +59,7 @@ export class AwarenessManager {
 		this.subscribeToCRDTChanges();
 		this.subscribeToSelectionChanges();
 		this.subscribeToUserChanges();
+		this.sessionActivityManager = new SessionActivityManager( awareness );
 	}
 
 	public static async initialize( awareness: Awareness ): Promise< void > {
@@ -69,7 +71,6 @@ export class AwarenessManager {
 		}
 
 		AwarenessManager.__instance = new AwarenessManager( awareness, await getCurrentUserInfo() );
-		SessionActivityController.initialize( awareness );
 	}
 
 	public static setConnectionStatus( clientId: number, isConnected: boolean ): void {

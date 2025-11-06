@@ -30,9 +30,7 @@ import type { Awareness } from 'y-protocols/awareness';
  * activity, responds to user and document changes, handles inactivity, logs
  * session data.
  */
-export class SessionActivityController {
-	private static __instance?: SessionActivityController;
-
+export class SessionActivityManager {
 	private inactivityTimer: UserInactivityTimer;
 	private logger = new Logger( SESSION_STATS_ORIGIN );
 	private sessionStats: SessionStats;
@@ -48,7 +46,7 @@ export class SessionActivityController {
 	) => void;
 
 	/**
-	 * Creates a SessionActivityController instance, initializes the session
+	 * Creates a SessionActivityManager instance, initializes the session
 	 * stats tracker and inactivity timer, and subscribes to user and document
 	 * change events.
 	 *
@@ -65,40 +63,6 @@ export class SessionActivityController {
 
 		this.subscribeToUserChanges();
 		this.subscribeToDocumentChanges();
-	}
-
-	/**
-	 * Initializes the singleton instance of SessionActivityController.
-	 *
-	 * If an instance already exists with a different Yjs document, it is
-	 * destroyed first.
-	 *
-	 * @param awareness The Yjs Awareness instance to use
-	 */
-	public static initialize( awareness: Awareness ): void {
-		if ( SessionActivityController.__instance ) {
-			if ( SessionActivityController.__instance.awareness?.doc !== awareness.doc ) {
-				SessionActivityController.destroySingletonInstance();
-			} else {
-				return;
-			}
-		}
-
-		if ( ! awareness?.doc ) {
-			return;
-		}
-
-		SessionActivityController.__instance = new SessionActivityController( awareness );
-	}
-
-	/**
-	 * Destroys the singleton instance of SessionActivityController.
-	 */
-	public static destroySingletonInstance(): void {
-		if ( SessionActivityController.__instance ) {
-			SessionActivityController.__instance.destroy();
-			delete SessionActivityController.__instance;
-		}
 	}
 
 	/**
@@ -204,17 +168,19 @@ export class SessionActivityController {
 
 			// If this is a local change, mark the originating user as active.
 			if ( transaction.local ) {
-				const clientId = this.awareness.clientID;
-
 				try {
 					const { getActiveUsers } = select( awarenessStore );
-					const userId = getActiveUsers().get( clientId )?.userInfo?.id ?? null;
+					const currentUser = getActiveUsers().get( this.awareness.clientID );
 
-					if ( isPositiveInteger( userId ) ) {
-						this.sessionStats.addUserToActiveUsers( userId );
+					if ( currentUser?.userInfo?.isMe ) {
+						const userId = currentUser.userInfo.id;
+
+						if ( isPositiveInteger( userId ) ) {
+							this.sessionStats.addUserToActiveUsers( userId );
+						}
 					}
 				} catch ( error ) {
-					this.logger.debug( `Failed to resolve user ID from client ID ${ clientId }`, error );
+					this.logger.debug( 'Failed to resolve current user', error );
 				}
 			}
 		};
