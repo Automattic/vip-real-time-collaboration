@@ -77,7 +77,7 @@ final class Settings {
 				'field_id' => 'enable-vip-rtc',
 				'enabled_label' => __( 'Enable real-time collaboration', 'vip-real-time-collaboration' ),
 				'disabled_label' => __( 'Disable real-time collaboration', 'vip-real-time-collaboration' ),
-				'description' => __( 'Disable real-time collaboration functionaliy in case of an emergency.', 'vip-real-time-collaboration' ),
+				'description' => __( 'Disable functionality in case of an emergency.', 'vip-real-time-collaboration' ),
 			]
 		);
 	}
