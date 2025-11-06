@@ -26,27 +26,22 @@ final class Settings {
 	 * @return array The default options.
 	 */
 	public static function get_default_options(): array {
-		$default_options = [];
-
-		$default_options['enable-vip-rtc'] = true;
-
-		return $default_options;
+		return [ 'enable-vip-rtc' => true ];
 	}
 
 	/**
 	 * Sanitize settings before saving.
+	 *
+	 * Converts radio button values ('1' for enabled, '0' for disabled) to boolean.
 	 *
 	 * @param array $input The input values from the form.
 	 * @return array The sanitized settings.
 	 * @psalm-suppress PossiblyUnusedMethod Psalm does not detect usage via add_filter.
 	 */
 	public static function sanitize_settings( ?array $input = [] ): array {
-		$sanitized = [];
-
-		// Handle checkbox - if not set in input, it means unchecked.
-		$sanitized['enable-vip-rtc'] = isset( $input['enable-vip-rtc'] ) && '1' === $input['enable-vip-rtc'];
-
-		return $sanitized;
+		return [
+			'enable-vip-rtc' => isset( $input['enable-vip-rtc'] ) && '1' === $input['enable-vip-rtc'],
+		];
 	}
 
 	/**
@@ -74,13 +69,15 @@ final class Settings {
 		/** @psalm-suppress InvalidArgument */ // WordPress Settings API allows custom args.
 		add_settings_field(
 			'enable-vip-rtc',
-			__( 'Enable VIP Real-Time Collaboration', 'vip-real-time-collaboration' ),
-			[ __CLASS__, 'display_settings_checkbox' ],
+			__( 'Real-Time Collaboration', 'vip-real-time-collaboration' ),
+			[ __CLASS__, 'display_settings_radio' ],
 			self::SETTINGS_PAGE_SLUG,
 			'plugin-settings',
 			[
-				'label' => __( 'Disabling this, will disable the VIP Real-Time Collaboration plugin. This can be used in case of an emergency.', 'vip-real-time-collaboration' ),
-				'id' => 'enable-vip-rtc',
+				'field_id' => 'enable-vip-rtc',
+				'enabled_label' => __( 'Enable real-time collaboration', 'vip-real-time-collaboration' ),
+				'disabled_label' => __( 'Disable real-time collaboration', 'vip-real-time-collaboration' ),
+				'description' => __( 'Disable real-time collaboration functionaliy in case of an emergency.', 'vip-real-time-collaboration' ),
 			]
 		);
 	}
@@ -117,26 +114,42 @@ final class Settings {
 	}
 
 	/**
-	 * Display a checkbox field.
+	 * Display radio button fields for enabling/disabling a setting.
 	 *
-	 * @param array{id: string, label: string, default?: bool} $args Field arguments (label, id, default).
+	 * @param array{field_id: string, enabled_label: string, disabled_label: string, description: string} $args Field configuration.
 	 */
-	public static function display_settings_checkbox( array $args ): void {
+	public static function display_settings_radio( array $args ): void {
 		/** @var array<string> */
 		$options = get_option( self::OPTION_NAME, self::get_default_options() );
-		$value = isset( $options[ $args['id'] ] ) ? (bool) $options[ $args['id'] ] : true;
-		$field_name = self::OPTION_NAME . '[' . $args['id'] . ']';
+		$value = isset( $options[ $args['field_id'] ] ) && $options[ $args['field_id'] ];
+		$field_name = self::OPTION_NAME . '[' . $args['field_id'] . ']';
 		?>
-		<label for="<?php echo esc_attr( $args['id'] ); ?>">
-			<input
-				type="checkbox"
-				name="<?php echo esc_attr( $field_name ); ?>"
-				id="<?php echo esc_attr( $args['id'] ); ?>"
-				value="1"
-				<?php checked( $value ); ?>
-			/>
-			<?php echo esc_html( $args['label'] ); ?>
-		</label>
+		<fieldset>
+			<label>
+				<input
+					type="radio"
+					name="<?php echo esc_attr( $field_name ); ?>"
+					id="<?php echo esc_attr( $args['field_id'] . '-enabled' ); ?>"
+					value="1"
+					<?php checked( $value ); ?>
+				/>
+				<?php echo esc_html( $args['enabled_label'] ); ?>
+			</label>
+			<br />
+			<label>
+				<input
+					type="radio"
+					name="<?php echo esc_attr( $field_name ); ?>"
+					id="<?php echo esc_attr( $args['field_id'] . '-disabled' ); ?>"
+					value="0"
+					<?php checked( $value, false ); ?>
+				/>
+				<?php echo esc_html( $args['disabled_label'] ); ?>
+			</label>
+			<p class="description">
+				<?php echo esc_html( $args['description'] ); ?>
+			</p>
+		</fieldset>
 		<?php
 	}
 
