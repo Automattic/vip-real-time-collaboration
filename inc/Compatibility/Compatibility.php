@@ -8,6 +8,8 @@ defined( 'ABSPATH' ) || exit();
  * Inspects and adjusts the environment to ensure the plugin can load.
  */
 final class Compatibility {
+	const MIN_GUTENBERG_VERSION = '21.9.0';
+
 	public function __construct() {
 		add_filter( 'option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
 		add_filter( 'default_option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
@@ -16,9 +18,13 @@ final class Compatibility {
 	public static function admin_notices(): void {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
-				__(
-					'The VIP Real-Time Collaboration plugin requires Gutenberg 21.9.0+. The VIP Real-Time Collaboration plugin has been disabled.',
-					'vip_real_time_collaboration'
+				sprintf(
+					/* translators: %s: Minimum Gutenberg version */
+					__(
+						'The VIP Real-Time Collaboration plugin requires the Gutenberg plugin %s+. The VIP Real-Time Collaboration plugin has been disabled.',
+						'vip_real_time_collaboration'
+					),
+					self::MIN_GUTENBERG_VERSION
 				),
 				[ 'type' => 'error' ]
 			);
@@ -89,7 +95,7 @@ final class Compatibility {
 		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
 			/** @var string $gutenberg_version */
 			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
-			return version_compare( $gutenberg_version, '21.7.0', '>=' );
+			return version_compare( $gutenberg_version, self::MIN_GUTENBERG_VERSION, '>=' );
 		}
 
 		// Does not meet the minimum version requirement.
@@ -102,7 +108,6 @@ final class Compatibility {
 	 * @return bool True if the WebSocket URL is defined, false otherwise.
 	 */
 	private static function is_websocket_url_defined(): bool {
-
 		if ( ! defined( 'VIP_RTC_WS_URL' ) ) {
 			return false;
 		}
