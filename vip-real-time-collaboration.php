@@ -52,10 +52,13 @@ add_action( 'plugins_loaded', static function (): void {
 		return;
 	}
 
-	// Initialize the core classes needed to run the barebones plugin, even if RTC is disabled.
+	// Initialize the core classes needed to manage the Gutenberg experiment.
 	new Settings();
-	// This needs to be intialized to account for manually enabling the experiment via the GB settings.
-	// That also needs to be reflected even if RTC is disabled.
+	// This is to account for the case where:
+	// - The plugin is activated
+	// - The RTC setting is disabled
+	// - The experiment is manually activated
+	// We want to ensure that we override the experimental features, to disable RTC functionality.
 	new Compatibility();
 
 	// If RTC is disabled, return early.
