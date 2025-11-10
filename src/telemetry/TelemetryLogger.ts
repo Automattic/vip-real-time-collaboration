@@ -5,6 +5,11 @@ import { isDevelopment } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 
 /**
+ * WordPress dependencies
+ */
+import apiFetch from '@wordpress/api-fetch';
+
+/**
  * Base structure for telemetry data.
  */
 export type TelemetryData = {
@@ -80,11 +85,7 @@ export abstract class TelemetryLogger< T extends TelemetryData = TelemetryData >
 	 *
 	 * @returns True if logging succeeded or skipped (dev mode), false otherwise
 	 */
-	public logToPendo(): boolean {
-		if ( isDevelopment() ) {
-			return true;
-		}
-
+	public async logToPendo(): Promise< boolean > {
 		this.ensureTelemetryData();
 
 		if ( null === this.telemetryData ) {
@@ -92,8 +93,30 @@ export abstract class TelemetryLogger< T extends TelemetryData = TelemetryData >
 			return false;
 		}
 
-		// TODO: Implement Pendo logging.
-		return false;
+		// Turn this off to test in development mode.
+		if ( isDevelopment() ) {
+			return true;
+		}
+
+		try {
+			const { properties, timestamp } = this.telemetryData;
+
+			const response = await apiFetch< { success: boolean; message?: string } >( {
+				path: '/vip-rtc/v1/telemetry/session-stats',
+				method: 'POST',
+				data: {
+					...properties,
+					timestamp,
+				},
+			} );
+
+			this.logger.info( 'Telemetry sent to Pendo successfully', response );
+			return true;
+		} catch ( error ) {
+			this.logger.debug( 'Failed to send telemetry to Pendo', error );
+
+			return false;
+		}
 	}
 
 	/**
