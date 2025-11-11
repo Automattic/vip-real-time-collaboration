@@ -28,6 +28,8 @@ final class Overrides {
 		add_filter( 'get_post_metadata', [ $this, 'filter_post_meta' ], 10, 3 );
 
 		add_action( 'admin_init', [ $this, 'remove_sync_setttings_field' ], 999 );
+
+		add_filter( 'update_post_metadata', [ $this, 'update_post_meta_filter' ], 10, 5 );
 	}
 
 	/**
@@ -59,6 +61,15 @@ final class Overrides {
 
 		// Otherwise, return the original value.
 		return $value;
+	}
+
+	public function update_post_meta_filter( null|bool $check, int $object_id, string $meta_key, mixed $meta_value, mixed $prev_value ): null|bool {
+		if ( strpos( $meta_key, '_yoast' ) === 0 ) {
+			// Communicate this update to the yjs document, so that Yoast SEO data is synced properly.
+			return $check;
+		}
+
+		return $check;
 	}
 
 	/**
