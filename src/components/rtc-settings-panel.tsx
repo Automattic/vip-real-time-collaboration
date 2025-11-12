@@ -7,6 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatars } from './avatars';
+import { CollaborationModePicker } from './collaboration-mode/collaboration-mode-picker';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -24,7 +25,7 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'@wordpress/editor'
 );
 
-const { EditorPresence } = unlock( editorPrivateApis );
+const { EditorPresence, CollaborationMode } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const {
@@ -67,6 +68,9 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
+			<CollaborationMode>
+				<CollaborationModePicker />
+			</CollaborationMode>
 			{ isAvatarsEnabled && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />

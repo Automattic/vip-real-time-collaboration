@@ -10,6 +10,7 @@ declare module '@wordpress/editor' {
 
 	export interface EditorPrivateApis {
 		EditorPresence: React.FC< React.PropsWithChildren >;
+		CollaborationMode: React.FC< React.PropsWithChildren >;
 	}
 
 	export const privateApis: PrivateApis< EditorPrivateApis >;
