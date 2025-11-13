@@ -9,6 +9,10 @@ export const WEBSOCKET_URL = getVipConfigFromWindow( 'wsUrl' );
 
 export const BLOG_ID = getVipConfigFromWindow( 'blogId' );
 
+// Feature Flags
+// Feature: Elected Modes
+export const ENABLE_ELECTED_MODES = 'development' === process.env.NODE_ENV;
+
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {
 	return 'development' === process.env.NODE_ENV;

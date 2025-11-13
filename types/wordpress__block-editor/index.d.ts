@@ -46,4 +46,6 @@ declare module '@wordpress/block-editor' {
 			children: ( fills: React.ReactNode[] ) => React.ReactNode;
 		} >;
 	};
+
+	function useBlockEditingMode< T extends 'disabled' | 'contentOnly' | 'default' >( mode: T ): void;
 }
