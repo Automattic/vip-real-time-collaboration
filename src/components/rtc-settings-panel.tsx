@@ -35,6 +35,7 @@ export function RTCSettingsPanel() {
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
+		isViewOnlyModeEnabled,
 	} = useSelect<
 		SettingsStoreSelectors,
 		{
@@ -45,6 +46,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: boolean;
 			isUserEnterNotificationEnabled: boolean;
 			isUserExitNotificationEnabled: boolean;
+			isViewOnlyModeEnabled: boolean;
 		}
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
@@ -56,6 +58,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
+			isViewOnlyModeEnabled: getSetting( Setting.VIEW_ONLY_MODE ),
 		};
 	}, [] );
 
@@ -113,6 +116,14 @@ export function RTCSettingsPanel() {
 							label="Show debug tools"
 							checked={ isDebugToolsEnabled }
 							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
+						/>
+					) }
+
+					{ isDevelopment() && (
+						<ToggleControl
+							label="Enable view-only mode"
+							checked={ isViewOnlyModeEnabled }
+							onChange={ ( enabled: boolean ) => setSetting( Setting.VIEW_ONLY_MODE, enabled ) }
 						/>
 					) }
 

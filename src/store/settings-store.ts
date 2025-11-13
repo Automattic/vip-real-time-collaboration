@@ -14,6 +14,7 @@ export enum Setting {
 	POST_UPDATE_NOTIFICATION = 'Post_Update_Notification',
 	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
 	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
+	VIEW_ONLY_MODE = 'View_Only_Mode',
 }
 
 interface SettingsState {
@@ -24,6 +25,7 @@ interface SettingsState {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
 	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
 	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
+	[ Setting.VIEW_ONLY_MODE ]: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
@@ -34,6 +36,7 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,
+	[ Setting.VIEW_ONLY_MODE ]: false,
 };
 
 const actions = {
@@ -66,6 +69,9 @@ const selectors = {
 	getSetting( state: SettingsState, setting: Setting ): boolean {
 		// Special handling for debug tools - only available in development
 		if ( setting === Setting.DEBUG_TOOLS ) {
+			return isDevelopment() ? state[ setting ] : false;
+		}
+		if ( setting === Setting.VIEW_ONLY_MODE ) {
 			return isDevelopment() ? state[ setting ] : false;
 		}
 		return state[ setting ];

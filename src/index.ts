@@ -4,7 +4,7 @@ import { registerPlugin } from '@wordpress/plugins';
 import { setupViewOnlyBlocks } from './components/view-only-block';
 import { ReadOnlyCodeEditor } from '@/components/read-only-code-editor';
 import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
-import { WEBSOCKET_URL, ENABLE_ELECTED_MODES } from '@/utilities/config';
+import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
 
@@ -21,14 +21,12 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 	return [ createWebSocketConnection( WEBSOCKET_URL ) ];
 } );
 
-setupViewOnlyBlocks();
-
 registerPlugin( 'vip-rtc-settings-panel', {
 	render: RTCSettingsPanel,
 } );
 
-if ( ! ENABLE_ELECTED_MODES ) {
-	registerPlugin( 'vip-rtc-read-only-code-editor', {
-		render: ReadOnlyCodeEditor,
-	} );
-}
+registerPlugin( 'vip-rtc-read-only-code-editor', {
+	render: ReadOnlyCodeEditor,
+} );
+
+setupViewOnlyBlocks();

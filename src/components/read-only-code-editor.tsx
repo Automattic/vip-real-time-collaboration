@@ -1,6 +1,11 @@
 /**
  * WordPress dependencies
  */
+import {
+	Setting,
+	store as rtcSettingsStore,
+	type SettingsStoreSelectors,
+} from '@/store/settings-store';
 import { useSelect } from '@wordpress/data';
 import { store as editPostStore, type EditPostStoreSelectors } from '@wordpress/edit-post';
 import { useEffect } from '@wordpress/element';
@@ -11,6 +16,10 @@ function isTextAreaElement( element: Element | null ): element is HTMLTextAreaEl
 }
 
 export function ReadOnlyCodeEditor() {
+	const isViewOnlyModeEnabled = useSelect< SettingsStoreSelectors, boolean >( select =>
+		select( rtcSettingsStore ).getSetting( Setting.VIEW_ONLY_MODE )
+	);
+
 	// Get the current editor mode (visual or text).
 	// Visual mode is the default block editor mode.
 	// Text mode is the code editor mode.
@@ -20,7 +29,7 @@ export function ReadOnlyCodeEditor() {
 
 	// When in text mode, set the code editor (textarea) to read-only.
 	useEffect( () => {
-		if ( editorMode === 'text' ) {
+		if ( ! isViewOnlyModeEnabled && editorMode === 'text' ) {
 			const editorPostTextEditorElement = document.querySelector( '.editor-post-text-editor' );
 
 			if ( isTextAreaElement( editorPostTextEditorElement ) ) {
@@ -31,7 +40,7 @@ export function ReadOnlyCodeEditor() {
 				editorPostTextEditorElement.readOnly = typeof readOnly === 'boolean' ? readOnly : true;
 			}
 		}
-	}, [ editorMode ] );
+	}, [ editorMode, isViewOnlyModeEnabled ] );
 
 	return null;
 }
