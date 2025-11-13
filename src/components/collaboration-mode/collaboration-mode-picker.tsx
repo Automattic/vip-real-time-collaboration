@@ -1,15 +1,20 @@
 import { Button, Popover, Icon } from '@wordpress/components';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 import { paragraph } from '@wordpress/icons';
 
 import { viewIcon } from './view-icon';
+import {
+	store as collaborationModeStore,
+	type CollaborationModeStoreSelectors,
+	type CollaborationModeStoreActions,
+} from '@/store/collaboration-mode-store';
+import { CollaborationMode } from '@/types/collaboration-mode';
 
 import '@/components/collaboration-mode/collaboration-mode-picker.scss';
 
-type CollaborationModeType = 'view' | 'edit';
-
 interface ModeOption {
-	value: CollaborationModeType;
+	value: CollaborationMode;
 	label: string;
 	description: string;
 	icon: JSX.Element;
@@ -17,16 +22,16 @@ interface ModeOption {
 
 const MODES: ModeOption[] = [
 	{
-		value: 'view',
-		label: 'View',
-		description: 'Focus on content',
-		icon: viewIcon,
-	},
-	{
-		value: 'edit',
+		value: CollaborationMode.EDIT,
 		label: 'Edit',
 		description: 'Make changes',
 		icon: paragraph,
+	},
+	{
+		value: CollaborationMode.VIEW,
+		label: 'View',
+		description: 'Focus on content',
+		icon: viewIcon,
 	},
 ];
 
@@ -35,15 +40,21 @@ const MODES: ModeOption[] = [
  * Displays the currently selected mode icon in the toolbar and opens a popover to select a different mode.
  */
 export function CollaborationModePicker() {
-	const [ selectedMode, setSelectedMode ] = useState< CollaborationModeType >( 'edit' );
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
+
+	const selectedMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >(
+		select => select( collaborationModeStore ).getMode(),
+		[]
+	);
+
+	const { setMode } = useDispatch< CollaborationModeStoreActions >( collaborationModeStore );
 
 	const currentMode = MODES.find( mode => mode.value === selectedMode );
 	const currentIcon = currentMode?.icon || paragraph;
 
-	const handleModeSelect = ( mode: CollaborationModeType ) => {
-		setSelectedMode( mode );
+	const handleModeSelect = ( mode: CollaborationMode ) => {
+		setMode( mode );
 		setIsPopoverVisible( false );
 	};
 

@@ -36,6 +36,7 @@ export function RTCSettingsPanel() {
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
+		isCollaborationModePickerEnabled,
 	} = useSelect<
 		SettingsStoreSelectors,
 		{
@@ -46,6 +47,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: boolean;
 			isUserEnterNotificationEnabled: boolean;
 			isUserExitNotificationEnabled: boolean;
+			isCollaborationModePickerEnabled: boolean;
 		}
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
@@ -57,6 +59,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
+			isCollaborationModePickerEnabled: getSetting( Setting.COLLABORATION_MODE_PICKER ),
 		};
 	}, [] );
 
@@ -68,9 +71,11 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			<CollaborationMode>
-				<CollaborationModePicker />
-			</CollaborationMode>
+			{ isCollaborationModePickerEnabled && (
+				<CollaborationMode>
+					<CollaborationModePicker />
+				</CollaborationMode>
+			) }
 			{ isAvatarsEnabled && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />
@@ -113,11 +118,21 @@ export function RTCSettingsPanel() {
 					/>
 
 					{ isDevelopment() && (
-						<ToggleControl
-							label="Show debug tools"
-							checked={ isDebugToolsEnabled }
-							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
-						/>
+						<>
+							<ToggleControl
+								label="Show debug tools"
+								checked={ isDebugToolsEnabled }
+								onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
+							/>
+
+							<ToggleControl
+								label="Enable collaboration modes"
+								checked={ isCollaborationModePickerEnabled }
+								onChange={ ( enabled: boolean ) =>
+									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )
+								}
+							/>
+						</>
 					) }
 
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>
