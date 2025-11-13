@@ -126,7 +126,7 @@ export function RTCSettingsPanel() {
 							/>
 
 							<ToggleControl
-								label="Enable collaboration modes"
+								label={ __( 'Enable collaboration modes', 'vip-real-time-collaboration' ) }
 								checked={ isCollaborationModePickerEnabled }
 								onChange={ ( enabled: boolean ) =>
 									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )

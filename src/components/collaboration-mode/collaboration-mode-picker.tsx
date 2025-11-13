@@ -1,6 +1,7 @@
 import { Button, Popover, Icon } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useState } from '@wordpress/element';
+import { __ } from '@wordpress/i18n';
 import { paragraph } from '@wordpress/icons';
 
 import { viewIcon } from './view-icon';
@@ -23,14 +24,14 @@ interface ModeOption {
 const MODES: ModeOption[] = [
 	{
 		value: CollaborationMode.EDIT,
-		label: 'Edit',
-		description: 'Make changes',
+		label: __( 'Edit', 'vip-real-time-collaboration' ),
+		description: __( 'Make changes', 'vip-real-time-collaboration' ),
 		icon: paragraph,
 	},
 	{
 		value: CollaborationMode.VIEW,
-		label: 'View',
-		description: 'Focus on content',
+		label: __( 'View', 'vip-real-time-collaboration' ),
+		description: __( 'Focus on content', 'vip-real-time-collaboration' ),
 		icon: viewIcon,
 	},
 ];
@@ -69,6 +70,7 @@ export function CollaborationModePicker() {
 				icon={ currentIcon }
 				ref={ setPopoverAnchor }
 				iconSize={ 24 }
+				label={ __( 'Collaboration mode', 'vip-real-time-collaboration' ) }
 			/>
 			{ isPopoverVisible && (
 				<Popover
