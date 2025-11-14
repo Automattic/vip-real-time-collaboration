@@ -25,8 +25,8 @@ registerPlugin( 'vip-rtc-settings-panel', {
 	render: RTCSettingsPanel,
 } );
 
+setupViewOnlyBlocks();
+
 registerPlugin( 'vip-rtc-read-only-code-editor', {
 	render: ReadOnlyCodeEditor,
 } );
-
-setupViewOnlyBlocks();

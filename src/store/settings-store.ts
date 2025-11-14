@@ -14,7 +14,7 @@ export enum Setting {
 	POST_UPDATE_NOTIFICATION = 'Post_Update_Notification',
 	USER_ENTER_NOTIFICATION = 'User_Enter_Notification',
 	USER_EXIT_NOTIFICATION = 'User_Exit_Notification',
-	VIEW_ONLY_MODE = 'View_Only_Mode',
+	COLLABORATION_MODE_PICKER = 'Collaboration_Mode_Picker',
 }
 
 interface SettingsState {
@@ -25,7 +25,7 @@ interface SettingsState {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
 	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
 	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
-	[ Setting.VIEW_ONLY_MODE ]: boolean;
+	[ Setting.COLLABORATION_MODE_PICKER ]: boolean;
 }
 
 const DEFAULT_STATE: SettingsState = {
@@ -36,8 +36,11 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,
-	[ Setting.VIEW_ONLY_MODE ]: false,
+	[ Setting.COLLABORATION_MODE_PICKER ]: false,
 };
+
+// Settings that are only available in development mode
+const DEV_ONLY_SETTINGS: Setting[] = [ Setting.DEBUG_TOOLS, Setting.COLLABORATION_MODE_PICKER ];
 
 const actions = {
 	setSetting: ( setting: Setting, enabled: boolean ): SettingsAction => ( {
@@ -67,11 +70,8 @@ const reducer = (
 
 const selectors = {
 	getSetting( state: SettingsState, setting: Setting ): boolean {
-		// Special handling for debug tools - only available in development
-		if ( setting === Setting.DEBUG_TOOLS ) {
-			return isDevelopment() ? state[ setting ] : false;
-		}
-		if ( setting === Setting.VIEW_ONLY_MODE ) {
+		// Special handling for dev-only settings
+		if ( DEV_ONLY_SETTINGS.includes( setting ) ) {
 			return isDevelopment() ? state[ setting ] : false;
 		}
 		return state[ setting ];

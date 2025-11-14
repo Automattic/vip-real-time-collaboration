@@ -7,6 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatars } from './avatars';
+import { CollaborationModePicker } from './collaboration-mode/collaboration-mode-picker';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -24,7 +25,7 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'@wordpress/editor'
 );
 
-const { EditorPresence } = unlock( editorPrivateApis );
+const { EditorPresence, CollaborationMode } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const {
@@ -35,7 +36,7 @@ export function RTCSettingsPanel() {
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
-		isViewOnlyModeEnabled,
+		isCollaborationModePickerEnabled,
 	} = useSelect<
 		SettingsStoreSelectors,
 		{
@@ -46,7 +47,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: boolean;
 			isUserEnterNotificationEnabled: boolean;
 			isUserExitNotificationEnabled: boolean;
-			isViewOnlyModeEnabled: boolean;
+			isCollaborationModePickerEnabled: boolean;
 		}
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
@@ -58,7 +59,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
-			isViewOnlyModeEnabled: getSetting( Setting.VIEW_ONLY_MODE ),
+			isCollaborationModePickerEnabled: getSetting( Setting.COLLABORATION_MODE_PICKER ),
 		};
 	}, [] );
 
@@ -70,6 +71,11 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
+			{ isCollaborationModePickerEnabled && (
+				<CollaborationMode>
+					<CollaborationModePicker />
+				</CollaborationMode>
+			) }
 			{ isAvatarsEnabled && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />
@@ -112,19 +118,21 @@ export function RTCSettingsPanel() {
 					/>
 
 					{ isDevelopment() && (
-						<ToggleControl
-							label="Show debug tools"
-							checked={ isDebugToolsEnabled }
-							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
-						/>
-					) }
+						<>
+							<ToggleControl
+								label="Show debug tools"
+								checked={ isDebugToolsEnabled }
+								onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
+							/>
 
-					{ isDevelopment() && (
-						<ToggleControl
-							label="Enable view-only mode"
-							checked={ isViewOnlyModeEnabled }
-							onChange={ ( enabled: boolean ) => setSetting( Setting.VIEW_ONLY_MODE, enabled ) }
-						/>
+							<ToggleControl
+								label={ __( 'Enable collaboration modes', 'vip-real-time-collaboration' ) }
+								checked={ isCollaborationModePickerEnabled }
+								onChange={ ( enabled: boolean ) =>
+									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )
+								}
+							/>
+						</>
 					) }
 
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>
