@@ -7,6 +7,11 @@ import { useSelect } from '@wordpress/data';
 import { addFilter } from '@wordpress/hooks';
 
 import {
+	type AwarenessStoreSelectors,
+	type UserState,
+	store as awarenessStore,
+} from '@/store/awareness-store';
+import {
 	type CollaborationModeStoreSelectors,
 	store as CollaborationModeStore,
 } from '@/store/collaboration-mode-store';
@@ -16,9 +21,10 @@ import {
 	type SettingsStoreSelectors,
 } from '@/store/settings-store';
 import { CollaborationMode } from '@/types/collaboration-mode';
+import { NotificationType, sendNotification } from '@/utilities/notifications';
 
-export function setupViewOnlyBlocks() {
-	const viewOnlyBlocks = createHigherOrderComponent( BlockEdit => {
+export function setupViewOnlyMode() {
+	const viewOnlyMode = createHigherOrderComponent( BlockEdit => {
 		return props => {
 			// Check if the Collaboration Mode Picker setting is enabled.
 			// ToDo: Delete this once we complete the feature.
@@ -31,16 +37,28 @@ export function setupViewOnlyBlocks() {
 				select => select( CollaborationModeStore ).getMode()
 			);
 
+			const currentUserInfo = useSelect< AwarenessStoreSelectors, UserState | undefined >(
+				select => {
+					const activeUsers = Array.from( select( awarenessStore ).getActiveUsers().values() );
+					return activeUsers.find( userState => userState.userInfo.isMe );
+				}
+			);
+
 			// ToDo: Remove the Collaboration mode enabled check once we complete the feature.
-			if ( isCollaborationModeEnabled && collaborationMode === CollaborationMode.VIEW ) {
+			if (
+				isCollaborationModeEnabled &&
+				collaborationMode === CollaborationMode.VIEW &&
+				currentUserInfo
+			) {
 				useBlockEditingMode( 'disabled' );
+				sendNotification( NotificationType.ViewOnlyMode, currentUserInfo.userInfo );
 			} else {
 				useBlockEditingMode( 'default' );
 			}
 
 			return <BlockEdit { ...props } />;
 		};
-	}, 'viewOnlyBlocks' );
+	}, 'viewOnlyMode' );
 
-	addFilter( 'editor.BlockEdit', 'vip-rtc-view-only-blocks', viewOnlyBlocks );
+	addFilter( 'editor.BlockEdit', 'vip-rtc-view-only-mode', viewOnlyMode );
 }

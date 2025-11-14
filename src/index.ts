@@ -1,7 +1,7 @@
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 
-import { setupViewOnlyBlocks } from './components/view-only-block';
+import { setupViewOnlyMode } from './components/view-only-block';
 import { ReadOnlyCodeEditor } from '@/components/read-only-code-editor';
 import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
 import { WEBSOCKET_URL } from '@/utilities/config';
@@ -25,7 +25,7 @@ registerPlugin( 'vip-rtc-settings-panel', {
 	render: RTCSettingsPanel,
 } );
 
-setupViewOnlyBlocks();
+setupViewOnlyMode();
 
 registerPlugin( 'vip-rtc-read-only-code-editor', {
 	render: ReadOnlyCodeEditor,

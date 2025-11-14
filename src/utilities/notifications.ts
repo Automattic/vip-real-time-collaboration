@@ -6,12 +6,14 @@ import { store as settingsStore, Setting } from '@/store/settings-store';
 import type { UserInfo } from '@/store/awareness-store';
 
 export enum NotificationType {
-	PostUpdated = 'remote-user-post-updated',
-	UserEntered = 'remote-user-user-entered',
-	UserExited = 'remote-user-user-exited',
+	PostUpdated = 'post-updated',
+	UserEntered = 'user-entered',
+	UserExited = 'user-exited',
+	ViewOnlyMode = 'view-only-mode',
+	EditOnlyMode = 'edit-only-mode',
 }
 
-const NOTIFICATION_TYPE_TO_SETTING_MAP: Record< NotificationType, Setting > = {
+const NOTIFICATION_TYPE_TO_SETTING_MAP: Partial< Record< NotificationType, Setting > > = {
 	[ NotificationType.PostUpdated ]: Setting.POST_UPDATE_NOTIFICATION,
 	[ NotificationType.UserEntered ]: Setting.USER_ENTER_NOTIFICATION,
 	[ NotificationType.UserExited ]: Setting.USER_EXIT_NOTIFICATION,
@@ -60,12 +62,13 @@ function shouldSendNotification(
 	}
 
 	// If the notification type has no settings associated with it, send it.
-	if ( ! ( type in NOTIFICATION_TYPE_TO_SETTING_MAP ) ) {
+	const setting = NOTIFICATION_TYPE_TO_SETTING_MAP[ type ];
+	if ( ! setting ) {
 		return true;
 	}
 
 	// If the setting for this notification type is disabled, skip.
-	if ( ! select( settingsStore ).getSetting( NOTIFICATION_TYPE_TO_SETTING_MAP[ type ] ) ) {
+	if ( ! select( settingsStore ).getSetting( setting ) ) {
 		return false;
 	}
 
@@ -101,6 +104,8 @@ function getContentForNotificationType(
 		case NotificationType.UserEntered:
 		case NotificationType.UserExited:
 			return getUserPresenceNotificationContent( userInfo, type );
+		case NotificationType.ViewOnlyMode:
+			return 'You are now in view-only mode. You cannot make edits to this post.';
 		default:
 			return '';
 	}
