@@ -6,14 +6,12 @@ import { store as settingsStore, Setting } from '@/store/settings-store';
 import type { UserInfo } from '@/store/awareness-store';
 
 export enum NotificationType {
-	PostUpdated = 'post-updated',
-	UserEntered = 'user-entered',
-	UserExited = 'user-exited',
-	ViewOnlyMode = 'view-only-mode',
-	EditOnlyMode = 'edit-only-mode',
+	PostUpdated = 'remote-user-post-updated',
+	UserEntered = 'remote-user-user-entered',
+	UserExited = 'remote-user-user-exited',
 }
 
-const NOTIFICATION_TYPE_TO_SETTING_MAP: Partial< Record< NotificationType, Setting > > = {
+const NOTIFICATION_TYPE_TO_SETTING_MAP: Record< NotificationType, Setting > = {
 	[ NotificationType.PostUpdated ]: Setting.POST_UPDATE_NOTIFICATION,
 	[ NotificationType.UserEntered ]: Setting.USER_ENTER_NOTIFICATION,
 	[ NotificationType.UserExited ]: Setting.USER_EXIT_NOTIFICATION,
