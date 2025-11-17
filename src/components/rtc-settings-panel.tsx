@@ -17,6 +17,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
+import { useReadOnlyCodeEditor } from '@/hooks/use-read-only-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -68,6 +69,9 @@ export function RTCSettingsPanel() {
 	// A single instance of the cursor registry is shared between Avatars and
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
+
+	// Manage read-only state for the code editor.
+	useReadOnlyCodeEditor();
 
 	return (
 		<>
