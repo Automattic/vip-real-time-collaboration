@@ -7,7 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatars } from './avatars';
-import { CollaborationModePicker } from './collaboration-mode/collaboration-mode-picker';
+import { CollaborationModePicker } from './collaboration-mode-picker';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';

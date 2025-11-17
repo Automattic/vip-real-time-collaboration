@@ -1,6 +1,6 @@
 import { SVG, Path } from '@wordpress/primitives';
 
-export const viewIcon = (
+export const collaborationModeViewIcon = (
 	<SVG viewBox="0 0 24 24">
 		<Path
 			stroke="currentColor"

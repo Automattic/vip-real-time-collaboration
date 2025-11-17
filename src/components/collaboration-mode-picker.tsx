@@ -4,7 +4,7 @@ import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { paragraph } from '@wordpress/icons';
 
-import { viewIcon } from './view-icon';
+import { collaborationModeViewIcon } from './collaboration-mode-view-icon';
 import {
 	store as collaborationModeStore,
 	type CollaborationModeStoreSelectors,
@@ -12,7 +12,7 @@ import {
 } from '@/store/collaboration-mode-store';
 import { CollaborationMode } from '@/types/collaboration-mode';
 
-import '@/components/collaboration-mode/collaboration-mode-picker.scss';
+import '@/components/collaboration-mode-picker.scss';
 
 interface ModeOption {
 	value: CollaborationMode;
@@ -32,7 +32,7 @@ const MODES: ModeOption[] = [
 		value: CollaborationMode.VIEW,
 		label: __( 'View Only', 'vip-real-time-collaboration' ),
 		description: __( 'Focus on content', 'vip-real-time-collaboration' ),
-		icon: viewIcon,
+		icon: collaborationModeViewIcon,
 	},
 ];
 
