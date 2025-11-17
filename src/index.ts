@@ -1,8 +1,8 @@
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 
-import { setupViewOnlyMode } from './components/view-only-mode';
 import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
+import { setupViewOnlyMode } from '@/components/view-only-mode';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
