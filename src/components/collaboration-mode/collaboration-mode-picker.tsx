@@ -30,7 +30,7 @@ const MODES: ModeOption[] = [
 	},
 	{
 		value: CollaborationMode.VIEW,
-		label: __( 'View', 'vip-real-time-collaboration' ),
+		label: __( 'View Only', 'vip-real-time-collaboration' ),
 		description: __( 'Focus on content', 'vip-real-time-collaboration' ),
 		icon: viewIcon,
 	},
@@ -67,10 +67,8 @@ export function CollaborationModePicker() {
 				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
 				isPressed={ isPopoverVisible }
 				ref={ setPopoverAnchor }
-				label={ __( 'Collaboration mode', 'vip-real-time-collaboration' ) }
-			>
-				{ currentMode?.label }
-			</Button>
+				text={ currentMode?.label }
+			/>
 			{ isPopoverVisible && (
 				<Popover
 					anchor={ popoverAnchor }

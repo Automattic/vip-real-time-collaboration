@@ -104,8 +104,6 @@ function getContentForNotificationType(
 		case NotificationType.UserEntered:
 		case NotificationType.UserExited:
 			return getUserPresenceNotificationContent( userInfo, type );
-		case NotificationType.ViewOnlyMode:
-			return 'You are now in view-only mode. You cannot make edits to this post.';
 		default:
 			return '';
 	}
