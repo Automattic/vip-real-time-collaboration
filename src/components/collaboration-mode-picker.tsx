@@ -2,9 +2,8 @@ import { Button, Popover, Icon } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { paragraph } from '@wordpress/icons';
+import { pencil, seen } from '@wordpress/icons';
 
-import { collaborationModeViewIcon } from './collaboration-mode-view-icon';
 import {
 	store as collaborationModeStore,
 	type CollaborationModeStoreSelectors,
@@ -24,15 +23,15 @@ interface ModeOption {
 const MODES: ModeOption[] = [
 	{
 		value: CollaborationMode.EDIT,
-		label: __( 'Edit', 'vip-real-time-collaboration' ),
-		description: __( 'Make changes', 'vip-real-time-collaboration' ),
-		icon: paragraph,
+		label: __( 'Editing', 'vip-real-time-collaboration' ),
+		description: __( 'Edit document directly', 'vip-real-time-collaboration' ),
+		icon: pencil,
 	},
 	{
 		value: CollaborationMode.VIEW,
-		label: __( 'View Only', 'vip-real-time-collaboration' ),
+		label: __( 'Viewing', 'vip-real-time-collaboration' ),
 		description: __( 'Focus on content', 'vip-real-time-collaboration' ),
-		icon: collaborationModeViewIcon,
+		icon: seen,
 	},
 ];
 
@@ -62,12 +61,13 @@ export function CollaborationModePicker() {
 		<>
 			<Button
 				className="vip-collaboration-mode-button"
-				variant="tertiary"
 				aria-label={ `Collaboration mode: ${ currentMode?.label }` }
 				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
 				isPressed={ isPopoverVisible }
+				size="compact"
 				ref={ setPopoverAnchor }
 				text={ currentMode?.label }
+				icon={ currentMode?.icon }
 			/>
 			{ isPopoverVisible && (
 				<Popover
