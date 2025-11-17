@@ -25,7 +25,7 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'@wordpress/editor'
 );
 
-const { EditorPresence, CollaborationMode } = unlock( editorPrivateApis );
+const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const {
@@ -71,14 +71,10 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			{ isCollaborationModePickerEnabled && (
-				<CollaborationMode>
-					<CollaborationModePicker />
-				</CollaborationMode>
-			) }
-			{ isAvatarsEnabled && (
+			{ ( isCollaborationModePickerEnabled || isAvatarsEnabled ) && (
 				<EditorPresence>
-					<Avatars cursorRegistry={ cursorRegistry.current } />
+					{ isAvatarsEnabled && <Avatars cursorRegistry={ cursorRegistry.current } /> }
+					{ isCollaborationModePickerEnabled && <CollaborationModePicker /> }
 				</EditorPresence>
 			) }
 			<BlockCanvasCover.Fill>

@@ -52,7 +52,6 @@ export function CollaborationModePicker() {
 	const { setMode } = useDispatch< CollaborationModeStoreActions >( collaborationModeStore );
 
 	const currentMode = MODES.find( mode => mode.value === selectedMode );
-	const currentIcon = currentMode?.icon || paragraph;
 
 	const handleModeSelect = ( mode: CollaborationMode ) => {
 		setMode( mode );
@@ -63,15 +62,15 @@ export function CollaborationModePicker() {
 		<>
 			<Button
 				className="vip-collaboration-mode-button"
-				variant="primary"
+				variant="tertiary"
 				aria-label={ `Collaboration mode: ${ currentMode?.label }` }
 				onClick={ () => setIsPopoverVisible( ! isPopoverVisible ) }
 				isPressed={ isPopoverVisible }
-				icon={ currentIcon }
 				ref={ setPopoverAnchor }
-				iconSize={ 24 }
 				label={ __( 'Collaboration mode', 'vip-real-time-collaboration' ) }
-			/>
+			>
+				{ currentMode?.label }
+			</Button>
 			{ isPopoverVisible && (
 				<Popover
 					anchor={ popoverAnchor }

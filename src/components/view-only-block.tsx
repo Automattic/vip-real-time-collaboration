@@ -4,7 +4,7 @@
 import { useBlockEditingMode } from '@wordpress/block-editor';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { useSelect } from '@wordpress/data';
-import { addFilter } from '@wordpress/hooks';
+import { addFilter, removeFilter } from '@wordpress/hooks';
 
 import {
 	type AwarenessStoreSelectors,
@@ -21,7 +21,6 @@ import {
 	type SettingsStoreSelectors,
 } from '@/store/settings-store';
 import { CollaborationMode } from '@/types/collaboration-mode';
-import { NotificationType, sendNotification } from '@/utilities/notifications';
 
 export function setupViewOnlyMode() {
 	const viewOnlyMode = createHigherOrderComponent( BlockEdit => {
@@ -50,9 +49,23 @@ export function setupViewOnlyMode() {
 				collaborationMode === CollaborationMode.VIEW &&
 				currentUserInfo
 			) {
+				// Set the block editor to disabled mode for editing.
 				useBlockEditingMode( 'disabled' );
-				sendNotification( NotificationType.ViewOnlyMode, currentUserInfo.userInfo );
+
+				// Prevent inserting new blocks.
+				// ToDo: There's a UI bug where it doesn't filter what's shown in the inserter, but still prevents insertion.
+				addFilter(
+					'blockEditor.__unstableCanInsertBlockType',
+					'vip-rtc/disable-block-insertion',
+					() => {
+						return false;
+					}
+				);
 			} else {
+				removeFilter(
+					'blockEditor.__unstableCanInsertBlockType',
+					'vip-rtc/disable-block-insertion'
+				);
 				useBlockEditingMode( 'default' );
 			}
 
@@ -60,5 +73,5 @@ export function setupViewOnlyMode() {
 		};
 	}, 'viewOnlyMode' );
 
-	addFilter( 'editor.BlockEdit', 'vip-rtc-view-only-mode', viewOnlyMode );
+	addFilter( 'editor.BlockEdit', 'vip-rtc/view-only-mode', viewOnlyMode );
 }
