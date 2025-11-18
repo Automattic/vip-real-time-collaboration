@@ -176,13 +176,16 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 	return async function (
 		objectType: ObjectType,
-		objectId: ObjectID,
+		objectId: ObjectID | null,
 		doc: Y.Doc,
 		awareness?: Awareness
 	) {
 		try {
-			// For now, we only support traditional post types.
-			if ( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) ) {
+			// For now, we only support collections and traditional post types.
+			if (
+				null !== objectId &&
+				( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) )
+			) {
 				logger.debug( 'WebSocket connection skipped for unsupported object', {
 					objectType,
 					objectId,
@@ -198,10 +201,10 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
-			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId }`;
+			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
 			const options = { ...config.options, awareness };
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
-			const connect = createConnect( provider, objectType, objectId );
+			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
 			provider.on( 'connection-close', connect );
 			provider.on( 'connection-error', () => {

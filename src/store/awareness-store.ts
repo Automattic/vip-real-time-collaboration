@@ -22,6 +22,7 @@ export interface UserInfo extends WordPressUserInfo {
 	color: string;
 	isConnected: boolean;
 	isMe: boolean;
+	enteredAt: number;
 }
 
 export interface EditorState {
@@ -166,7 +167,16 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 				}
 			} else {
 				const { userInfo } = action.payload.userState;
-				sendNotification( NotificationType.UserEntered, userInfo );
+				const currentMeUser = Array.from( state.userMap.values() ).find(
+					user => user.userInfo.isMe && user.userInfo.isConnected
+				);
+
+				sendNotification(
+					NotificationType.UserEntered,
+					userInfo,
+					undefined,
+					currentMeUser?.userInfo
+				);
 			}
 
 			state.userMap.set( action.payload.clientId, action.payload.userState );

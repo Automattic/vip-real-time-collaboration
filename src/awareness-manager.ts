@@ -110,6 +110,7 @@ export class AwarenessManager {
 			color: getNewUserColor( otherUserColors ),
 			isConnected: true,
 			isMe: true,
+			enteredAt: Date.now(),
 		};
 
 		this.setLocalStateField( 'userInfo', userInfo );
