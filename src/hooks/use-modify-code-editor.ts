@@ -53,10 +53,17 @@ export function useModifyCodeEditor() {
 	// Manage code editor read-only state.
 	useEffect( () => {
 		const editorPostTextEditorElement = document.querySelector( '.editor-post-text-editor' );
+		const editorTitleTextEditorElement = document.querySelector(
+			'.components-textarea-control__input'
+		);
 
 		// Set or remove the readOnly attribute on the code editor textarea based on the current mode.
-		if ( editorPostTextEditorElement instanceof HTMLTextAreaElement ) {
+		if (
+			editorPostTextEditorElement instanceof HTMLTextAreaElement &&
+			editorTitleTextEditorElement instanceof HTMLTextAreaElement
+		) {
 			editorPostTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
+			editorTitleTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
 		}
 	}, [ shouldCodeEditorBeReadOnly ] );
 }

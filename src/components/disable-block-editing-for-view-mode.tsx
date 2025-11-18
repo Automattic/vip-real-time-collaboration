@@ -7,7 +7,7 @@ import { addFilter } from '@wordpress/hooks';
 /**
  * Internal dependencies
  */
-import { useModifyVisualEditor } from '@/hooks/use-modify-visual-editor';
+import { useDisableBlockEditing } from '@/hooks/use-disable-block-editing';
 
 /**
  * Sets up the view only mode by modifying the edit function of a block,
@@ -15,13 +15,13 @@ import { useModifyVisualEditor } from '@/hooks/use-modify-visual-editor';
  *
  * This is only for the visual editor, not the code editor.
  */
-export function modifyVisualEditor() {
-	const viewOnlyMode = createHigherOrderComponent( BlockEdit => {
+export function disableBlockEditingForViewMode() {
+	const disabledBlockEdit = createHigherOrderComponent( BlockEdit => {
 		return props => {
-			useModifyVisualEditor();
+			useDisableBlockEditing();
 			return <BlockEdit { ...props } />;
 		};
-	}, 'modifyVisualEditor' );
+	}, 'disabledBlockEdit' );
 
-	addFilter( 'editor.BlockEdit', 'vip-rtc/modify-visual-editor', viewOnlyMode );
+	addFilter( 'editor.BlockEdit', 'vip-rtc/disable-block-editing-for-view-mode', disabledBlockEdit );
 }
