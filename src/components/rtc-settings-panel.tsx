@@ -17,7 +17,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useReadOnlyCodeEditor } from '@/hooks/use-read-only-code-editor';
+import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -71,7 +71,7 @@ export function RTCSettingsPanel() {
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
 	// Manage read-only state for the code editor.
-	useReadOnlyCodeEditor();
+	useModifyCodeEditor();
 
 	return (
 		<>

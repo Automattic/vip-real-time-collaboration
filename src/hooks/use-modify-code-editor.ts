@@ -23,7 +23,7 @@ import {
  * Custom hook that manages read-only state for the code editor.
  * Makes the code editor textarea read-only when in view mode.
  */
-export function useReadOnlyCodeEditor() {
+export function useModifyCodeEditor() {
 	// Get the current editor mode (visual or text).
 	// Visual mode is the default block editor mode.
 	// Text mode is the code editor mode.

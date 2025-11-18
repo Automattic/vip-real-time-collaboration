@@ -27,7 +27,7 @@ const FILTER_NAME = 'vip-rtc/disable-block-insertion';
  * Custom hook that manages view-only mode for the block editor.
  * Disables block editing and insertion when in view mode.
  */
-export function useViewOnlyBlocks() {
+export function useModifyVisualEditor() {
 	// Check if the Collaboration Mode Picker setting is enabled.
 	// TODO: Delete this once we complete the feature.
 	const isCollaborationModeEnabled = useSelect< SettingsStoreSelectors, boolean >( select =>
@@ -54,11 +54,9 @@ export function useViewOnlyBlocks() {
 			// Prevent inserting new blocks.
 			// Note: The block inserter UI doesn't get updated, but all block insertion is still prevented.
 			addFilter( FILTER_HOOK, FILTER_NAME, () => false );
-		}
-
-		// Cleanup: Remove the filter when the mode changes or component unmounts.
-		return () => {
+		} else {
+			// If not in view-only mode, ensure the filter is removed.
 			removeFilter( FILTER_HOOK, FILTER_NAME );
-		};
+		}
 	}, [ isViewOnlyActive ] );
 }
