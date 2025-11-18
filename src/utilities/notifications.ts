@@ -60,12 +60,13 @@ function shouldSendNotification(
 	}
 
 	// If the notification type has no settings associated with it, send it.
-	if ( ! ( type in NOTIFICATION_TYPE_TO_SETTING_MAP ) ) {
+	const setting = NOTIFICATION_TYPE_TO_SETTING_MAP[ type ];
+	if ( ! setting ) {
 		return true;
 	}
 
 	// If the setting for this notification type is disabled, skip.
-	if ( ! select( settingsStore ).getSetting( NOTIFICATION_TYPE_TO_SETTING_MAP[ type ] ) ) {
+	if ( ! select( settingsStore ).getSetting( setting ) ) {
 		return false;
 	}
 

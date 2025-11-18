@@ -1,8 +1,16 @@
 import { register, createReduxStore, StoreDescriptor } from '@wordpress/data';
 
-import { CollaborationMode } from '@/types/collaboration-mode';
-
 const STORE_NAME = 'vip-real-time-collaboration/collaboration-mode';
+
+/**
+ * Collaboration mode types for the editor.
+ * - VIEW: Read-only mode, user can view content but not make edits
+ * - EDIT: Full editing mode, user can make changes to the content
+ */
+export enum CollaborationMode {
+	VIEW = 'view',
+	EDIT = 'edit',
+}
 
 interface CollaborationModeState {
 	currentMode: CollaborationMode;
