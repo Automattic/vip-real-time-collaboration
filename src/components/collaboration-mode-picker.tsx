@@ -8,8 +8,8 @@ import {
 	store as collaborationModeStore,
 	type CollaborationModeStoreSelectors,
 	type CollaborationModeStoreActions,
+	CollaborationMode,
 } from '@/store/collaboration-mode-store';
-import { CollaborationMode } from '@/types/collaboration-mode';
 
 import '@/components/collaboration-mode-picker.scss';
 
@@ -43,9 +43,9 @@ export function CollaborationModePicker() {
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
-	const selectedMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >(
-		select => select( collaborationModeStore ).getMode(),
-		[]
+	// Default value is Edit mode
+	const selectedMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >( select =>
+		select( collaborationModeStore ).getMode()
 	);
 
 	const { setMode } = useDispatch< CollaborationModeStoreActions >( collaborationModeStore );

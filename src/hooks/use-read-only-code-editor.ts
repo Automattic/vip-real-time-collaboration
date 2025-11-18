@@ -11,13 +11,13 @@ import { useEffect } from '@wordpress/element';
 import {
 	type CollaborationModeStoreSelectors,
 	store as CollaborationModeStore,
+	CollaborationMode,
 } from '@/store/collaboration-mode-store';
 import {
 	Setting,
 	store as rtcSettingsStore,
 	type SettingsStoreSelectors,
 } from '@/store/settings-store';
-import { CollaborationMode } from '@/types/collaboration-mode';
 
 /**
  * Custom hook that manages read-only state for the code editor.

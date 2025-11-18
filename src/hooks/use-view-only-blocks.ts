@@ -12,13 +12,13 @@ import { addFilter, removeFilter } from '@wordpress/hooks';
 import {
 	type CollaborationModeStoreSelectors,
 	store as CollaborationModeStore,
+	CollaborationMode,
 } from '@/store/collaboration-mode-store';
 import {
 	Setting,
 	store as rtcSettingsStore,
 	type SettingsStoreSelectors,
 } from '@/store/settings-store';
-import { CollaborationMode } from '@/types/collaboration-mode';
 
 const FILTER_HOOK = 'blockEditor.__unstableCanInsertBlockType';
 const FILTER_NAME = 'vip-rtc/disable-block-insertion';
