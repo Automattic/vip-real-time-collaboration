@@ -50,6 +50,11 @@ export function useModifyCodeEditor() {
 		editorMode === 'text' &&
 		( ! isCollaborationModeEnabled || collaborationMode === CollaborationMode.VIEW );
 
+	const shouldVisualEditorBeReadOnly =
+		editorMode === 'visual' &&
+		isCollaborationModeEnabled &&
+		collaborationMode === CollaborationMode.VIEW;
+
 	// Manage code editor read-only state.
 	useEffect( () => {
 		const editorPostTextEditorElement = document.querySelector( '.editor-post-text-editor' );
@@ -65,5 +70,15 @@ export function useModifyCodeEditor() {
 			editorPostTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
 			editorTitleTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
 		}
-	}, [ shouldCodeEditorBeReadOnly ] );
+
+		const elementToDisable = document.querySelector( '.editor-sidebar' );
+
+		if ( shouldVisualEditorBeReadOnly && elementToDisable ) {
+			elementToDisable.setAttribute( 'inert', '' );
+			console.log( 'Sidebar disabled' );
+			console.log( elementToDisable );
+		} else if ( elementToDisable ) {
+			elementToDisable.removeAttribute( 'inert' );
+		}
+	}, [ shouldCodeEditorBeReadOnly, shouldVisualEditorBeReadOnly ] );
 }
