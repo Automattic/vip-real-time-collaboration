@@ -33,9 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: Automattic/vip-actions/nodejs-setup@trunk
         with:
-          # A bug in the working-directory handling requires us to hardcode the
-          # Node.js version here instead of pointing to the .nvmrc file.
-          node-version: 22
+          node-version-file: .nvmrc
           ignore-scripts: true
           working-directory: websocket-server
 
