@@ -93,6 +93,16 @@ export class AwarenessManager {
 		);
 	}
 
+	public static getYDocClients(): Map< number, unknown > | null {
+		const logger = new Logger( 'awareness-manager' );
+		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
+			logger.error( 'getYDocClients() awareness document not found' );
+			return null;
+		}
+
+		return AwarenessManager.__instance.awareness.doc.store.clients;
+	}
+
 	private setCurrentUserState(): void {
 		const states = this.getStates();
 		const otherUserColors = Array.from( states.values() )
