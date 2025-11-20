@@ -4,6 +4,7 @@ set -e # Exit immediately if any command exits with a non-zero status.
 
 # Set WordPress port and home URL.
 PORT="${WP_ENV_PORT-8888}"
+METRICS_PORT="${METRICS_PORT-9090}"
 WP_HOME="${WP_ENV_HOME_URL-http://localhost:$PORT}"
 WS_PORT="${WS_PORT-1234}"
 YJS_INSPECTOR_PORT="${YJS_INSPECTOR_PORT-5173}"
@@ -91,7 +92,7 @@ install_dependencies() {
 
 start_websocket_server() {
     echo "🔼 Starting WebSocket server development build..."
-    VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret PORT=$WS_PORT npm run -s dev:websocket-server &
+    VIP_RTC_WS_AUTH_SECRET=vip_rtc_ws_auth_secret METRICS_PORT=$METRICS_PORT PORT=$WS_PORT npm run -s dev:websocket-server &
 }
 
 start_yjs_inspector() {
