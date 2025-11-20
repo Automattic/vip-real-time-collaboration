@@ -7,7 +7,7 @@ export type SessionStatsExport = {
 	timestamp: number;
 	usersActive: number;
 	usersInactive: number;
-	usersMax: number;
+	usersTotal: number;
 };
 
 /**

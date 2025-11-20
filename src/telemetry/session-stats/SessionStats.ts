@@ -96,13 +96,6 @@ export class SessionStats {
 	}
 
 	/**
-	 * Returns the maximum number of users reached during the session.
-	 */
-	private getMaxUserCount(): number {
-		return this.getAllUserIds()?.size ?? 0;
-	}
-
-	/**
 	 * Returns the number of active users in the session.
 	 *
 	 * A user is considered active if they have performed content changes during
@@ -116,7 +109,14 @@ export class SessionStats {
 	 * Returns the number of inactive users in the session.
 	 */
 	private getInactiveUserCount(): number {
-		return Math.max( 0, this.getMaxUserCount() - this.getActiveUserCount() );
+		return Math.max( 0, this.getTotalUserCount() - this.getActiveUserCount() );
+	}
+
+	/**
+	 * Returns the total number of users reached during the session.
+	 */
+	private getTotalUserCount(): number {
+		return this.getAllUserIds()?.size ?? 0;
 	}
 
 	/**
@@ -276,7 +276,7 @@ export class SessionStats {
 					timestamp: Date.now(),
 					usersActive: this.getActiveUserCount(),
 					usersInactive: this.getInactiveUserCount(),
-					usersMax: this.getMaxUserCount(),
+					usersTotal: this.getTotalUserCount(),
 				};
 
 				// Reset after successful data collection.

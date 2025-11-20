@@ -57,7 +57,7 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 				sessionDuration: stats.sessionDuration,
 				usersActive: stats.usersActive,
 				usersInactive: stats.usersInactive,
-				usersMax: stats.usersMax,
+				usersTotal: stats.usersTotal,
 			},
 		};
 	}
