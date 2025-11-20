@@ -1,6 +1,7 @@
 /**
  * WordPress dependencies
  */
+import { store as coreDataStore, type CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { store as editPostStore, type EditPostStoreSelectors } from '@wordpress/edit-post';
 import { useEffect } from '@wordpress/element';
@@ -8,11 +9,6 @@ import { useEffect } from '@wordpress/element';
 /**
  * Internal dependencies
  */
-import {
-	type CollaborationModeStoreSelectors,
-	store as CollaborationModeStore,
-	CollaborationMode,
-} from '@/store/collaboration-mode-store';
 import {
 	Setting,
 	store as rtcSettingsStore,
@@ -31,15 +27,15 @@ export function useModifyCodeEditor() {
 		select( editPostStore ).getEditorMode()
 	);
 
+	// Get the current collaboration mode (view or edit).
+	const currentCollaborationEditorMode = useSelect< CoreDataSelectors, 'view' | 'edit' >( select =>
+		select( coreDataStore ).getCollaboratorMode()
+	);
+
 	// Check if the Collaboration Mode Picker setting is enabled.
 	// TODO: Delete this once we complete the feature.
 	const isCollaborationModeEnabled = useSelect< SettingsStoreSelectors, boolean >( select =>
 		select( rtcSettingsStore ).getSetting( Setting.COLLABORATION_MODE_PICKER )
-	);
-
-	// Get the current collaboration mode (view or edit).
-	const collaborationMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >(
-		select => select( CollaborationModeStore ).getMode()
 	);
 
 	// The code editor is set to read-only in the following cases:
@@ -48,12 +44,7 @@ export function useModifyCodeEditor() {
 	// TODO: Remove the Collaboration mode enabled check once we complete the feature.
 	const shouldCodeEditorBeReadOnly =
 		editorMode === 'text' &&
-		( ! isCollaborationModeEnabled || collaborationMode === CollaborationMode.VIEW );
-
-	const shouldVisualEditorBeReadOnly =
-		editorMode === 'visual' &&
-		isCollaborationModeEnabled &&
-		collaborationMode === CollaborationMode.VIEW;
+		( ! isCollaborationModeEnabled || currentCollaborationEditorMode === 'view' );
 
 	// Manage code editor read-only state.
 	useEffect( () => {
@@ -70,15 +61,5 @@ export function useModifyCodeEditor() {
 			editorPostTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
 			editorTitleTextEditorElement.readOnly = shouldCodeEditorBeReadOnly;
 		}
-
-		const elementToDisable = document.querySelector( '.editor-sidebar' );
-
-		if ( shouldVisualEditorBeReadOnly && elementToDisable ) {
-			elementToDisable.setAttribute( 'inert', '' );
-			console.log( 'Sidebar disabled' );
-			console.log( elementToDisable );
-		} else if ( elementToDisable ) {
-			elementToDisable.removeAttribute( 'inert' );
-		}
-	}, [ shouldCodeEditorBeReadOnly, shouldVisualEditorBeReadOnly ] );
+	}, [ shouldCodeEditorBeReadOnly ] );
 }

@@ -2,6 +2,7 @@
  * WordPress dependencies
  */
 import { useBlockEditingMode } from '@wordpress/block-editor';
+import { store as coreDataStore, type CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { useEffect } from '@wordpress/element';
 import { addFilter, removeFilter } from '@wordpress/hooks';
@@ -9,11 +10,6 @@ import { addFilter, removeFilter } from '@wordpress/hooks';
 /**
  * Internal dependencies
  */
-import {
-	type CollaborationModeStoreSelectors,
-	store as CollaborationModeStore,
-	CollaborationMode,
-} from '@/store/collaboration-mode-store';
 import {
 	Setting,
 	store as rtcSettingsStore,
@@ -35,14 +31,13 @@ export function useDisableBlockEditing() {
 	);
 
 	// Get the current collaboration mode (view or edit).
-	const collaborationMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >(
-		select => select( CollaborationModeStore ).getMode()
+	const currentCollaborationEditorMode = useSelect< CoreDataSelectors, 'view' | 'edit' >( select =>
+		select( coreDataStore ).getCollaboratorMode()
 	);
 
 	// Determine if view-only mode should be active.
 	// TODO: Remove the Collaboration mode enabled check once we complete the feature.
-	const isViewOnlyActive =
-		isCollaborationModeEnabled && collaborationMode === CollaborationMode.VIEW;
+	const isViewOnlyActive = isCollaborationModeEnabled && currentCollaborationEditorMode === 'view';
 
 	// Set the block editing mode based on whether view-only is active.
 	// This hook must be called unconditionally to follow the Rules of Hooks.

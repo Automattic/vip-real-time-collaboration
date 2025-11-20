@@ -128,14 +128,6 @@ export function RTCSettingsPanel() {
 								checked={ isDebugToolsEnabled }
 								onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
 							/>
-
-							<ToggleControl
-								label={ __( 'Enable collaboration modes', 'vip-real-time-collaboration' ) }
-								checked={ isCollaborationModePickerEnabled }
-								onChange={ ( enabled: boolean ) =>
-									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )
-								}
-							/>
 						</>
 					) }
 

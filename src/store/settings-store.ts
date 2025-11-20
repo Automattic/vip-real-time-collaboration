@@ -36,7 +36,7 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,
-	[ Setting.COLLABORATION_MODE_PICKER ]: false,
+	[ Setting.COLLABORATION_MODE_PICKER ]: isDevelopment() ? true : false,
 };
 
 // Settings that are only available in development mode
