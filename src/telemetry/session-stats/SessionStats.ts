@@ -265,8 +265,6 @@ export class SessionStats {
 				sessionStats = {
 					postId: this.getCurrentPostId(),
 					sessionDuration: this.getSessionDuration(),
-					sessionTimeLastActivity: this.getLastActivityTime(),
-					sessionTimeStart: this.getSessionStartTime(),
 					timestamp: Date.now(),
 					usersActive: this.getActiveUserCount(),
 					usersInactive: this.getInactiveUserCount(),

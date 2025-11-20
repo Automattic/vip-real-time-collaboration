@@ -55,8 +55,6 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			properties: {
 				postId: stats.postId,
 				sessionDuration: stats.sessionDuration,
-				sessionTimeLastActivity: stats.sessionTimeLastActivity,
-				sessionTimeStart: stats.sessionTimeStart,
 				usersActive: stats.usersActive,
 				usersInactive: stats.usersInactive,
 				usersMax: stats.usersMax,
