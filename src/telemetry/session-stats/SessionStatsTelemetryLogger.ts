@@ -48,20 +48,6 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			return null;
 		}
 
-		if (
-			stats.sessionTimeStart === null ||
-			stats.sessionTimeLastActivity === null ||
-			stats.sessionTimeLastActivity < stats.sessionTimeStart ||
-			stats.usersActive > stats.usersMax ||
-			stats.usersInactive > stats.usersMax ||
-			stats.usersInactive + stats.usersActive > stats.usersMax ||
-			stats.usersActive < 0 ||
-			stats.usersInactive < 0 ||
-			stats.usersMax < 0
-		) {
-			return null;
-		}
-
 		return {
 			type: 'track',
 			event: 'real-time collaboration session',
