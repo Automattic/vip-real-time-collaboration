@@ -25,3 +25,18 @@ jobs:
 
       - name: Run JS unit tests
         run: npm run test:js:unit
+
+  test-wss:
+    name: js-unit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Node.js
+        uses: Automattic/vip-actions/nodejs-setup@trunk
+        with:
+          node-version-file: .nvmrc
+          ignore-scripts: true
+          working-directory: ./websocket-server
+
+      - name: Run JS unit tests
+        run: npm run test
+        working-directory: ./websocket-server

@@ -6,8 +6,9 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "dev": "tsx watch index.ts",
     "start": "node dist/index.js",
-    "dev": "tsx watch index.ts"
+    "test": "npx tsx --experimental-test-module-mocks --test *.test.ts"
   },
   "dependencies": {
     "@y/websocket-server": "0.1.1",
