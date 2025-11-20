@@ -6,7 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "dev": "tsx watch index.ts",
+    "dev": "npx tsx watch index.ts",
     "start": "node dist/index.js",
     "test": "npx tsx --experimental-test-module-mocks --test *.test.ts"
   },
@@ -20,7 +20,6 @@
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "22.19.0",
     "@types/ws": "8.5.0",
-    "tsx": "4.20.5",
     "typescript": "5.9.2",
     "yjs": "13.6.27"
   }
