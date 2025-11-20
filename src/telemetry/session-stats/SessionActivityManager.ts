@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { select } from '@wordpress/data';
+import { CRDT_RECORD_MAP_KEY as RECORD_KEY } from '@wordpress/sync';
 import * as Y from 'yjs';
 
 /**
@@ -199,6 +200,8 @@ export class SessionActivityManager {
 			return false;
 		}
 
+		const contentMap = this.awareness.doc.getMap( RECORD_KEY );
+
 		// Maps that should not contain any content changes.
 		const excludedMaps = new Set( [
 			this.awareness.doc.getMap( SESSION_STATS_ORIGIN ),
@@ -206,15 +209,28 @@ export class SessionActivityManager {
 			this.awareness.doc.getMap( 'metadata' ),
 		] );
 
-		// Determine if there are content changes in the transaction.
 		for ( const [ item ] of transaction.changed ) {
-			if ( item instanceof Y.Map ) {
-				if ( excludedMaps.has( item ) ) {
-					continue;
-				}
+			if ( item instanceof Y.Map && excludedMaps.has( item ) ) {
+				continue;
 			}
 
-			return true;
+			if ( item === contentMap ) {
+				return true;
+			}
+
+			// Walk up the parent chain to find content or excluded ancestors.
+			let current = item.parent;
+			while ( current ) {
+				if ( current === contentMap ) {
+					return true;
+				}
+
+				if ( current instanceof Y.Map && excludedMaps.has( current ) ) {
+					break;
+				}
+
+				current = current.parent;
+			}
 		}
 
 		return false;
