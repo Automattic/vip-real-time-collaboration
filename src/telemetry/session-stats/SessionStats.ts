@@ -131,7 +131,15 @@ export class SessionStats {
 			return 0;
 		}
 
-		const durationMs = Date.now() - sessionStartTime;
+		const lastActivityTime = this.getLastActivityTime();
+
+		if ( ! lastActivityTime ) {
+			this.logger.debug( 'Last activity time is missing' );
+
+			return 0;
+		}
+
+		const durationMs = lastActivityTime - sessionStartTime;
 
 		return Math.floor( durationMs / 1000 );
 	}
