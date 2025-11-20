@@ -37,7 +37,7 @@ jobs:
           # Node.js version here instead of pointing to the .nvmrc file.
           node-version: 22
           ignore-scripts: true
-          working-directory: ./websocket-server
+          working-directory: websocket-server
 
       - name: Run JS unit tests
         run: npm run test
