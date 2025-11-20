@@ -33,7 +33,7 @@ jobs:
       - name: Setup Node.js
         uses: Automattic/vip-actions/nodejs-setup@trunk
         with:
-          node-version-file: .nvmrc
+          node-version-file: ./websocket-server/nvmrc
           ignore-scripts: true
           working-directory: ./websocket-server
 
