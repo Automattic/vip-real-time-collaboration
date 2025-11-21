@@ -17,7 +17,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
+import { useDisableSidebarInteraction } from '@/hooks/use-disable-sidebar-interaction';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -70,8 +70,7 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
-	// Manage read-only state for the code editor.
-	useModifyCodeEditor();
+	useDisableSidebarInteraction();
 
 	return (
 		<>
