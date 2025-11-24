@@ -7,12 +7,19 @@ import { AwarenessManager } from '@/awareness-manager';
 
 export function DebugDataExportButton() {
 	const handleDownload = () => {
-		const clients = AwarenessManager.getYDocClients();
-		if ( ! clients ) {
+		const debugData = AwarenessManager.getDebugData();
+
+		if ( ! debugData ) {
 			return;
 		}
 
-		const jsonData = safeStringify( Object.fromEntries( clients ), { indentation: 2 } );
+		const jsonData = safeStringify(
+			{
+				doc: debugData.doc,
+				clients: Object.fromEntries( debugData.clients ),
+			},
+			{ indentation: 2 }
+		);
 		const timestamp = Date.now();
 		const filename = `rtc-debug-${ timestamp }.json`;
 

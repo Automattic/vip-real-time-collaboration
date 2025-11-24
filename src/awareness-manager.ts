@@ -47,6 +47,11 @@ interface AwarenessStateChange {
 	removed: AwarenessClientID[];
 }
 
+interface YDocDebugData {
+	doc: Record< string, unknown >;
+	clients: Map< number, unknown >;
+}
+
 export class AwarenessManager {
 	private static __instance: AwarenessManager;
 	private logger: Logger = new Logger( 'awareness-manager' );
@@ -93,14 +98,25 @@ export class AwarenessManager {
 		);
 	}
 
-	public static getYDocClients(): Map< number, unknown > | null {
+	public static getDebugData(): YDocDebugData | null {
 		const logger = new Logger( 'awareness-manager' );
 		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
-			logger.error( 'getYDocClients() awareness document not found' );
+			logger.error( 'getDebugData() awareness document not found' );
 			return null;
 		}
 
-		return AwarenessManager.__instance.awareness.doc.store.clients;
+		const ydoc = AwarenessManager.__instance.awareness.doc;
+
+		// Manually extract doc data to avoid deprecated toJSON method
+		const docData: Record< string, unknown > = {};
+		ydoc.share.forEach( ( value, key ) => {
+			docData[ key ] = value.toJSON();
+		} );
+
+		return {
+			doc: docData,
+			clients: ydoc.store.clients,
+		};
 	}
 
 	private setCurrentUserState(): void {
