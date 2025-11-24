@@ -37,7 +37,6 @@ type SessionStatsKey = keyof SessionStatsSchema;
  */
 export class SessionStats {
 	private sessionMap: Y.Map< unknown >;
-	private lastInitializationTime = 0;
 
 	/**
 	 * Initializes the class.
@@ -210,14 +209,6 @@ export class SessionStats {
 			return false;
 		}
 
-		// Prevent rapid re-initialization (e.g. quick disconnect/reconnect).
-		const now = Date.now();
-		if ( now - this.lastInitializationTime < 100 ) {
-			return false;
-		}
-
-		this.lastInitializationTime = now;
-
 		let initialized = false;
 
 		try {
@@ -245,8 +236,6 @@ export class SessionStats {
 				initialized = true;
 			}, SESSION_STATS_ORIGIN );
 		} catch ( error ) {
-			// Reset initialization timestamp to allow retry.
-			this.lastInitializationTime = 0;
 			this.logger.debug( 'Failed to initialize session stats', error );
 		}
 
@@ -285,9 +274,6 @@ export class SessionStats {
 				this.set( 'sessionInitializerClientId', null );
 				this.set( 'sessionTimeLastActivity', null );
 				this.set( 'sessionTimeStart', null );
-
-				// Reset initialization timestamp to allow new session to start immediately.
-				this.lastInitializationTime = 0;
 			} catch ( error ) {
 				this.logger.debug( 'Failed to export session data', error );
 
