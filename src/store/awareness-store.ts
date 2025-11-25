@@ -30,6 +30,9 @@ export interface EditorState {
 }
 
 export interface AwarenessStore {
+	// The set of currently active user client IDs.
+	currentUsers: Set< number >;
+	// For all users seen in this session, a map of client ID to user state.
 	userMap: Map< number, UserState >;
 }
 
@@ -60,6 +63,7 @@ type AwarenessAction =
 	| UpsertUserAction;
 
 const DEFAULT_STATE: AwarenessStore = {
+	currentUsers: new Set< number >(),
 	userMap: new Map< number, UserState >(),
 };
 
@@ -108,10 +112,11 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 				return state;
 			}
 
+			state.currentUsers.add( action.payload.clientId );
 			state.userMap.set( action.payload.clientId, updatedState );
 
 			return {
-				...state,
+				currentUsers: new Set( state.currentUsers ),
 				userMap: new Map( state.userMap ),
 			};
 		}
@@ -123,16 +128,16 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 				sendNotification( NotificationType.UserExited, existingState.userInfo );
 			}
 
-			state.userMap.delete( action.payload.clientId );
+			state.currentUsers.delete( action.payload.clientId );
 
 			return {
 				...state,
-				userMap: new Map( state.userMap ),
+				currentUsers: new Set( state.currentUsers ),
 			};
 		}
 
 		case 'UPDATE_EDITOR_STATE': {
-			if ( ! state.userMap.has( action.payload.clientId ) ) {
+			if ( ! state.currentUsers.has( action.payload.clientId ) ) {
 				return state;
 			}
 
@@ -179,10 +184,11 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 				);
 			}
 
+			state.currentUsers.add( action.payload.clientId );
 			state.userMap.set( action.payload.clientId, action.payload.userState );
 
 			return {
-				...state,
+				currentUsers: new Set( state.currentUsers ),
 				userMap: new Map( state.userMap ),
 			};
 		}
@@ -194,9 +200,16 @@ const reducer = ( state = DEFAULT_STATE, action: AwarenessAction ): AwarenessSto
 
 const selectors = {
 	getActiveClientIds( state: AwarenessStore ): number[] {
-		return Array.from( state.userMap.keys() );
+		return Array.from( state.currentUsers.values() );
 	},
 	getActiveUsers( state: AwarenessStore ): Map< number, UserState > {
+		return new Map(
+			Array.from( state.userMap.entries() ).filter( ( [ clientId ] ) =>
+				state.currentUsers.has( clientId )
+			)
+		);
+	},
+	getSeenUsers( state: AwarenessStore ): Map< number, UserState > {
 		return state.userMap;
 	},
 	isDisconnected( state: AwarenessStore ): boolean {
