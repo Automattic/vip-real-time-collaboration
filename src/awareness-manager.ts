@@ -47,9 +47,36 @@ interface AwarenessStateChange {
 	removed: AwarenessClientID[];
 }
 
+// Type for serializable left/right item references to avoid deep nesting
+type SerializableYItemRef = Pick< Y.Item, 'id' | 'length' | 'origin' | 'content' >;
+
+// Serializable Y.Item - only includes data properties with shallow left/right references
+type SerializableYItem = Pick<
+	Y.Item,
+	| 'id'
+	| 'length'
+	| 'origin'
+	| 'rightOrigin'
+	| 'parent'
+	| 'parentSub'
+	| 'redone'
+	| 'content'
+	| 'info'
+> & {
+	left: SerializableYItemRef | null;
+	right: SerializableYItemRef | null;
+};
+
 interface YDocDebugData {
 	doc: Record< string, unknown >;
-	clients: Map< number, unknown >;
+	clients: Record< number, Array< SerializableYItem > >;
+}
+
+/**
+ * Type guard to check if a struct is a Y.Item (not Y.GC)
+ */
+function isYItem( struct: Y.Item | Y.GC ): struct is Y.Item {
+	return 'content' in struct;
 }
 
 export class AwarenessManager {
@@ -113,9 +140,32 @@ export class AwarenessManager {
 			docData[ key ] = value.toJSON();
 		} );
 
+		// Serialize Yjs client items to avoid deep nesting
+		const serializableClientItems: Record< number, Array< SerializableYItem > > = {};
+
+		ydoc.store.clients.forEach( ( structs, clientId ) => {
+			// Filter for Y.Item only (skip Y.GC garbage collection structs)
+			const items = structs.filter( isYItem );
+
+			// eslint-disable-next-line security/detect-object-injection -- clientId is a number from Yjs, not user input
+			serializableClientItems[ clientId ] = items.map( item => {
+				const { left, right, ...rest } = item;
+
+				return {
+					...rest,
+					left: left
+						? { id: left.id, length: left.length, origin: left.origin, content: left.content }
+						: null,
+					right: right
+						? { id: right.id, length: right.length, origin: right.origin, content: right.content }
+						: null,
+				};
+			} );
+		} );
+
 		return {
 			doc: docData,
-			clients: ydoc.store.clients,
+			clients: serializableClientItems,
 		};
 	}
 
@@ -137,6 +187,39 @@ export class AwarenessManager {
 		};
 
 		this.setLocalStateField( 'userInfo', userInfo );
+
+		// Persist Yjs client ID to WordPress user mapping in the YDoc
+		// This ensures the mapping is synced and available even after users disconnect
+		this.persistUserClientsMap( this.awareness.clientID, userInfo );
+	}
+
+	/**
+	 * Persist a user client mapping in the YDoc.
+	 * Stores Yjs client ID -> WordPress user info mapping for debugging.
+	 */
+	private persistUserClientsMap( yjsClientId: number, userInfo: UserInfo ): void {
+		const stateMap = this.awareness.doc.getMap( 'state' );
+		let clientWpUserMap = stateMap.get( 'clientWpUserMap' ) as
+			| Y.Map< Y.Map< unknown > >
+			| undefined;
+
+		if ( ! clientWpUserMap ) {
+			clientWpUserMap = new Y.Map< Y.Map< unknown > >();
+			stateMap.set( 'clientWpUserMap', clientWpUserMap );
+		}
+
+		// Check if this client is already persisted to avoid unnecessary CRDT operations
+		const clientKey = String( yjsClientId );
+		if ( clientWpUserMap.has( clientKey ) ) {
+			return;
+		}
+
+		// Store the mapping as an object for consistency with exported format
+		const userClientMap = new Y.Map< unknown >();
+		userClientMap.set( 'wpUserId', userInfo.id );
+		userClientMap.set( 'name', userInfo.name );
+		userClientMap.set( 'email', userInfo.email );
+		clientWpUserMap.set( clientKey, userClientMap );
 	}
 
 	/**
@@ -352,6 +435,9 @@ export class AwarenessManager {
 				userState.userInfo.isMe = false;
 
 				void upsertUser( id, userState );
+
+				// Persist remote user mapping to YDoc for debugging
+				this.persistUserClientsMap( id, userState.userInfo );
 			} );
 
 			removed.forEach( id => {

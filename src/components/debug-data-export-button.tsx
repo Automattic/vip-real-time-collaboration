@@ -16,7 +16,7 @@ export function DebugDataExportButton() {
 		const jsonData = safeStringify(
 			{
 				doc: debugData.doc,
-				clients: Object.fromEntries( debugData.clients ),
+				clients: debugData.clients,
 			},
 			{ indentation: 2 }
 		);
