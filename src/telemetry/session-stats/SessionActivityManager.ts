@@ -95,6 +95,19 @@ export class SessionActivityManager {
 				currentUserCount !== previousUserCount ||
 				! areUserSetsEqual( previousUserIds, currentUserIdsSet );
 
+			// Initialize session stats after the leader observation period
+			// completes and we have 2+ users.
+			if ( ! userCompositionChanged && currentUserCount >= 2 ) {
+				if ( this.sessionStats.canInitializeNewSession() ) {
+					const preferredLeaderId = this.sessionStats.getSessionInitializerClientId();
+
+					if ( this.sessionStats.isLeader( preferredLeaderId ) ) {
+						this.logger.debug( 'Initializing session stats after observation completed' );
+						this.initializeSessionStatsData( connectedUserIds );
+					}
+				}
+			}
+
 			if ( ! userCompositionChanged ) {
 				return;
 			}
@@ -110,7 +123,13 @@ export class SessionActivityManager {
 					this.logSessionTimeout = undefined;
 				}
 
-				this.initializeSessionStatsData( connectedUserIds );
+				if ( this.sessionStats.canInitializeNewSession() ) {
+					const preferredLeaderId = this.sessionStats.getSessionInitializerClientId();
+
+					if ( this.sessionStats.isLeader( preferredLeaderId ) ) {
+						this.initializeSessionStatsData( connectedUserIds );
+					}
+				}
 			}
 
 			// Transition from 2+ users to 1 user: Schedule session stats logging.
@@ -145,6 +164,8 @@ export class SessionActivityManager {
 			doc: Y.Doc,
 			transaction: Y.Transaction
 		) => {
+			this.sessionStats.notifyRemoteDocumentUpdate();
+
 			if ( origin === SESSION_STATS_ORIGIN ) {
 				return;
 			}
@@ -154,14 +175,14 @@ export class SessionActivityManager {
 			}
 
 			// Initialize new session if the previous one got logged due to inactivity.
-			if ( ! this.sessionStats.isRecordingStats() ) {
+			if ( this.sessionStats.canInitializeNewSession() ) {
 				if ( getConnectedUserCount() >= 2 ) {
 					this.initializeSessionStatsData();
 				}
+			}
 
-				if ( ! this.sessionStats.isRecordingStats() ) {
-					return;
-				}
+			if ( ! this.sessionStats.isRecordingStats() ) {
+				return;
 			}
 
 			this.inactivityTimer.restart();
@@ -268,16 +289,11 @@ export class SessionActivityManager {
 	}
 
 	/**
-	 * Initializes session stats data if stats aren't being recorded and there
-	 * are enough connected users.
+	 * Initializes session stats data.
 	 *
 	 * @param connectedUserIds Array of user IDs currently connected to the session
 	 */
 	private initializeSessionStatsData( connectedUserIds: number[] | null = null ): void {
-		if ( this.sessionStats.isRecordingStats() ) {
-			return;
-		}
-
 		if ( null === connectedUserIds ) {
 			connectedUserIds = getConnectedUserIds();
 		}
@@ -380,5 +396,7 @@ export class SessionActivityManager {
 		if ( this.documentUpdateHandler ) {
 			this.awareness.doc.off( 'update', this.documentUpdateHandler );
 		}
+
+		this.sessionStats.destroy();
 	}
 }

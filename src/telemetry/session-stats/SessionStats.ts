@@ -37,6 +37,10 @@ type SessionStatsKey = keyof SessionStatsSchema;
  */
 export class SessionStats {
 	private sessionMap: Y.Map< unknown >;
+	private hasCompletedInitialSync = false;
+	private hasReceivedRemoteDocumentUpdate = false;
+	private sessionMapObserver?: ( event: Y.YMapEvent< unknown > ) => void;
+	private remoteSessionCheckTimeout?: NodeJS.Timeout;
 
 	/**
 	 * Initializes the class.
@@ -50,6 +54,81 @@ export class SessionStats {
 		}
 
 		this.sessionMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
+		this.checkForExistingSession();
+	}
+
+	/**
+	 * Checks for an existing session by observing the session map for a short
+	 * period of time.
+	 */
+	private checkForExistingSession(): void {
+		this.cleanupRemoteSessionObserver();
+		this.hasReceivedRemoteDocumentUpdate = false;
+
+		// Check for session existence locally.
+		const isRecording = this.sessionMap.get( 'isRecordingStats' );
+		if ( isRecording !== undefined ) {
+			this.hasCompletedInitialSync = true;
+			return;
+		}
+
+		// Check for session existence via remote updates.
+		this.sessionMapObserver = ( event: Y.YMapEvent< unknown > ) => {
+			if ( event.transaction.local ) {
+				return;
+			}
+
+			if ( event.keysChanged.has( 'isRecordingStats' ) ) {
+				const isRecording = this.sessionMap.get( 'isRecordingStats' );
+
+				if ( true === isRecording ) {
+					this.endRemoteSessionObservation();
+				}
+			}
+		};
+
+		this.sessionMap.observe( this.sessionMapObserver );
+
+		// End the observation after a delay.
+		this.remoteSessionCheckTimeout = setTimeout( () => {
+			if ( this.hasCompletedInitialSync ) {
+				return;
+			}
+
+			if ( this.hasReceivedRemoteDocumentUpdate ) {
+				// We've received remote updates but no session init; wait a bit longer.
+				this.remoteSessionCheckTimeout = setTimeout( () => {
+					// Extended timeout expired (no existing session detected).
+					this.endRemoteSessionObservation();
+				}, 750 );
+			} else {
+				// No remote updates received at all.
+				this.endRemoteSessionObservation();
+			}
+		}, 750 );
+	}
+
+	/**
+	 * Ends the remote session observation.
+	 */
+	private endRemoteSessionObservation(): void {
+		this.cleanupRemoteSessionObserver();
+		this.hasCompletedInitialSync = true;
+	}
+
+	/**
+	 * Cleans up the remote session observer and timeout.
+	 */
+	private cleanupRemoteSessionObserver(): void {
+		if ( this.sessionMapObserver ) {
+			this.sessionMap.unobserve( this.sessionMapObserver );
+			this.sessionMapObserver = undefined;
+		}
+
+		if ( this.remoteSessionCheckTimeout ) {
+			clearTimeout( this.remoteSessionCheckTimeout );
+			this.remoteSessionCheckTimeout = undefined;
+		}
 	}
 
 	/**
@@ -133,7 +212,7 @@ export class SessionStats {
 		const lastActivityTime = this.getLastActivityTime();
 
 		if ( ! lastActivityTime ) {
-			this.logger.debug( 'Last activity time is missing' );
+			this.logger.debug( 'Session last activity time is missing' );
 
 			return 0;
 		}
@@ -164,6 +243,19 @@ export class SessionStats {
 	}
 
 	/**
+	 * Returns whether a new session can be initialized.
+	 *
+	 * @returns True if a new session can be initialized, false otherwise
+	 */
+	public canInitializeNewSession(): boolean {
+		if ( ! this.hasCompletedInitialSync ) {
+			return false;
+		}
+
+		return ! this.isRecordingStats();
+	}
+
+	/**
 	 * Returns last activity timestamp in milliseconds, or null if not set.
 	 */
 	public getLastActivityTime(): number | null {
@@ -191,6 +283,13 @@ export class SessionStats {
 	}
 
 	/**
+	 * Notifies of a remote document update.
+	 */
+	public notifyRemoteDocumentUpdate(): void {
+		this.hasReceivedRemoteDocumentUpdate = true;
+	}
+
+	/**
 	 * Initializes session stats if not already initialized.
 	 *
 	 * @param initialUserIds Array of user IDs to initialize the stats with
@@ -201,11 +300,11 @@ export class SessionStats {
 			return false;
 		}
 
-		if ( ! this.isLeader() ) {
+		if ( ! this.canInitializeNewSession() ) {
 			return false;
 		}
 
-		if ( this.isRecordingStats() ) {
+		if ( ! this.isLeader() ) {
 			return false;
 		}
 
@@ -393,5 +492,12 @@ export class SessionStats {
 		this.awareness.doc.transact( () => {
 			activeUserIds.set( key, true );
 		}, SESSION_STATS_ORIGIN );
+	}
+
+	/**
+	 * Cleans up resources used by the SessionStats instance.
+	 */
+	public destroy(): void {
+		this.cleanupRemoteSessionObserver();
 	}
 }
