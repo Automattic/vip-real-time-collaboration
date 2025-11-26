@@ -13,13 +13,7 @@ export function DebugDataExportButton() {
 			return;
 		}
 
-		const jsonData = safeStringify(
-			{
-				doc: debugData.doc,
-				clients: debugData.clients,
-			},
-			{ indentation: 2 }
-		);
+		const jsonData = safeStringify( debugData, { indentation: 2 } );
 		const timestamp = Date.now();
 		const filename = `rtc-debug-${ timestamp }.json`;
 

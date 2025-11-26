@@ -67,9 +67,17 @@ type SerializableYItem = Pick<
 	right: SerializableYItemRef | null;
 };
 
+// WordPress user info for debug export (subset of UserInfo from awareness-store)
+interface WpUserData {
+	wpUserId: number;
+	name: string;
+	email: string;
+}
+
 interface YDocDebugData {
 	doc: Record< string, unknown >;
 	clients: Record< number, Array< SerializableYItem > >;
+	userMap: Record< string, WpUserData >;
 }
 
 /**
@@ -140,6 +148,19 @@ export class AwarenessManager {
 			docData[ key ] = value.toJSON();
 		} );
 
+		// Build userMap from awareness store (all users seen this session)
+		const { getSeenUsers } = select( awarenessStore );
+		const allSeenUsers = getSeenUsers(); // Returns userMap with all seen users
+		const userMapData = new Map< string, WpUserData >();
+
+		allSeenUsers.forEach( ( userState, clientId ) => {
+			userMapData.set( String( clientId ), {
+				wpUserId: userState.userInfo.id,
+				name: userState.userInfo.name,
+				email: userState.userInfo.email,
+			} );
+		} );
+
 		// Serialize Yjs client items to avoid deep nesting
 		const serializableClientItems: Record< number, Array< SerializableYItem > > = {};
 
@@ -166,6 +187,7 @@ export class AwarenessManager {
 		return {
 			doc: docData,
 			clients: serializableClientItems,
+			userMap: Object.fromEntries( userMapData ),
 		};
 	}
 
@@ -187,39 +209,6 @@ export class AwarenessManager {
 		};
 
 		this.setLocalStateField( 'userInfo', userInfo );
-
-		// Persist Yjs client ID to WordPress user mapping in the YDoc
-		// This ensures the mapping is synced and available even after users disconnect
-		this.persistUserClientsMap( this.awareness.clientID, userInfo );
-	}
-
-	/**
-	 * Persist a user client mapping in the YDoc.
-	 * Stores Yjs client ID -> WordPress user info mapping for debugging.
-	 */
-	private persistUserClientsMap( yjsClientId: number, userInfo: UserInfo ): void {
-		const stateMap = this.awareness.doc.getMap( 'state' );
-		let clientWpUserMap = stateMap.get( 'clientWpUserMap' ) as
-			| Y.Map< Y.Map< unknown > >
-			| undefined;
-
-		if ( ! clientWpUserMap ) {
-			clientWpUserMap = new Y.Map< Y.Map< unknown > >();
-			stateMap.set( 'clientWpUserMap', clientWpUserMap );
-		}
-
-		// Check if this client is already persisted to avoid unnecessary CRDT operations
-		const clientKey = String( yjsClientId );
-		if ( clientWpUserMap.has( clientKey ) ) {
-			return;
-		}
-
-		// Store the mapping as an object for consistency with exported format
-		const userClientMap = new Y.Map< unknown >();
-		userClientMap.set( 'wpUserId', userInfo.id );
-		userClientMap.set( 'name', userInfo.name );
-		userClientMap.set( 'email', userInfo.email );
-		clientWpUserMap.set( clientKey, userClientMap );
 	}
 
 	/**
@@ -435,9 +424,6 @@ export class AwarenessManager {
 				userState.userInfo.isMe = false;
 
 				void upsertUser( id, userState );
-
-				// Persist remote user mapping to YDoc for debugging
-				this.persistUserClientsMap( id, userState.userInfo );
 			} );
 
 			removed.forEach( id => {
