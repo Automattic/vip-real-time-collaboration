@@ -5,25 +5,25 @@ import safeStringify from 'safe-stringify';
 
 import { AwarenessManager } from '@/awareness-manager';
 
+const handleDebugDataDownload = () => {
+	const debugData = AwarenessManager.getDebugData();
+
+	if ( ! debugData ) {
+		return;
+	}
+
+	const jsonData = safeStringify( debugData, { indentation: 2 } );
+	const timestamp = Date.now();
+	const filename = `rtc-debug-${ timestamp }.json`;
+
+	downloadBlob( filename, jsonData, 'application/json' );
+};
+
 export function DebugDataExportButton() {
-	const handleDownload = () => {
-		const debugData = AwarenessManager.getDebugData();
-
-		if ( ! debugData ) {
-			return;
-		}
-
-		const jsonData = safeStringify( debugData, { indentation: 2 } );
-		const timestamp = Date.now();
-		const filename = `rtc-debug-${ timestamp }.json`;
-
-		downloadBlob( filename, jsonData, 'application/json' );
-	};
-
 	return (
 		<Button
 			variant="secondary"
-			onClick={ handleDownload }
+			onClick={ handleDebugDataDownload }
 			style={ { width: '100%', marginTop: '8px' } }
 		>
 			{ __( 'Export Debug Data', 'vip-real-time-collaboration' ) }
