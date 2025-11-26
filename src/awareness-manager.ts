@@ -134,9 +134,8 @@ export class AwarenessManager {
 	}
 
 	public static getDebugData(): YDocDebugData | null {
-		const logger = new Logger( 'awareness-manager' );
 		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
-			logger.error( 'getDebugData() awareness document not found' );
+			AwarenessManager.__instance.logger.error( 'getDebugData() awareness document not found' );
 			return null;
 		}
 
