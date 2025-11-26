@@ -142,10 +142,9 @@ export class AwarenessManager {
 		const ydoc = AwarenessManager.__instance.awareness.doc;
 
 		// Manually extract doc data to avoid deprecated toJSON method
-		const docData: Record< string, unknown > = {};
-		ydoc.share.forEach( ( value, key ) => {
-			docData[ key ] = value.toJSON();
-		} );
+		const docData: Record< string, unknown > = Object.fromEntries(
+			Array.from( ydoc.share, ( [ key, value ] ) => [ key, value.toJSON() ] )
+		);
 
 		// Build userMap from awareness store (all users seen this session)
 		const { getSeenUsers } = select( awarenessStore );
