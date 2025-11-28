@@ -33,7 +33,7 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 	 * Returns the message to use when logging to Logger.
 	 */
 	protected getLoggerMessage(): string {
-		return 'Multi-user session logged';
+		return 'Session stats logged';
 	}
 
 	/**

@@ -176,6 +176,7 @@ export class SessionActivityManager {
 						this.storeSessionReactivatingUserId();
 					}
 
+					this.logger.info( 'Session was reactivated due to user activity' );
 					this.initializeSessionStatsData();
 				}
 
@@ -347,6 +348,7 @@ export class SessionActivityManager {
 			return;
 		}
 
+		this.logger.info( `Session expired due to user inactivity after ${ SESSION_TIMEOUT_IN_SEC } seconds` );
 		this.logSessionStats( true );
 	}
 
