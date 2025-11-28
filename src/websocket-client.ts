@@ -227,12 +227,21 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				};
 			}
 
+			await connect();
+
 			if ( awareness ) {
+				// Wait for initial sync before initializing awareness.
+				await new Promise< void >( ( resolve ) => {
+					provider.once( 'sync', ( isSynced: boolean ) => {
+						if ( isSynced ) {
+							resolve();
+						}
+					} );
+				} );
+
 				logger.debug( 'Initializing awareness for WebSocket connection', { objectType, objectId } );
 				await AwarenessManager.initialize( awareness );
 			}
-
-			await connect();
 
 			return {
 				destroy: () => provider.destroy(),

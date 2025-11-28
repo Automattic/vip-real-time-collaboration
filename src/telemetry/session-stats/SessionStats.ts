@@ -25,6 +25,7 @@ export type SessionStatsSchema = {
 	sessionInitializerClientId: number | null;
 	sessionTimeLastActivity: number | null;
 	sessionTimeStart: number | null;
+	sessionExpired: boolean;
 };
 
 /**
@@ -37,10 +38,6 @@ type SessionStatsKey = keyof SessionStatsSchema;
  */
 export class SessionStats {
 	private sessionMap: Y.Map< unknown >;
-	private hasCompletedInitialSync = false;
-	private hasReceivedRemoteDocumentUpdate = false;
-	private sessionMapObserver?: ( event: Y.YMapEvent< unknown > ) => void;
-	private remoteSessionCheckTimeout?: NodeJS.Timeout;
 
 	/**
 	 * Initializes the class.
@@ -54,81 +51,6 @@ export class SessionStats {
 		}
 
 		this.sessionMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
-		this.checkForExistingSession();
-	}
-
-	/**
-	 * Checks for an existing session by observing the session map for a short
-	 * period of time.
-	 */
-	private checkForExistingSession(): void {
-		this.cleanupRemoteSessionObserver();
-		this.hasReceivedRemoteDocumentUpdate = false;
-
-		// Check for session existence locally.
-		const isRecording = this.sessionMap.get( 'isRecordingStats' );
-		if ( isRecording !== undefined ) {
-			this.hasCompletedInitialSync = true;
-			return;
-		}
-
-		// Check for session existence via remote updates.
-		this.sessionMapObserver = ( event: Y.YMapEvent< unknown > ) => {
-			if ( event.transaction.local ) {
-				return;
-			}
-
-			if ( event.keysChanged.has( 'isRecordingStats' ) ) {
-				const isRecording = this.sessionMap.get( 'isRecordingStats' );
-
-				if ( true === isRecording ) {
-					this.endRemoteSessionObservation();
-				}
-			}
-		};
-
-		this.sessionMap.observe( this.sessionMapObserver );
-
-		// End the observation after a delay.
-		this.remoteSessionCheckTimeout = setTimeout( () => {
-			if ( this.hasCompletedInitialSync ) {
-				return;
-			}
-
-			if ( this.hasReceivedRemoteDocumentUpdate ) {
-				// We've received remote updates but no session init; wait a bit longer.
-				this.remoteSessionCheckTimeout = setTimeout( () => {
-					// Extended timeout expired (no existing session detected).
-					this.endRemoteSessionObservation();
-				}, 750 );
-			} else {
-				// No remote updates received at all.
-				this.endRemoteSessionObservation();
-			}
-		}, 750 );
-	}
-
-	/**
-	 * Ends the remote session observation.
-	 */
-	private endRemoteSessionObservation(): void {
-		this.cleanupRemoteSessionObserver();
-		this.hasCompletedInitialSync = true;
-	}
-
-	/**
-	 * Cleans up the remote session observer and timeout.
-	 */
-	private cleanupRemoteSessionObserver(): void {
-		if ( this.sessionMapObserver ) {
-			this.sessionMap.unobserve( this.sessionMapObserver );
-			this.sessionMapObserver = undefined;
-		}
-
-		if ( this.remoteSessionCheckTimeout ) {
-			clearTimeout( this.remoteSessionCheckTimeout );
-			this.remoteSessionCheckTimeout = undefined;
-		}
 	}
 
 	/**
@@ -243,19 +165,6 @@ export class SessionStats {
 	}
 
 	/**
-	 * Returns whether a new session can be initialized.
-	 *
-	 * @returns True if a new session can be initialized, false otherwise
-	 */
-	public canInitializeNewSession(): boolean {
-		if ( ! this.hasCompletedInitialSync ) {
-			return false;
-		}
-
-		return ! this.isRecordingStats();
-	}
-
-	/**
 	 * Returns last activity timestamp in milliseconds, or null if not set.
 	 */
 	public getLastActivityTime(): number | null {
@@ -270,10 +179,17 @@ export class SessionStats {
 	}
 
 	/**
+	 * Returns whether the session is expired.
+	 */
+	public isSessionExpired(): boolean {
+		return this.get( 'sessionExpired' ) ?? false;
+	}
+
+	/**
 	 * Updates the last activity timestamp to the current time.
 	 */
 	public updateLastActivityTime(): void {
-		if ( ! this.isLeader() ) {
+		if ( ! this.isStateCoordinator() ) {
 			return;
 		}
 
@@ -283,10 +199,18 @@ export class SessionStats {
 	}
 
 	/**
-	 * Notifies of a remote document update.
+	 * Sets whether the session is expired.
+	 *
+	 * @param expired Whether the session is expired
 	 */
-	public notifyRemoteDocumentUpdate(): void {
-		this.hasReceivedRemoteDocumentUpdate = true;
+	public setSessionExpired( expired: boolean ): void {
+		if ( ! this.isStateCoordinator() ) {
+			return;
+		}
+
+		this.awareness.doc.transact( () => {
+			this.set( 'sessionExpired', expired );
+		}, SESSION_STATS_ORIGIN );
 	}
 
 	/**
@@ -300,11 +224,11 @@ export class SessionStats {
 			return false;
 		}
 
-		if ( ! this.canInitializeNewSession() ) {
+		if ( this.isRecordingStats() ) {
 			return false;
 		}
 
-		if ( ! this.isLeader() ) {
+		if ( ! this.isSessionOwner() ) {
 			return false;
 		}
 
@@ -317,6 +241,7 @@ export class SessionStats {
 				this.set( 'sessionTimeLastActivity', timestamp );
 				this.set( 'sessionTimeStart', timestamp );
 				this.set( 'sessionInitializerClientId', this.awareness.clientID );
+				this.set( 'sessionExpired', false );
 
 				// Initialize allUserIds map.
 				const allUserIds = new Y.Map< boolean >();
@@ -359,6 +284,7 @@ export class SessionStats {
 
 			try {
 				sessionStats = {
+					expiredByInactivity: this.isSessionExpired(),
 					postId: this.getCurrentPostId(),
 					sessionDuration: this.getSessionDuration(),
 					timestamp: Date.now(),
@@ -386,34 +312,49 @@ export class SessionStats {
 	}
 
 	/**
-	 * Determines if the current client is the leader for a given operation.
+	 * Returns whether the current client is the one coordinating shared state
+	 * updates.
 	 *
-	 * Leader election follows these rules:
-	 * 1. If a preferred leader ID is provided and that client is connected, use it
-	 * 2. Otherwise, the client with the lowest ID among connected clients is the leader
+	 * Uses the lowest client ID among connected clients to prevent write conflicts
+	 * when multiple clients attempt to update shared state simultaneously.
 	 *
-	 * @param preferredLeaderId Client ID to prefer as leader
-	 * @returns True if the current client is the leader, false otherwise
+	 * @returns True if the current client is the state coordinator, false otherwise
 	 */
-	public isLeader( preferredLeaderId?: number | null ): boolean {
-		const currentClientId = this.awareness.clientID;
+	private isStateCoordinator(): boolean {
 		const connectedClientIds = Array.from( this.awareness.getStates().keys() );
 
 		if ( 0 === connectedClientIds.length ) {
 			return false;
 		}
 
-		// If a preferred leader is specified and connected, check if we're that client.
-		if ( preferredLeaderId !== null && preferredLeaderId !== undefined ) {
-			const isPreferredConnected = connectedClientIds.includes( preferredLeaderId );
-			if ( isPreferredConnected ) {
-				return currentClientId === preferredLeaderId;
+		const lowestClientId = Math.min( ...connectedClientIds );
+		return this.awareness.clientID === lowestClientId;
+	}
+
+	/**
+	 * Returns whether the current client owns the session lifecycle.
+	 *
+	 * The session owner is responsible for initializing and logging the session.
+	 * Ownership is sticky: the client that initialized the session remains the
+	 * owner as long as they're connected. If they disconnect, ownership falls
+	 * back to the lowest connected client ID.
+	 *
+	 * @returns True if the current client is the session owner, false otherwise
+	 */
+	public isSessionOwner(): boolean {
+		const initializerId = this.getSessionInitializerClientId();
+
+		// If there's a session owner and they're still connected, only they can act.
+		if ( initializerId !== null ) {
+			const isInitializerConnected = this.awareness.getStates().has( initializerId );
+
+			if ( isInitializerConnected ) {
+				return this.awareness.clientID === initializerId;
 			}
 		}
 
-		// Fallback: Use lowest client ID as leader.
-		const lowestClientId = Math.min( ...connectedClientIds );
-		return currentClientId === lowestClientId;
+		// No owner, or the owner has disconnected; use state coordinator logic.
+		return this.isStateCoordinator();
 	}
 
 	/**
@@ -492,12 +433,5 @@ export class SessionStats {
 		this.awareness.doc.transact( () => {
 			activeUserIds.set( key, true );
 		}, SESSION_STATS_ORIGIN );
-	}
-
-	/**
-	 * Cleans up resources used by the SessionStats instance.
-	 */
-	public destroy(): void {
-		this.cleanupRemoteSessionObserver();
 	}
 }

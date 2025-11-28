@@ -53,6 +53,7 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			event: 'real-time collaboration session',
 			timestamp: stats.timestamp,
 			properties: {
+				expiredByInactivity: stats.expiredByInactivity,
 				postId: stats.postId,
 				sessionDuration: stats.sessionDuration,
 				usersActive: stats.usersActive,

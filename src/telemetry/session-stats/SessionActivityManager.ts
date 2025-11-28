@@ -95,44 +95,39 @@ export class SessionActivityManager {
 				currentUserCount !== previousUserCount ||
 				! areUserSetsEqual( previousUserIds, currentUserIdsSet );
 
-			// Initialize session stats after the leader observation period
-			// completes and we have 2+ users.
-			if ( ! userCompositionChanged && currentUserCount >= 2 ) {
-				if ( this.sessionStats.canInitializeNewSession() ) {
-					const preferredLeaderId = this.sessionStats.getSessionInitializerClientId();
+			const updateUserData = () => {
+				previousUserCount = currentUserCount;
+				previousUserIds = currentUserIdsSet;
+			};
 
-					if ( this.sessionStats.isLeader( preferredLeaderId ) ) {
-						this.logger.debug( 'Initializing session stats after observation completed' );
-						this.initializeSessionStatsData( connectedUserIds );
-					}
+			// Skip further processing if session has expired (only document
+			// updates should reactivate the session).
+			if ( this.sessionStats.isSessionExpired() ) {
+				if ( userCompositionChanged ) {
+					updateUserData();
 				}
+
+				return;
 			}
 
 			if ( ! userCompositionChanged ) {
 				return;
 			}
 
-			// Transition from 1 user to 2+ users: Initialize session.
-			if (
-				( previousUserCount === undefined || previousUserCount <= 1 ) &&
-				currentUserCount >= 2
-			) {
+			// Detect transition from 1 user to 2+ users: Initialize session.
+			if ( ( previousUserCount === undefined || previousUserCount <= 1 ) && currentUserCount >= 2 ) {
 				// Cancel any pending log timeout since we're going back to 2+ users.
 				if ( this.logSessionTimeout ) {
 					clearTimeout( this.logSessionTimeout );
 					this.logSessionTimeout = undefined;
 				}
 
-				if ( this.sessionStats.canInitializeNewSession() ) {
-					const preferredLeaderId = this.sessionStats.getSessionInitializerClientId();
-
-					if ( this.sessionStats.isLeader( preferredLeaderId ) ) {
-						this.initializeSessionStatsData( connectedUserIds );
-					}
+				if ( this.sessionStats.isSessionOwner() ) {
+					this.initializeSessionStatsData( connectedUserIds );
 				}
 			}
 
-			// Transition from 2+ users to 1 user: Schedule session stats logging.
+			// Detect transition from 2+ users to 1 user: Initiate logging.
 			if ( previousUserCount !== undefined && previousUserCount >= 2 && currentUserCount <= 1 ) {
 				this.inactivityTimer.stop();
 				this.scheduleSessionStatsLogging();
@@ -143,8 +138,7 @@ export class SessionActivityManager {
 				this.sessionStats.addUsersToAllUsers( connectedUserIds );
 			}
 
-			previousUserCount = currentUserCount;
-			previousUserIds = currentUserIdsSet;
+			updateUserData();
 		};
 
 		this.awareness.on( 'change', this.awarenessChangeHandler );
@@ -164,8 +158,6 @@ export class SessionActivityManager {
 			doc: Y.Doc,
 			transaction: Y.Transaction
 		) => {
-			this.sessionStats.notifyRemoteDocumentUpdate();
-
 			if ( origin === SESSION_STATS_ORIGIN ) {
 				return;
 			}
@@ -175,13 +167,11 @@ export class SessionActivityManager {
 			}
 
 			// Initialize new session if the previous one got logged due to inactivity.
-			if ( this.sessionStats.canInitializeNewSession() ) {
+			if ( ! this.sessionStats.isRecordingStats() ) {
 				if ( getConnectedUserCount() >= 2 ) {
 					this.initializeSessionStatsData();
 				}
-			}
 
-			if ( ! this.sessionStats.isRecordingStats() ) {
 				return;
 			}
 
@@ -285,7 +275,7 @@ export class SessionActivityManager {
 			return;
 		}
 
-		this.logSessionStats();
+		this.logSessionStats( true );
 	}
 
 	/**
@@ -346,8 +336,10 @@ export class SessionActivityManager {
 
 	/**
 	 * Calls SessionLogger to log the session's stats.
+	 *
+	 * @param expiredByInactivity Whether the session expired due to inactivity
 	 */
-	private logSessionStats(): void {
+	private logSessionStats( expiredByInactivity = false ): void {
 		if ( this.isLoggingInProgress ) {
 			return;
 		}
@@ -356,24 +348,20 @@ export class SessionActivityManager {
 			return;
 		}
 
-		const sessionInitializerClientId = this.sessionStats.getSessionInitializerClientId();
-		if ( sessionInitializerClientId === null ) {
-			return;
-		}
-
-		if ( ! this.sessionStats.isLeader( sessionInitializerClientId ) ) {
+		if ( ! this.sessionStats.isSessionOwner() ) {
 			return;
 		}
 
 		this.isLoggingInProgress = true;
 
 		try {
+			this.sessionStats.setSessionExpired( expiredByInactivity );
+
 			const sessionLogger = new SessionStatsTelemetryLogger( this.sessionStats, this.logger );
 
 			sessionLogger.logToLogger();
 			sessionLogger.logToPendo();
 		} finally {
-			// Always reset the flag, even if logging fails.
 			this.isLoggingInProgress = false;
 		}
 	}
@@ -396,7 +384,5 @@ export class SessionActivityManager {
 		if ( this.documentUpdateHandler ) {
 			this.awareness.doc.off( 'update', this.documentUpdateHandler );
 		}
-
-		this.sessionStats.destroy();
 	}
 }

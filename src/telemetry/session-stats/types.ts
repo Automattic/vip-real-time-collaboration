@@ -2,6 +2,7 @@
  * Defines the structure of a session stats export.
  */
 export type SessionStatsExport = {
+	expiredByInactivity: boolean;
 	postId: PostId;
 	sessionDuration: number;
 	timestamp: number;
