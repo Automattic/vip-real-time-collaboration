@@ -1,8 +1,17 @@
-.vip-collaboration-mode-button.has-icon {
-	color: #fff;
-	width: 32px;
-	height: 32px;
-	min-width: 32px;
+@use "@wordpress/base-styles/colors" as *;
+
+.vip-collaboration-mode-button {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+	background: $gray-100;
+	padding: 4px;
+	position: relative;
+	border-radius: inherit;
+
+	&:hover {
+		background: $gray-200;
+	}
 }
 
 .vip-collaboration-mode-popover.components-popover .components-popover__content {
@@ -71,13 +80,13 @@
 		flex-direction: column;
 		gap: 4px;
 		flex: 1;
-	
+
 		.vip-collaboration-mode-menu-item-title {
 			font-size: 13px;
 			line-height: 20px;
 			color: #1e1e1e;
 		}
-		
+
 		.vip-collaboration-mode-menu-item-description {
 			font-size: 12px;
 			line-height: 16px;

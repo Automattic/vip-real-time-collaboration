@@ -7,7 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatars } from './avatars';
-import { CollaborationModePicker } from './collaboration-mode/collaboration-mode-picker';
+import { CollaborationModePicker } from './collaboration-mode-picker';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -17,6 +17,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
+import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -68,6 +69,9 @@ export function RTCSettingsPanel() {
 	// A single instance of the cursor registry is shared between Avatars and
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
+
+	// Manage read-only state for the code editor.
+	useModifyCodeEditor();
 
 	return (
 		<>
