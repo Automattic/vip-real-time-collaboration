@@ -37,6 +37,7 @@ export class SessionActivityManager {
 	private sessionStats: SessionStats;
 	private isLoggingInProgress = false;
 	private logSessionTimeout?: NodeJS.Timeout;
+	private sessionReactivatingUserId: number | null = null;
 
 	private awarenessChangeHandler?: () => void;
 	private documentUpdateHandler?: (
@@ -45,6 +46,7 @@ export class SessionActivityManager {
 		doc: Y.Doc,
 		transaction: Y.Transaction
 	) => void;
+	private sessionStatsObserver?: () => void;
 
 	/**
 	 * Creates a SessionActivityManager instance, initializes the session
@@ -64,6 +66,7 @@ export class SessionActivityManager {
 
 		this.subscribeToUserChanges();
 		this.subscribeToDocumentChanges();
+		this.subscribeToSessionStatsChanges();
 	}
 
 	/**
@@ -169,35 +172,104 @@ export class SessionActivityManager {
 			// Initialize new session if the previous one got logged due to inactivity.
 			if ( ! this.sessionStats.isRecordingStats() ) {
 				if ( getConnectedUserCount() >= 2 ) {
+					if ( transaction.local ) {
+						this.storeSessionReactivatingUserId();
+					}
+
 					this.initializeSessionStatsData();
 				}
 
-				return;
+				// Non-owners wait for session sync before continuing.
+				if ( ! this.sessionStats.isRecordingStats() ) {
+					return;
+				}
 			}
 
 			this.inactivityTimer.restart();
 			this.sessionStats.updateLastActivityTime();
 
-			// If this is a local change, mark the originating user as active.
 			if ( transaction.local ) {
-				try {
-					const { getActiveUsers } = select( awarenessStore );
-					const currentUser = getActiveUsers().get( this.awareness.clientID );
-
-					if ( currentUser?.userInfo?.isMe ) {
-						const userId = currentUser.userInfo.id;
-
-						if ( isPositiveInteger( userId ) ) {
-							this.sessionStats.addUserToActiveUsers( userId );
-						}
-					}
-				} catch ( error ) {
-					this.logger.debug( 'Failed to resolve current user', error );
-				}
+				this.markCurrentUserAsActive();
 			}
 		};
 
 		this.awareness.doc.on( 'update', this.documentUpdateHandler );
+	}
+
+	/**
+	 * Subscribes to session stats map changes.
+	 */
+	private subscribeToSessionStatsChanges(): void {
+		const sessionStatsMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
+
+		this.sessionStatsObserver = () => {
+			this.markSessionReactivatingUserAsActive();
+		};
+
+		sessionStatsMap.observe( this.sessionStatsObserver );
+	}
+
+	/**
+	 * Stores the current user's ID as the session's reactivating user.
+	 *
+	 * Called when a local change triggers session reactivation. The stored ID
+	 * will be used to mark the user as active once the session is initialized.
+	 */
+	private storeSessionReactivatingUserId(): void {
+		this.sessionReactivatingUserId = this.getCurrentUserId();
+	}
+
+	/**
+	 * Marks the session's reactivating user as active.
+	 */
+	private markSessionReactivatingUserAsActive(): void {
+		if ( this.sessionReactivatingUserId === null ) {
+			return;
+		}
+
+		if ( ! this.sessionStats.isRecordingStats() ) {
+			return;
+		}
+
+		this.sessionStats.addUserToActiveUsers( this.sessionReactivatingUserId );
+		this.sessionReactivatingUserId = null;
+	}
+
+	/**
+	 * Marks the current user as active.
+	 */
+	private markCurrentUserAsActive(): void {
+		if ( ! this.sessionStats.isRecordingStats() ) {
+			return;
+		}
+
+		const userId = this.getCurrentUserId();
+
+		if ( userId !== null ) {
+			this.sessionStats.addUserToActiveUsers( userId );
+		}
+	}
+
+	/**
+	 * Returns the current user's WordPress user ID, or null if unavailable.
+	 */
+	private getCurrentUserId(): number | null {
+		try {
+			const { getActiveUsers } = select( awarenessStore );
+			const currentUser = getActiveUsers().get( this.awareness.clientID );
+
+			if ( currentUser?.userInfo?.isMe ) {
+				const userId = currentUser.userInfo.id;
+
+				if ( isPositiveInteger( userId ) ) {
+					return userId;
+				}
+			}
+		} catch ( error ) {
+			this.logger.debug( 'Failed to get current user ID', error );
+		}
+
+		return null;
 	}
 
 	/**
@@ -383,6 +455,11 @@ export class SessionActivityManager {
 
 		if ( this.documentUpdateHandler ) {
 			this.awareness.doc.off( 'update', this.documentUpdateHandler );
+		}
+
+		if ( this.sessionStatsObserver ) {
+			const sessionStatsMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
+			sessionStatsMap.unobserve( this.sessionStatsObserver );
 		}
 	}
 }
