@@ -20,6 +20,7 @@ describe( 'telemetry/session-stats/utils', () => {
 			namedExports: { store: 'mock-awareness-store' },
 		} );
 
+		// @ts-expect-error: TS1323 Dynamic import.
 		const utils = await import( '@/telemetry/session-stats/utils' );
 		isPositiveInteger = utils.isPositiveInteger;
 		isUserConnected = utils.isUserConnected;

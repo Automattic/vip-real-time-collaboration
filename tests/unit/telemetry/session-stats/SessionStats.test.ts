@@ -2,8 +2,8 @@ import assert from 'node:assert';
 import { afterEach, before, beforeEach, describe, it, mock, type Mock } from 'node:test';
 import * as Y from 'yjs';
 
-import type { Awareness } from 'y-protocols/awareness';
 import type { Logger } from '@/utilities/logger';
+import type { Awareness } from 'y-protocols/awareness';
 
 describe( 'SessionStats', () => {
 	let SessionStats: typeof import('@/telemetry/session-stats/SessionStats').SessionStats;
@@ -42,6 +42,7 @@ describe( 'SessionStats', () => {
 			namedExports: { isDevelopment: () => true },
 		} );
 
+		// @ts-expect-error: TS1323 Dynamic import.
 		const module = await import( '@/telemetry/session-stats/SessionStats' );
 		SessionStats = module.SessionStats;
 	} );

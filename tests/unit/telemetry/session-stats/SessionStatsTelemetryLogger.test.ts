@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import { before, beforeEach, describe, it, mock, type Mock } from 'node:test';
 
-import type { Logger } from '@/utilities/logger';
 import type { SessionStatsExport } from '@/telemetry/session-stats/types';
+import type { Logger } from '@/utilities/logger';
 
 describe( 'SessionStatsTelemetryLogger', () => {
 	let SessionStatsTelemetryLogger: typeof import('@/telemetry/session-stats/SessionStatsTelemetryLogger').SessionStatsTelemetryLogger;
@@ -16,6 +16,7 @@ describe( 'SessionStatsTelemetryLogger', () => {
 			namedExports: { isDevelopment: () => true },
 		} );
 
+		// @ts-expect-error: TS1323 Dynamic import.
 		const module = await import( '@/telemetry/session-stats/SessionStatsTelemetryLogger' );
 		SessionStatsTelemetryLogger = module.SessionStatsTelemetryLogger;
 	} );

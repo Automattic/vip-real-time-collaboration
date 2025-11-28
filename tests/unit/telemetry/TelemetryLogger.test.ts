@@ -74,7 +74,7 @@ describe( 'TelemetryLogger', () => {
 	let mockLoggerInfo: Mock< ( ...args: unknown[] ) => void >;
 	let mockLoggerDebug: Mock< ( ...args: unknown[] ) => void >;
 
-	before( async () => {
+	before( () => {
 		mock.module( '@/utilities/config', {
 			namedExports: { isDevelopment: () => true },
 		} );
