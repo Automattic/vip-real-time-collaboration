@@ -118,7 +118,10 @@ export class SessionActivityManager {
 			}
 
 			// Detect transition from 1 user to 2+ users: Initialize session.
-			if ( ( previousUserCount === undefined || previousUserCount <= 1 ) && currentUserCount >= 2 ) {
+			if (
+				( previousUserCount === undefined || previousUserCount <= 1 ) &&
+				currentUserCount >= 2
+			) {
 				// Cancel any pending log timeout since we're going back to 2+ users.
 				if ( this.logSessionTimeout ) {
 					clearTimeout( this.logSessionTimeout );
@@ -348,7 +351,9 @@ export class SessionActivityManager {
 			return;
 		}
 
-		this.logger.info( `Session expired due to user inactivity after ${ SESSION_TIMEOUT_IN_SEC } seconds` );
+		this.logger.info(
+			`Session expired due to user inactivity after ${ SESSION_TIMEOUT_IN_SEC } seconds`
+		);
 		this.logSessionStats( true );
 	}
 

@@ -231,7 +231,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			if ( awareness ) {
 				// Wait for initial sync before initializing awareness.
-				await new Promise< void >( ( resolve ) => {
+				await new Promise< void >( resolve => {
 					provider.once( 'sync', ( isSynced: boolean ) => {
 						if ( isSynced ) {
 							resolve();
