@@ -3,6 +3,7 @@
  */
 import { SessionStatsExport } from './types';
 import { TelemetryLogger, type TelemetryData } from '../TelemetryLogger';
+import { isDevelopment } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 
 import type { SessionStats } from './SessionStats';
@@ -11,7 +12,7 @@ import type { SessionStats } from './SessionStats';
  * Defines the structure of session stats telemetry.
  */
 type SessionStatsTelemetryData = TelemetryData & {
-	event: 'real-time collaboration session';
+	event: 'real-time collaboration session' | 'devtest: real-time collaboration session';
 	properties: Omit< SessionStatsExport, 'timestamp' >;
 };
 
@@ -48,9 +49,11 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			return null;
 		}
 
+		const eventPrefix = isDevelopment() ? 'devtest: ' : '';
+
 		return {
 			type: 'track',
-			event: 'real-time collaboration session',
+			event: `${ eventPrefix }real-time collaboration session`,
 			timestamp: stats.timestamp,
 			properties: {
 				expiredByInactivity: stats.expiredByInactivity,

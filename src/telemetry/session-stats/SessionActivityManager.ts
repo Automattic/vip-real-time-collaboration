@@ -438,8 +438,9 @@ export class SessionActivityManager {
 
 			const sessionLogger = new SessionStatsTelemetryLogger( this.sessionStats, this.logger );
 
+			// Fire async Pendo logging without awaiting to avoid blocking.
+			void sessionLogger.logToPendo();
 			sessionLogger.logToLogger();
-			sessionLogger.logToPendo();
 		} finally {
 			this.isLoggingInProgress = false;
 		}
