@@ -22,6 +22,7 @@ final class TelemetryApiController extends WP_REST_Controller {
 	/**
 	 * Register REST API routes.
 	 */
+	#[\Override]
 	public function register_routes(): void {
 		register_rest_route(
 			$this->namespace,
@@ -113,14 +114,18 @@ final class TelemetryApiController extends WP_REST_Controller {
 			'sessionTimeLastActivity' => 'session_time_last_activity',
 		];
 		foreach ( $optional_fields as $camel_case => $snake_case ) {
+			/** @psalm-suppress MixedAssignment */
 			$value = $request->get_param( $camel_case );
 			if ( null !== $value ) {
+				/** @psalm-suppress MixedAssignment */
 				$session_stats[ $snake_case ] = $value;
 			}
 		}
 
 		// Use VIP Telemetry Library to record event.
+		/** @psalm-suppress UndefinedClass */
 		$pendo = new \Automattic\VIP\Telemetry\Pendo();
+		/** @psalm-suppress UndefinedClass, MixedAssignment */
 		$result = $pendo->record_event( 'real_time_collaboration_session', $session_stats );
 
 		if ( is_wp_error( $result ) ) {
@@ -162,6 +167,7 @@ final class TelemetryApiController extends WP_REST_Controller {
 			);
 		}
 
+		/** @psalm-suppress MixedAssignment */
 		$post_id = $_request->get_param( 'postId' );
 
 		if ( false === filter_var( $post_id, FILTER_VALIDATE_INT ) || intval( $post_id ) <= 0 ) {

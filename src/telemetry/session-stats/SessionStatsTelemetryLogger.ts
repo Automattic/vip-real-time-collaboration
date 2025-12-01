@@ -3,8 +3,8 @@
  */
 import { SessionStatsExport } from './types';
 import { TelemetryLogger, type TelemetryData } from '../TelemetryLogger';
-import { Logger } from '@/utilities/logger';
 import { isDevelopment } from '@/utilities/config';
+import { Logger } from '@/utilities/logger';
 
 import type { SessionStats } from './SessionStats';
 

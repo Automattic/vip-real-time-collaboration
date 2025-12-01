@@ -1,13 +1,13 @@
 /**
+ * WordPress dependencies
+ */
+import apiFetch from '@wordpress/api-fetch';
+
+/**
  * Internal dependencies
  */
 import { isDevelopment } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
-
-/**
- * WordPress dependencies
- */
-import apiFetch from '@wordpress/api-fetch';
 
 /**
  * Base structure for telemetry data.
