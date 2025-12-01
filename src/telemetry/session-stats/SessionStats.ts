@@ -25,6 +25,7 @@ export type SessionStatsSchema = {
 	sessionInitializerClientId: number | null;
 	sessionTimeLastActivity: number | null;
 	sessionTimeStart: number | null;
+	sessionExpired: boolean;
 };
 
 /**
@@ -37,7 +38,6 @@ type SessionStatsKey = keyof SessionStatsSchema;
  */
 export class SessionStats {
 	private sessionMap: Y.Map< unknown >;
-	private lastInitializationTime = 0;
 
 	/**
 	 * Initializes the class.
@@ -96,13 +96,6 @@ export class SessionStats {
 	}
 
 	/**
-	 * Returns the maximum number of users reached during the session.
-	 */
-	private getMaxUserCount(): number {
-		return this.getAllUserIds()?.size ?? 0;
-	}
-
-	/**
 	 * Returns the number of active users in the session.
 	 *
 	 * A user is considered active if they have performed content changes during
@@ -116,7 +109,14 @@ export class SessionStats {
 	 * Returns the number of inactive users in the session.
 	 */
 	private getInactiveUserCount(): number {
-		return Math.max( 0, this.getMaxUserCount() - this.getActiveUserCount() );
+		return Math.max( 0, this.getTotalUserCount() - this.getActiveUserCount() );
+	}
+
+	/**
+	 * Returns the total number of users reached during the session.
+	 */
+	private getTotalUserCount(): number {
+		return this.getAllUserIds()?.size ?? 0;
 	}
 
 	/**
@@ -131,7 +131,15 @@ export class SessionStats {
 			return 0;
 		}
 
-		const durationMs = Date.now() - sessionStartTime;
+		const lastActivityTime = this.getLastActivityTime();
+
+		if ( ! lastActivityTime ) {
+			this.logger.debug( 'Session last activity time is missing' );
+
+			return 0;
+		}
+
+		const durationMs = lastActivityTime - sessionStartTime;
 
 		return Math.floor( durationMs / 1000 );
 	}
@@ -171,15 +179,37 @@ export class SessionStats {
 	}
 
 	/**
+	 * Returns whether the session is expired.
+	 */
+	public isSessionExpired(): boolean {
+		return this.get( 'sessionExpired' ) ?? false;
+	}
+
+	/**
 	 * Updates the last activity timestamp to the current time.
 	 */
 	public updateLastActivityTime(): void {
-		if ( ! this.isLeader() ) {
+		if ( ! this.isStateCoordinator() ) {
 			return;
 		}
 
 		this.awareness.doc.transact( () => {
 			this.set( 'sessionTimeLastActivity', Date.now() );
+		}, SESSION_STATS_ORIGIN );
+	}
+
+	/**
+	 * Sets whether the session is expired.
+	 *
+	 * @param expired Whether the session is expired
+	 */
+	public setSessionExpired( expired: boolean ): void {
+		if ( ! this.isStateCoordinator() ) {
+			return;
+		}
+
+		this.awareness.doc.transact( () => {
+			this.set( 'sessionExpired', expired );
 		}, SESSION_STATS_ORIGIN );
 	}
 
@@ -194,21 +224,13 @@ export class SessionStats {
 			return false;
 		}
 
-		if ( ! this.isLeader() ) {
-			return false;
-		}
-
 		if ( this.isRecordingStats() ) {
 			return false;
 		}
 
-		// Prevent rapid re-initialization (e.g. quick disconnect/reconnect).
-		const now = Date.now();
-		if ( now - this.lastInitializationTime < 100 ) {
+		if ( ! this.isSessionOwner() ) {
 			return false;
 		}
-
-		this.lastInitializationTime = now;
 
 		let initialized = false;
 
@@ -219,6 +241,7 @@ export class SessionStats {
 				this.set( 'sessionTimeLastActivity', timestamp );
 				this.set( 'sessionTimeStart', timestamp );
 				this.set( 'sessionInitializerClientId', this.awareness.clientID );
+				this.set( 'sessionExpired', false );
 
 				// Initialize allUserIds map.
 				const allUserIds = new Y.Map< boolean >();
@@ -237,8 +260,6 @@ export class SessionStats {
 				initialized = true;
 			}, SESSION_STATS_ORIGIN );
 		} catch ( error ) {
-			// Reset initialization timestamp to allow retry.
-			this.lastInitializationTime = 0;
 			this.logger.debug( 'Failed to initialize session stats', error );
 		}
 
@@ -263,14 +284,13 @@ export class SessionStats {
 
 			try {
 				sessionStats = {
+					expiredByInactivity: this.isSessionExpired(),
 					postId: this.getCurrentPostId(),
 					sessionDuration: this.getSessionDuration(),
-					sessionTimeLastActivity: this.getLastActivityTime(),
-					sessionTimeStart: this.getSessionStartTime(),
 					timestamp: Date.now(),
 					usersActive: this.getActiveUserCount(),
 					usersInactive: this.getInactiveUserCount(),
-					usersMax: this.getMaxUserCount(),
+					usersTotal: this.getTotalUserCount(),
 				};
 
 				// Reset after successful data collection.
@@ -279,9 +299,6 @@ export class SessionStats {
 				this.set( 'sessionInitializerClientId', null );
 				this.set( 'sessionTimeLastActivity', null );
 				this.set( 'sessionTimeStart', null );
-
-				// Reset initialization timestamp to allow new session to start immediately.
-				this.lastInitializationTime = 0;
 			} catch ( error ) {
 				this.logger.debug( 'Failed to export session data', error );
 
@@ -295,34 +312,49 @@ export class SessionStats {
 	}
 
 	/**
-	 * Determines if the current client is the leader for a given operation.
+	 * Returns whether the current client is the one coordinating shared state
+	 * updates.
 	 *
-	 * Leader election follows these rules:
-	 * 1. If a preferred leader ID is provided and that client is connected, use it
-	 * 2. Otherwise, the client with the lowest ID among connected clients is the leader
+	 * Uses the lowest client ID among connected clients to prevent write conflicts
+	 * when multiple clients attempt to update shared state simultaneously.
 	 *
-	 * @param preferredLeaderId Client ID to prefer as leader
-	 * @returns True if the current client is the leader, false otherwise
+	 * @returns True if the current client is the state coordinator, false otherwise
 	 */
-	public isLeader( preferredLeaderId?: number | null ): boolean {
-		const currentClientId = this.awareness.clientID;
+	private isStateCoordinator(): boolean {
 		const connectedClientIds = Array.from( this.awareness.getStates().keys() );
 
 		if ( 0 === connectedClientIds.length ) {
 			return false;
 		}
 
-		// If a preferred leader is specified and connected, check if we're that client.
-		if ( preferredLeaderId !== null && preferredLeaderId !== undefined ) {
-			const isPreferredConnected = connectedClientIds.includes( preferredLeaderId );
-			if ( isPreferredConnected ) {
-				return currentClientId === preferredLeaderId;
+		const lowestClientId = Math.min( ...connectedClientIds );
+		return this.awareness.clientID === lowestClientId;
+	}
+
+	/**
+	 * Returns whether the current client owns the session lifecycle.
+	 *
+	 * The session owner is responsible for initializing and logging the session.
+	 * Ownership is sticky: the client that initialized the session remains the
+	 * owner as long as they're connected. If they disconnect, ownership falls
+	 * back to the lowest connected client ID.
+	 *
+	 * @returns True if the current client is the session owner, false otherwise
+	 */
+	public isSessionOwner(): boolean {
+		const initializerId = this.getSessionInitializerClientId();
+
+		// If there's a session owner and they're still connected, only they can act.
+		if ( initializerId !== null ) {
+			const isInitializerConnected = this.awareness.getStates().has( initializerId );
+
+			if ( isInitializerConnected ) {
+				return this.awareness.clientID === initializerId;
 			}
 		}
 
-		// Fallback: Use lowest client ID as leader.
-		const lowestClientId = Math.min( ...connectedClientIds );
-		return currentClientId === lowestClientId;
+		// No owner, or the owner has disconnected; use state coordinator logic.
+		return this.isStateCoordinator();
 	}
 
 	/**

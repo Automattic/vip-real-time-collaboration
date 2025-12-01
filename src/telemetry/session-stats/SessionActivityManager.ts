@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { select } from '@wordpress/data';
+import { CRDT_RECORD_MAP_KEY as RECORD_KEY } from '@wordpress/sync';
 import * as Y from 'yjs';
 
 /**
@@ -36,6 +37,7 @@ export class SessionActivityManager {
 	private sessionStats: SessionStats;
 	private isLoggingInProgress = false;
 	private logSessionTimeout?: NodeJS.Timeout;
+	private sessionReactivatingUserId: number | null = null;
 
 	private awarenessChangeHandler?: () => void;
 	private documentUpdateHandler?: (
@@ -44,6 +46,7 @@ export class SessionActivityManager {
 		doc: Y.Doc,
 		transaction: Y.Transaction
 	) => void;
+	private sessionStatsObserver?: () => void;
 
 	/**
 	 * Creates a SessionActivityManager instance, initializes the session
@@ -63,6 +66,7 @@ export class SessionActivityManager {
 
 		this.subscribeToUserChanges();
 		this.subscribeToDocumentChanges();
+		this.subscribeToSessionStatsChanges();
 	}
 
 	/**
@@ -94,11 +98,26 @@ export class SessionActivityManager {
 				currentUserCount !== previousUserCount ||
 				! areUserSetsEqual( previousUserIds, currentUserIdsSet );
 
+			const updateUserData = () => {
+				previousUserCount = currentUserCount;
+				previousUserIds = currentUserIdsSet;
+			};
+
+			// Skip further processing if session has expired (only document
+			// updates should reactivate the session).
+			if ( this.sessionStats.isSessionExpired() ) {
+				if ( userCompositionChanged ) {
+					updateUserData();
+				}
+
+				return;
+			}
+
 			if ( ! userCompositionChanged ) {
 				return;
 			}
 
-			// Transition from 1 user to 2+ users: Initialize session.
+			// Detect transition from 1 user to 2+ users: Initialize session.
 			if (
 				( previousUserCount === undefined || previousUserCount <= 1 ) &&
 				currentUserCount >= 2
@@ -109,10 +128,12 @@ export class SessionActivityManager {
 					this.logSessionTimeout = undefined;
 				}
 
-				this.initializeSessionStatsData( connectedUserIds );
+				if ( this.sessionStats.isSessionOwner() ) {
+					this.initializeSessionStatsData( connectedUserIds );
+				}
 			}
 
-			// Transition from 2+ users to 1 user: Schedule session stats logging.
+			// Detect transition from 2+ users to 1 user: Initiate logging.
 			if ( previousUserCount !== undefined && previousUserCount >= 2 && currentUserCount <= 1 ) {
 				this.inactivityTimer.stop();
 				this.scheduleSessionStatsLogging();
@@ -123,8 +144,7 @@ export class SessionActivityManager {
 				this.sessionStats.addUsersToAllUsers( connectedUserIds );
 			}
 
-			previousUserCount = currentUserCount;
-			previousUserIds = currentUserIdsSet;
+			updateUserData();
 		};
 
 		this.awareness.on( 'change', this.awarenessChangeHandler );
@@ -155,9 +175,15 @@ export class SessionActivityManager {
 			// Initialize new session if the previous one got logged due to inactivity.
 			if ( ! this.sessionStats.isRecordingStats() ) {
 				if ( getConnectedUserCount() >= 2 ) {
+					if ( transaction.local ) {
+						this.storeSessionReactivatingUserId();
+					}
+
+					this.logger.info( 'Session was reactivated due to user activity' );
 					this.initializeSessionStatsData();
 				}
 
+				// Non-owners wait for session sync before continuing.
 				if ( ! this.sessionStats.isRecordingStats() ) {
 					return;
 				}
@@ -166,26 +192,88 @@ export class SessionActivityManager {
 			this.inactivityTimer.restart();
 			this.sessionStats.updateLastActivityTime();
 
-			// If this is a local change, mark the originating user as active.
 			if ( transaction.local ) {
-				try {
-					const { getActiveUsers } = select( awarenessStore );
-					const currentUser = getActiveUsers().get( this.awareness.clientID );
-
-					if ( currentUser?.userInfo?.isMe ) {
-						const userId = currentUser.userInfo.id;
-
-						if ( isPositiveInteger( userId ) ) {
-							this.sessionStats.addUserToActiveUsers( userId );
-						}
-					}
-				} catch ( error ) {
-					this.logger.debug( 'Failed to resolve current user', error );
-				}
+				this.markCurrentUserAsActive();
 			}
 		};
 
 		this.awareness.doc.on( 'update', this.documentUpdateHandler );
+	}
+
+	/**
+	 * Subscribes to session stats map changes.
+	 */
+	private subscribeToSessionStatsChanges(): void {
+		const sessionStatsMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
+
+		this.sessionStatsObserver = () => {
+			this.markSessionReactivatingUserAsActive();
+		};
+
+		sessionStatsMap.observe( this.sessionStatsObserver );
+	}
+
+	/**
+	 * Stores the current user's ID as the session's reactivating user.
+	 *
+	 * Called when a local change triggers session reactivation. The stored ID
+	 * will be used to mark the user as active once the session is initialized.
+	 */
+	private storeSessionReactivatingUserId(): void {
+		this.sessionReactivatingUserId = this.getCurrentUserId();
+	}
+
+	/**
+	 * Marks the session's reactivating user as active.
+	 */
+	private markSessionReactivatingUserAsActive(): void {
+		if ( this.sessionReactivatingUserId === null ) {
+			return;
+		}
+
+		if ( ! this.sessionStats.isRecordingStats() ) {
+			return;
+		}
+
+		this.sessionStats.addUserToActiveUsers( this.sessionReactivatingUserId );
+		this.sessionReactivatingUserId = null;
+	}
+
+	/**
+	 * Marks the current user as active.
+	 */
+	private markCurrentUserAsActive(): void {
+		if ( ! this.sessionStats.isRecordingStats() ) {
+			return;
+		}
+
+		const userId = this.getCurrentUserId();
+
+		if ( userId !== null ) {
+			this.sessionStats.addUserToActiveUsers( userId );
+		}
+	}
+
+	/**
+	 * Returns the current user's WordPress user ID, or null if unavailable.
+	 */
+	private getCurrentUserId(): number | null {
+		try {
+			const { getActiveUsers } = select( awarenessStore );
+			const currentUser = getActiveUsers().get( this.awareness.clientID );
+
+			if ( currentUser?.userInfo?.isMe ) {
+				const userId = currentUser.userInfo.id;
+
+				if ( isPositiveInteger( userId ) ) {
+					return userId;
+				}
+			}
+		} catch ( error ) {
+			this.logger.debug( 'Failed to get current user ID', error );
+		}
+
+		return null;
 	}
 
 	/**
@@ -199,6 +287,8 @@ export class SessionActivityManager {
 			return false;
 		}
 
+		const contentMap = this.awareness.doc.getMap( RECORD_KEY );
+
 		// Maps that should not contain any content changes.
 		const excludedMaps = new Set( [
 			this.awareness.doc.getMap( SESSION_STATS_ORIGIN ),
@@ -206,15 +296,28 @@ export class SessionActivityManager {
 			this.awareness.doc.getMap( 'metadata' ),
 		] );
 
-		// Determine if there are content changes in the transaction.
 		for ( const [ item ] of transaction.changed ) {
-			if ( item instanceof Y.Map ) {
-				if ( excludedMaps.has( item ) ) {
-					continue;
-				}
+			if ( item instanceof Y.Map && excludedMaps.has( item ) ) {
+				continue;
 			}
 
-			return true;
+			if ( item === contentMap ) {
+				return true;
+			}
+
+			// Walk up the parent chain to find content or excluded ancestors.
+			let current = item.parent;
+			while ( current ) {
+				if ( current === contentMap ) {
+					return true;
+				}
+
+				if ( current instanceof Y.Map && excludedMaps.has( current ) ) {
+					break;
+				}
+
+				current = current.parent;
+			}
 		}
 
 		return false;
@@ -248,20 +351,18 @@ export class SessionActivityManager {
 			return;
 		}
 
-		this.logSessionStats();
+		this.logger.info(
+			`Session expired due to user inactivity after ${ SESSION_TIMEOUT_IN_SEC } seconds`
+		);
+		this.logSessionStats( true );
 	}
 
 	/**
-	 * Initializes session stats data if stats aren't being recorded and there
-	 * are enough connected users.
+	 * Initializes session stats data.
 	 *
 	 * @param connectedUserIds Array of user IDs currently connected to the session
 	 */
 	private initializeSessionStatsData( connectedUserIds: number[] | null = null ): void {
-		if ( this.sessionStats.isRecordingStats() ) {
-			return;
-		}
-
 		if ( null === connectedUserIds ) {
 			connectedUserIds = getConnectedUserIds();
 		}
@@ -314,8 +415,10 @@ export class SessionActivityManager {
 
 	/**
 	 * Calls SessionLogger to log the session's stats.
+	 *
+	 * @param expiredByInactivity Whether the session expired due to inactivity
 	 */
-	private logSessionStats(): void {
+	private logSessionStats( expiredByInactivity = false ): void {
 		if ( this.isLoggingInProgress ) {
 			return;
 		}
@@ -324,25 +427,21 @@ export class SessionActivityManager {
 			return;
 		}
 
-		const sessionInitializerClientId = this.sessionStats.getSessionInitializerClientId();
-		if ( sessionInitializerClientId === null ) {
-			return;
-		}
-
-		if ( ! this.sessionStats.isLeader( sessionInitializerClientId ) ) {
+		if ( ! this.sessionStats.isSessionOwner() ) {
 			return;
 		}
 
 		this.isLoggingInProgress = true;
 
 		try {
+			this.sessionStats.setSessionExpired( expiredByInactivity );
+
 			const sessionLogger = new SessionStatsTelemetryLogger( this.sessionStats, this.logger );
 
 			// Fire async Pendo logging without awaiting to avoid blocking.
 			sessionLogger.logToPendo();
 			sessionLogger.logToLogger();
 		} finally {
-			// Always reset the flag, even if logging fails.
 			this.isLoggingInProgress = false;
 		}
 	}
@@ -364,6 +463,11 @@ export class SessionActivityManager {
 
 		if ( this.documentUpdateHandler ) {
 			this.awareness.doc.off( 'update', this.documentUpdateHandler );
+		}
+
+		if ( this.sessionStatsObserver ) {
+			const sessionStatsMap = this.awareness.doc.getMap( SESSION_STATS_ORIGIN );
+			sessionStatsMap.unobserve( this.sessionStatsObserver );
 		}
 	}
 }

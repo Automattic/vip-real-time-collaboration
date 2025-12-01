@@ -7,6 +7,7 @@ import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
 import { Avatars } from './avatars';
+import { CollaborationModePicker } from './collaboration-mode-picker';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -16,6 +17,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
+import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -24,7 +26,7 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'@wordpress/editor'
 );
 
-const { EditorPresence } = unlock( editorPrivateApis );
+const { EditorPresence, CollaborationMode } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const {
@@ -35,6 +37,7 @@ export function RTCSettingsPanel() {
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
+		isCollaborationModePickerEnabled,
 	} = useSelect<
 		SettingsStoreSelectors,
 		{
@@ -45,6 +48,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: boolean;
 			isUserEnterNotificationEnabled: boolean;
 			isUserExitNotificationEnabled: boolean;
+			isCollaborationModePickerEnabled: boolean;
 		}
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
@@ -56,6 +60,7 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
+			isCollaborationModePickerEnabled: getSetting( Setting.COLLABORATION_MODE_PICKER ),
 		};
 	}, [] );
 
@@ -65,8 +70,16 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
+	// Manage read-only state for the code editor.
+	useModifyCodeEditor();
+
 	return (
 		<>
+			{ isCollaborationModePickerEnabled && (
+				<CollaborationMode>
+					<CollaborationModePicker />
+				</CollaborationMode>
+			) }
 			{ isAvatarsEnabled && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />
@@ -109,11 +122,21 @@ export function RTCSettingsPanel() {
 					/>
 
 					{ isDevelopment() && (
-						<ToggleControl
-							label="Show debug tools"
-							checked={ isDebugToolsEnabled }
-							onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
-						/>
+						<>
+							<ToggleControl
+								label="Show debug tools"
+								checked={ isDebugToolsEnabled }
+								onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
+							/>
+
+							<ToggleControl
+								label={ __( 'Enable collaboration modes', 'vip-real-time-collaboration' ) }
+								checked={ isCollaborationModePickerEnabled }
+								onChange={ ( enabled: boolean ) =>
+									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )
+								}
+							/>
+						</>
 					) }
 
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>

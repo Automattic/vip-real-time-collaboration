@@ -34,7 +34,7 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 	 * Returns the message to use when logging to Logger.
 	 */
 	protected getLoggerMessage(): string {
-		return 'Multi-user session logged';
+		return 'Session stats logged';
 	}
 
 	/**
@@ -49,20 +49,6 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			return null;
 		}
 
-		if (
-			stats.sessionTimeStart === null ||
-			stats.sessionTimeLastActivity === null ||
-			stats.sessionTimeLastActivity < stats.sessionTimeStart ||
-			stats.usersActive > stats.usersMax ||
-			stats.usersInactive > stats.usersMax ||
-			stats.usersInactive + stats.usersActive > stats.usersMax ||
-			stats.usersActive < 0 ||
-			stats.usersInactive < 0 ||
-			stats.usersMax < 0
-		) {
-			return null;
-		}
-
 		const eventPrefix = isDevelopment() ? 'devtest: ' : '';
 
 		return {
@@ -70,13 +56,12 @@ export class SessionStatsTelemetryLogger extends TelemetryLogger< SessionStatsTe
 			event: `${ eventPrefix }real-time collaboration session`,
 			timestamp: stats.timestamp,
 			properties: {
+				expiredByInactivity: stats.expiredByInactivity,
 				postId: stats.postId,
 				sessionDuration: stats.sessionDuration,
-				sessionTimeLastActivity: stats.sessionTimeLastActivity,
-				sessionTimeStart: stats.sessionTimeStart,
 				usersActive: stats.usersActive,
 				usersInactive: stats.usersInactive,
-				usersMax: stats.usersMax,
+				usersTotal: stats.usersTotal,
 			},
 		};
 	}

@@ -14,6 +14,7 @@ const baseUserInfo: UserInfo = {
 	isConnected: true,
 	isMe: false,
 	email: 'alice@example.com',
+	enteredAt: Date.now(),
 };
 
 describe( 'notifications', () => {
@@ -243,6 +244,51 @@ describe( 'notifications', () => {
 					0,
 					'createNotice should not be called'
 				);
+			} );
+
+			it( 'current user just entered', () => {
+				const currentMeUserInfo = { ...baseUserInfo, isMe: true, enteredAt: Date.now() };
+				getSettingMock.mock.mockImplementationOnce( () => true );
+				sendNotification(
+					NotificationType.UserEntered,
+					baseUserInfo,
+					undefined,
+					currentMeUserInfo
+				);
+
+				assert.strictEqual(
+					createNoticeMock.mock.callCount(),
+					0,
+					'createNotice should not be called'
+				);
+				assert.strictEqual(
+					createNoticeMock.mock.calls.length,
+					0,
+					'createNotice should not be called'
+				);
+			} );
+
+			it( 'user to send about just entered before current user', () => {
+				const currentMeUserInfo = { ...baseUserInfo, isMe: true, enteredAt: Date.now() - 10000 };
+				getSettingMock.mock.mockImplementationOnce( () => true );
+				sendNotification(
+					NotificationType.UserEntered,
+					baseUserInfo,
+					undefined,
+					currentMeUserInfo
+				);
+
+				assert.strictEqual( createNoticeMock.mock.callCount(), 1, 'createNotice should be called' );
+				assert.strictEqual(
+					createNoticeMock.mock.calls.length,
+					1,
+					'createNotice should be called'
+				);
+				assert.deepStrictEqual( createNoticeMock.mock.calls[ 0 ]?.arguments, [
+					'info',
+					'Alice has entered the post.',
+					{ id: 'remote-user-user-entered-123', isDismissible: false, type: 'snackbar' },
+				] );
 			} );
 		} );
 

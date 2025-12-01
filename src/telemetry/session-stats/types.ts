@@ -1,21 +1,14 @@
 /**
- * Internal dependencies
- */
-import { SessionStatsSchema } from './SessionStats';
-
-/**
  * Defines the structure of a session stats export.
  */
-export type SessionStatsExport = Pick<
-	SessionStatsSchema,
-	'sessionTimeLastActivity' | 'sessionTimeStart'
-> & {
+export type SessionStatsExport = {
+	expiredByInactivity: boolean;
 	postId: PostId;
 	sessionDuration: number;
 	timestamp: number;
 	usersActive: number;
 	usersInactive: number;
-	usersMax: number;
+	usersTotal: number;
 };
 
 /**

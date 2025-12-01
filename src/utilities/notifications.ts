@@ -51,7 +51,8 @@ function getUserPresenceNotificationContent( userInfo: UserInfo, type: Notificat
 function shouldSendNotification(
 	userInfo: UserInfo,
 	type: NotificationType,
-	content: string
+	content: string,
+	currentMeUserInfo?: UserInfo
 ): boolean {
 	// If content is empty, skip.
 	if ( ! content ) {
@@ -59,12 +60,13 @@ function shouldSendNotification(
 	}
 
 	// If the notification type has no settings associated with it, send it.
-	if ( ! ( type in NOTIFICATION_TYPE_TO_SETTING_MAP ) ) {
+	const setting = NOTIFICATION_TYPE_TO_SETTING_MAP[ type ];
+	if ( ! setting ) {
 		return true;
 	}
 
 	// If the setting for this notification type is disabled, skip.
-	if ( ! select( settingsStore ).getSetting( NOTIFICATION_TYPE_TO_SETTING_MAP[ type ] ) ) {
+	if ( ! select( settingsStore ).getSetting( setting ) ) {
 		return false;
 	}
 
@@ -72,6 +74,15 @@ function shouldSendNotification(
 	if (
 		( type === NotificationType.UserEntered || type === NotificationType.UserExited ) &&
 		userInfo.isMe
+	) {
+		return false;
+	}
+
+	// The user has just recently entered or re-joined, and doesn't need to be told about the other collaborators.
+	if (
+		type === NotificationType.UserEntered &&
+		currentMeUserInfo &&
+		currentMeUserInfo.enteredAt > userInfo.enteredAt
 	) {
 		return false;
 	}
@@ -101,29 +112,31 @@ function getContentForNotificationType(
  *
  * Certain notifications can be skipped based on user settings, or scenarios.
  *
- * @param content the notification content
- * @param userInfo the user info of the user related to the notification
- * @param type the type of notification
+ * @param type The type of notification to send.
+ * @param userInfoToSendAbout The user info of the user related to the notification.
+ * @param status The status of the post (only relevant for PostUpdated notifications).
+ * @param currentMeUserInfo The user info of the current user (only relevant for user entered notifications).
  */
 export function sendNotification(
 	type: NotificationType,
-	userInfo: UserInfo,
-	status?: string
+	userInfoToSendAbout: UserInfo,
+	status?: string,
+	currentMeUserInfo?: UserInfo
 ): void {
 	// This is done on purpose, to allow tests to be written without noticesStore.
 	const { createNotice } = dispatch( noticesStore );
 
 	// Get the content for the notification type.
-	const content = getContentForNotificationType( userInfo, type, status );
+	const content = getContentForNotificationType( userInfoToSendAbout, type, status );
 
 	// Skip notifications for certain cases.
-	if ( ! shouldSendNotification( userInfo, type, content ) ) {
+	if ( ! shouldSendNotification( userInfoToSendAbout, type, content, currentMeUserInfo ) ) {
 		return;
 	}
 
 	// Send the notification, via a notice.
 	void createNotice( 'info', content, {
-		id: `${ type }-${ userInfo.clientId }`,
+		id: `${ type }-${ userInfoToSendAbout.clientId }`,
 		isDismissible: false,
 		type: 'snackbar',
 	} );
