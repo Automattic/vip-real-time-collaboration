@@ -85,8 +85,7 @@ final class Compatibility {
 		}
 
 		// Need to ensure that development mode bypasses this check.
-		// For dev builds, this is defined in the Gutenberg plugin's main file.
-		// For production builds, this is removed entirely.
+		// This constant is only defined for Gutenberg development builds.
 		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
 			return true;
 		}
