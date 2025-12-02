@@ -8,6 +8,7 @@ import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/pri
 
 import { Avatars } from './avatars';
 import { CollaborationModePicker } from './collaboration-mode-picker';
+import { DebugDataExportButton } from './debug-data-export-button';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -143,10 +144,6 @@ export function RTCSettingsPanel() {
 						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
 					</Heading>
 
-					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
-						{ __( 'Post', 'vip-real-time-collaboration' ) }
-					</Heading>
-
 					<ToggleControl
 						label="Save/Publish"
 						checked={ isPostUpdateNotificationEnabled }
@@ -170,6 +167,11 @@ export function RTCSettingsPanel() {
 							setSetting( Setting.USER_EXIT_NOTIFICATION, enabled )
 						}
 					/>
+
+					<Heading level={ 3 } style={ { marginTop: '24px' } }>
+						{ __( 'Debug', 'vip-real-time-collaboration' ) }
+					</Heading>
+					<DebugDataExportButton />
 				</div>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
