@@ -8,8 +8,6 @@ defined( 'ABSPATH' ) || exit();
  * Inspects and adjusts the environment to ensure the plugin can load.
  */
 final class Compatibility {
-	const MIN_GUTENBERG_VERSION = '21.9.0';
-
 	public function __construct() {
 		add_filter( 'option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
 		add_filter( 'default_option_gutenberg-experiments', [ $this, 'enable_sync_collaboration_experiment' ], 10, 1 );
@@ -18,13 +16,9 @@ final class Compatibility {
 	public static function admin_notices(): void {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
-				sprintf(
-					/* translators: %s: Minimum Gutenberg version */
-					__(
-						'The VIP Real-Time Collaboration plugin requires the Gutenberg plugin %s+. The VIP Real-Time Collaboration plugin has been disabled.',
-						'vip_real_time_collaboration'
-					),
-					self::MIN_GUTENBERG_VERSION
+				__(
+					'The correct Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.',
+					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
 			);
@@ -33,7 +27,7 @@ final class Compatibility {
 		if ( ! self::is_websocket_url_defined() ) {
 			wp_admin_notice(
 				__(
-					'The VIP Real-Time Collaboration plugin requires a WebSocket URL to be configured. The VIP Real-Time Collaboration plugin has been disabled.',
+					'The WebSocket URL has not been configured. The VIP Real-Time Collaboration plugin has been disabled.',
 					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
@@ -76,29 +70,10 @@ final class Compatibility {
 	}
 
 	/**
-	 * Check if the Gutenberg plugin is active and meets the minimum version requirement.
+	 * Check if the custom Gutenberg plugin is active, using our custom constant within the fork.
 	 */
 	private static function is_gutenberg_plugin_active(): bool {
-		// Gutenberg plugin isn't active.
-		if ( ! defined( 'IS_GUTENBERG_PLUGIN' ) || ! constant( 'IS_GUTENBERG_PLUGIN' ) ) {
-			return false;
-		}
-
-		// Need to ensure that development mode bypasses this check.
-		// This constant is only defined for Gutenberg development builds.
-		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
-			return true;
-		}
-
-		// If its not development mode, and the version is set, check the version.
-		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
-			/** @var string $gutenberg_version */
-			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
-			return version_compare( $gutenberg_version, self::MIN_GUTENBERG_VERSION, '>=' );
-		}
-
-		// Does not meet the minimum version requirement.
-		return false;
+		return defined( 'IS_CUSTOM_GUTENBERG_FORK' ) && true === constant( 'IS_CUSTOM_GUTENBERG_FORK' );
 	}
 
 	/**
