@@ -7,11 +7,6 @@ import { AwarenessManager } from '@/awareness-manager';
 
 const handleDebugDataDownload = () => {
 	const debugData = AwarenessManager.getDebugData();
-
-	if ( ! debugData ) {
-		return;
-	}
-
 	const jsonData = safeStringify( debugData, { indentation: 2 } );
 	const timestamp = Date.now();
 	const filename = `rtc-debug-${ timestamp }.json`;

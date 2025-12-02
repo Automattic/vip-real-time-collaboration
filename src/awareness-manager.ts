@@ -133,10 +133,10 @@ export class AwarenessManager {
 		);
 	}
 
-	public static getDebugData(): YDocDebugData | null {
+	public static getDebugData(): YDocDebugData {
 		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
 			AwarenessManager.__instance.logger.error( 'getDebugData() awareness document not found' );
-			return null;
+			return { doc: {}, clients: {}, userMap: {} };
 		}
 
 		const ydoc = AwarenessManager.__instance.awareness.doc;
