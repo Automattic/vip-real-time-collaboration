@@ -17,7 +17,7 @@ final class Compatibility {
 		if ( ! self::is_gutenberg_plugin_active() ) {
 			wp_admin_notice(
 				__(
-					'The correct Gutenberg plugin has not been installed. The VIP Real-Time Collaboration plugin has been disabled.',
+					'A compatible Gutenberg plugin is not installed so the VIP Real-Time Collaboration plugin has been disabled.',
 					'vip_real_time_collaboration'
 				),
 				[ 'type' => 'error' ]
