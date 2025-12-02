@@ -76,7 +76,7 @@ final class Compatibility {
 	}
 
 	/**
-	 * Check if the Gutenberg plugin is active, and meets the minimum version requirement.
+	 * Check if the Gutenberg plugin is active and meets the minimum version requirement.
 	 */
 	private static function is_gutenberg_plugin_active(): bool {
 		// Gutenberg plugin isn't active.
