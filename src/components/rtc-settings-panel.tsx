@@ -144,10 +144,6 @@ export function RTCSettingsPanel() {
 						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
 					</Heading>
 
-					<Heading level={ 2 } style={ { marginBottom: '2px' } }>
-						{ __( 'Post', 'vip-real-time-collaboration' ) }
-					</Heading>
-
 					<ToggleControl
 						label="Save/Publish"
 						checked={ isPostUpdateNotificationEnabled }

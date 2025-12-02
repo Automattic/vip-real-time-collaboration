@@ -21,11 +21,7 @@ const handleDebugDataDownload = () => {
 
 export function DebugDataExportButton() {
 	return (
-		<Button
-			variant="secondary"
-			onClick={ handleDebugDataDownload }
-			style={ { width: '100%', marginTop: '8px' } }
-		>
+		<Button onClick={ handleDebugDataDownload } variant="secondary">
 			{ __( 'Export Debug Data', 'vip-real-time-collaboration' ) }
 		</Button>
 	);
