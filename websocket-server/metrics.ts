@@ -1,6 +1,8 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
 
+import { getRawDataSizeBytes, getRequestPathname } from './utils';
+
 import type { RawData, WebSocketServer } from 'ws';
 
 /**
@@ -70,37 +72,6 @@ const reconnectionTimeHistogram = new Histogram( {
 	help: 'Time between WebSocket disconnection and reconnection in seconds',
 	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60 ], // 100ms to 60s
 } );
-
-/**
- * ------------------------------------------------------------
- * Helper functions
- * ------------------------------------------------------------
- */
-export function getRequestPathname( request: http.IncomingMessage ): string {
-	const pathname = request.url?.split( '?' )[ 0 ] || '/';
-	// Remove trailing slashes (except for root path)
-	return pathname === '/' ? pathname : pathname.replace( /\/+$/, '' );
-}
-
-function getRawDataSizeBytes( data: RawData ): number {
-	if ( Array.isArray( data ) ) {
-		let total = 0;
-		for ( const bufferChunk of data ) {
-			total += bufferChunk.length;
-		}
-		return total;
-	}
-
-	if ( Buffer.isBuffer( data ) ) {
-		return data.length;
-	}
-
-	if ( data instanceof ArrayBuffer ) {
-		return data.byteLength;
-	}
-
-	return 0;
-}
 
 /**
  * ------------------------------------------------------------
