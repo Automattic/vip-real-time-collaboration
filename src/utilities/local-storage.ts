@@ -10,7 +10,7 @@ const logger = new Logger( 'local-storage' );
  */
 export const loadFromLocalStorage = < T >( key: string, defaultValue: T ): T => {
 	try {
-		const saved = localStorage.getItem( key );
+		const saved = global.window?.localStorage?.getItem( key );
 		if ( saved ) {
 			const parsed = JSON.parse( saved ) as T;
 			// If the parsed value is an object (and not null or array), merge with defaultValue
