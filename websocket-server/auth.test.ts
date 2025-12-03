@@ -116,7 +116,6 @@ describe( 'isRequestAuthenticated', () => {
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, false );
 		assert.strictEqual( result.reason, 'invalid_payload' );
-		assert.strictEqual( result.reason, 'invalid_payload' );
 		assert.strictEqual( mockConsoleError.mock.calls.length, 1 );
 	} );
 
