@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import assert from 'node:assert';
 import { afterEach, beforeEach, describe, it, Mock, mock } from 'node:test';
 
@@ -13,7 +13,10 @@ function createRequest( url?: string ): IncomingMessage {
 	return { url } as IncomingMessage;
 }
 
-function createValidToken( payload: Partial< SyncTokenPayload > = {} ): string {
+function createValidToken(
+	payload: Partial< SyncTokenPayload > = {},
+	options: SignOptions = {}
+): string {
 	return jwt.sign(
 		{
 			connection_id: 'conn-123',
@@ -22,7 +25,8 @@ function createValidToken( payload: Partial< SyncTokenPayload > = {} ): string {
 			username: 'testuser',
 			...payload,
 		},
-		MOCK_JWT_SECRET
+		MOCK_JWT_SECRET,
+		options
 	);
 }
 
@@ -116,7 +120,6 @@ describe( 'isRequestAuthenticated', () => {
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, false );
 		assert.strictEqual( result.reason, 'invalid_payload' );
-		assert.strictEqual( result.reason, 'invalid_payload' );
 		assert.strictEqual( mockConsoleError.mock.calls.length, 1 );
 	} );
 
@@ -161,5 +164,22 @@ describe( 'isRequestAuthenticated', () => {
 		const request = createRequest( `/_ws/site/123/post/456?auth=${ token }` );
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, true );
+	} );
+
+	it( 'should reject token signed with wrong algorithm', () => {
+		// Create a token using HS512 instead of HS256
+		const token = createValidToken( {}, { algorithm: 'HS512' } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
+		assert.strictEqual( result.authenticated, false );
+		assert.strictEqual( result.reason, 'invalid_token' );
+	} );
+
+	it( 'should reject token with "none" algorithm', () => {
+		const token = createValidToken( {}, { algorithm: 'none' } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
+		assert.strictEqual( result.authenticated, false );
+		assert.strictEqual( result.reason, 'invalid_token' );
 	} );
 } );
