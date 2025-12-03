@@ -7,6 +7,25 @@ module.exports = {
 	},
 	overrides: [
 		{
+			files: [ 'websocket-server/**/*.ts' ],
+			excludedFiles: [ 'websocket-server/utils.ts', 'websocket-server/**/*.test.ts' ],
+			rules: {
+				'no-restricted-imports': [
+					'error',
+					{
+						paths: [
+							{
+								name: 'jsonwebtoken',
+								importNames: [ 'default', 'verify' ],
+								message:
+									'Use verifyJwtToken from websocket-server/utils instead to ensure algorithm is always specified to prevent algorithm confusion attacks. Named imports other than verify are allowed.',
+							},
+						],
+					},
+				],
+			},
+		},
+		{
 			files: [ '*.test.ts' ], // Node.js unit tests
 			rules: {
 				'@typescript-eslint/no-floating-promises': 'off',
