@@ -25,6 +25,7 @@ interface SettingsState {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
 	[ Setting.USER_ENTER_NOTIFICATION ]: boolean;
 	[ Setting.USER_EXIT_NOTIFICATION ]: boolean;
+	// ToDo: Delete this once we complete the feature.
 	[ Setting.COLLABORATION_MODE_PICKER ]: boolean;
 }
 
@@ -36,10 +37,12 @@ const DEFAULT_STATE: SettingsState = {
 	[ Setting.POST_UPDATE_NOTIFICATION ]: true,
 	[ Setting.USER_ENTER_NOTIFICATION ]: true,
 	[ Setting.USER_EXIT_NOTIFICATION ]: false,
-	[ Setting.COLLABORATION_MODE_PICKER ]: isDevelopment() ? true : false,
+	// ToDo: Delete this once we complete the feature.
+	[ Setting.COLLABORATION_MODE_PICKER ]: false,
 };
 
 // Settings that are only available in development mode
+// ToDo: Delete COLLABORATION_MODE_PICKER once we complete the feature.
 const DEV_ONLY_SETTINGS: Setting[] = [ Setting.DEBUG_TOOLS, Setting.COLLABORATION_MODE_PICKER ];
 
 const actions = {
@@ -55,6 +58,12 @@ const reducer = (
 ): SettingsState => {
 	switch ( action.type ) {
 		case 'SET_SETTING': {
+			// ToDo: Delete COLLABORATION_MODE_PICKER once we complete the feature.
+			// Skip saving COLLABORATION_MODE_PICKER as it's computed dynamically
+			if ( action.payload.setting === Setting.COLLABORATION_MODE_PICKER ) {
+				return state;
+			}
+
 			const newState = {
 				...state,
 				[ action.payload.setting ]: action.payload.enabled,
@@ -70,10 +79,18 @@ const reducer = (
 
 const selectors = {
 	getSetting( state: SettingsState, setting: Setting ): boolean {
-		// Special handling for dev-only settings
+		// ToDo: Delete COLLABORATION_MODE_PICKER once we complete the feature.
+		// COLLABORATION_MODE_PICKER is always true in development, false otherwise
+		// It's not stored in state or localStorage
+		if ( setting === Setting.COLLABORATION_MODE_PICKER ) {
+			return isDevelopment();
+		}
+
+		// Special handling for other dev-only settings
 		if ( DEV_ONLY_SETTINGS.includes( setting ) ) {
 			return isDevelopment() ? state[ setting ] : false;
 		}
+
 		return state[ setting ];
 	},
 };
