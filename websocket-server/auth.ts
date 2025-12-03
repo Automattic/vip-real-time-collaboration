@@ -36,7 +36,7 @@ function verifyToken( token: string | null | undefined, secret: string ): SyncTo
 		throw new Error( 'Missing token' );
 	}
 
-	const jwtPayload = jwt.verify( token, secret );
+	const jwtPayload = jwt.verify( token, secret, { algorithms: [ 'HS256' ] } );
 	if ( ! isSyncTokenPayload( jwtPayload ) ) {
 		throw new Error( 'Invalid JWT payload' );
 	}
