@@ -140,8 +140,12 @@ export function RTCSettingsPanel() {
 						</>
 					) }
 
-					<Heading level={ 3 } style={ { marginTop: '24px' } }>
+					<Heading level={ 2 } style={ { marginTop: '24px' } }>
 						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
+					</Heading>
+
+					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
+						{ __( 'Post', 'vip-real-time-collaboration' ) }
 					</Heading>
 
 					<ToggleControl
@@ -151,6 +155,10 @@ export function RTCSettingsPanel() {
 							setSetting( Setting.POST_UPDATE_NOTIFICATION, enabled );
 						} }
 					/>
+
+					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
+						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
+					</Heading>
 
 					<ToggleControl
 						label="Enters"
