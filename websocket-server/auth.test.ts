@@ -114,12 +114,12 @@ describe( 'isRequestAuthenticated', () => {
 		assert.strictEqual( result.reason, 'invalid_token' );
 	} );
 
-	it( 'should return invalid_payload when room names do not match', () => {
+	it( 'should return invalid_token_payload when room names do not match', () => {
 		const token = createValidToken( { room_name: 'other-room' } );
 		const request = createRequest( `/test-room?auth=${ token }` );
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, false );
-		assert.strictEqual( result.reason, 'invalid_payload' );
+		assert.strictEqual( result.reason, 'invalid_token_payload' );
 		assert.strictEqual( mockConsoleError.mock.calls.length, 1 );
 	} );
 

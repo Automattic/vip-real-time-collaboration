@@ -9,6 +9,7 @@ export const MAX_CONNECTIONS =
 
 export const WEBSOCKET_CLOSE_CODES: Map< number, string > = new Map( [
 	[ 4001, 'Connection timed out. Reconnect.' ],
+	[ 4002, 'Server connection limit reached. Please try again later.' ],
 ] );
 
 if ( ! JWT_SECRET ) {

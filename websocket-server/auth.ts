@@ -10,7 +10,7 @@ interface AuthSuccessResult {
 
 interface AuthFailureResult {
 	authenticated: false;
-	reason: 'missing_token' | 'invalid_token' | 'invalid_payload';
+	reason: 'missing_token' | 'invalid_token' | 'invalid_token_payload';
 }
 
 export interface SyncTokenPayload extends JwtPayload {
@@ -97,7 +97,7 @@ export function isRequestAuthenticated(
 		const jwtPayload = verifyToken( authToken, secret );
 		const isValid = validateTokenPayload( request, jwtPayload );
 		if ( ! isValid ) {
-			return { authenticated: false, reason: 'invalid_payload' };
+			return { authenticated: false, reason: 'invalid_token_payload' };
 		}
 		return { authenticated: true };
 	} catch ( error ) {

@@ -49,21 +49,16 @@ const messageBytesCounter = new Counter( {
 	help: 'Total bytes of WebSocket messages',
 } );
 
-const authFailuresCounter = new Counter( {
-	name: `${ METRICS_NAMESPACE }_auth_failures_total`,
-	help: 'Total number of WebSocket authentication failures',
-	labelNames: [ 'reason' ],
-} );
-
 const connectionCloseCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_connections_closed_total`,
 	help: 'Total number of WebSocket connections closed',
 	labelNames: [ 'code' ],
 } );
 
-const connectionLimitReachedCounter = new Counter( {
-	name: `${ METRICS_NAMESPACE }_connection_limit_reached_total`,
-	help: 'Total number of connections rejected due to connection limit',
+const connectionFailuresCounter = new Counter( {
+	name: `${ METRICS_NAMESPACE }_connection_failures_total`,
+	help: 'Total number of WebSocket connection failures',
+	labelNames: [ 'reason' ],
 } );
 
 const connectionDurationHistogram = new Histogram( {
@@ -95,12 +90,8 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 	}
 }
 
-export function recordAuthFailure( reason: string ): void {
-	authFailuresCounter.inc( { reason } );
-}
-
-export function recordConnectionLimitReached(): void {
-	connectionLimitReachedCounter.inc();
+export function recordConnectionFailure( reason: string ): void {
+	connectionFailuresCounter.inc( { reason } );
 }
 
 export function recordConnectionOpen( connectionId: string | null ): void {

@@ -13,9 +13,8 @@ import {
 } from './config';
 import {
 	recordMessage,
-	recordAuthFailure,
 	recordConnectionClose,
-	recordConnectionLimitReached,
+	recordConnectionFailure,
 	createMetricsServer,
 	startMetricsMaintenanceLoop,
 	recordConnectionOpen,
@@ -112,33 +111,23 @@ server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer )
 	 */
 	const authResult = isRequestAuthenticated( request, JWT_SECRET );
 	if ( authResult.authenticated === false ) {
-		recordAuthFailure( authResult.reason );
+		recordConnectionFailure( authResult.reason );
 		socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
 		socket.destroy();
 		return;
 	}
 
-	/**
-	 * Check connection limit (if configured)
-	 * The value of MAX_CONNECTIONS=-1 means no limit
-	 */
-	if ( MAX_CONNECTIONS !== -1 && wss.clients.size >= MAX_CONNECTIONS ) {
-		recordConnectionLimitReached();
-		const errorResponse = JSON.stringify( {
-			code: 'connection_limit_reached',
-			message: 'WebSocket server connection limit reached. Please try again later.',
-		} );
-		socket.write(
-			'HTTP/1.1 503 Service Unavailable\r\n' +
-				'Content-Type: application/json\r\n' +
-				'\r\n' +
-				errorResponse
-		);
-		socket.destroy();
-		return;
-	}
-
 	wss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
+		/**
+		 * Check connection limit (if configured)
+		 * The value of MAX_CONNECTIONS=-1 means no limit
+		 */
+		if ( MAX_CONNECTIONS !== -1 && wss.clients.size > MAX_CONNECTIONS ) {
+			recordConnectionFailure( 'connection_limit_exceeded' );
+			ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
+			return;
+		}
+
 		wss.emit( 'connection', ws, request );
 	} );
 } );
