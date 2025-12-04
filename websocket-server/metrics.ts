@@ -61,6 +61,11 @@ const connectionCloseCounter = new Counter( {
 	labelNames: [ 'code' ],
 } );
 
+const connectionLimitReachedCounter = new Counter( {
+	name: `${ METRICS_NAMESPACE }_connection_limit_reached_total`,
+	help: 'Total number of connections rejected due to connection limit',
+} );
+
 const connectionDurationHistogram = new Histogram( {
 	name: `${ METRICS_NAMESPACE }_connection_duration_seconds`,
 	help: 'Duration of WebSocket connections in seconds',
@@ -92,6 +97,10 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 
 export function recordAuthFailure( reason: string ): void {
 	authFailuresCounter.inc( { reason } );
+}
+
+export function recordConnectionLimitReached(): void {
+	connectionLimitReachedCounter.inc();
 }
 
 export function recordConnectionOpen( connectionId: string | null ): void {
