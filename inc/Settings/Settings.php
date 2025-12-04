@@ -62,7 +62,7 @@ final class Settings {
 		add_settings_section(
 			'plugin-settings',
 			'',
-			[ __CLASS__, 'display_settings_instructions' ],
+			'__return_null',
 			self::SETTINGS_PAGE_SLUG
 		);
 
@@ -101,7 +101,9 @@ final class Settings {
 	public static function settings_page_content(): void {
 		?>
 		<div id="vip-real-time-collaboration-settings-wrapper" class="wrap">
-			<h1><?php esc_html_e( 'VIP Real-Time Collaboration Settings', 'vip-real-time-collaboration' ); ?></h1>
+			<h1><?php esc_html_e( 'VIP Real-Time Collaboration', 'vip-real-time-collaboration' ); ?></h1>
+
+			<h2><?php esc_html_e( 'Plugin Settings', 'vip-real-time-collaboration' ); ?></h2>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( self::SETTINGS_PAGE_SLUG );
@@ -109,6 +111,11 @@ final class Settings {
 				submit_button();
 				?>
 			</form>
+
+			<h2><?php esc_html_e( 'Plugin Debug Information', 'vip-real-time-collaboration' ); ?></h2>
+			<p><?php echo esc_html( 'Plugin Version: ' . ( defined( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION' ) ? VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION : 'Unknown' ) ); ?></p>
+			<p><?php echo esc_html( 'Gutenberg Version: ' . self::get_gutenberg_version() ); ?></p>
+			<p><?php echo esc_html( 'Gutenberg Commit Hash: ' . self::get_gutenberg_commit_hash() ); ?></p>
 		</div>
 		<?php
 	}
@@ -153,12 +160,32 @@ final class Settings {
 		<?php
 	}
 
-	/**
-	 * Display settings instructions.
-	 */
-	public static function display_settings_instructions(): void {
-		?>
-		<p><?php esc_html_e( 'Configure the settings for the VIP Real-Time Collaboration plugin below.', 'vip-real-time-collaboration' ); ?></p>
-		<?php
+	public static function get_gutenberg_version(): string {
+		// For dev builds, this is defined in the Gutenberg plugin's main file.
+		// For production builds, this is removed entirely.
+		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
+			return 'Development';
+		}
+
+		// If its not development mode, and the version is set, get the version.
+		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
+			/** @var string $gutenberg_version */
+			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
+
+			return $gutenberg_version;
+		}
+
+		return 'Unknown';
+	}
+
+	public static function get_gutenberg_commit_hash(): string {
+		if ( defined( 'GUTENBERG_GIT_COMMIT' ) && is_string( constant( 'GUTENBERG_GIT_COMMIT' ) ) ) {
+			/** @var string $gutenberg_commit_hash */
+			$gutenberg_commit_hash = constant( 'GUTENBERG_GIT_COMMIT' );
+
+			return $gutenberg_commit_hash;
+		}
+
+		return 'Unknown';
 	}
 }
