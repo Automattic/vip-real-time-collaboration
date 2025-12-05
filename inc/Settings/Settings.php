@@ -14,10 +14,10 @@ final class Settings {
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
-		/** @var array<string> */
+		/** @var array<string, mixed> */
 		$options = get_option( self::OPTION_NAME, self::get_default_options() );
 
-		return isset( $options['enable-vip-rtc'] ) && (bool) $options['enable-vip-rtc'];
+		return ! empty( $options['enable-vip-rtc'] );
 	}
 
 	/**
@@ -113,9 +113,24 @@ final class Settings {
 			</form>
 
 			<h2><?php esc_html_e( 'Plugin Debug Information', 'vip-real-time-collaboration' ); ?></h2>
-			<p><?php echo esc_html( 'Plugin Version: ' . ( defined( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION' ) ? VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION : 'Unknown' ) ); ?></p>
-			<p><?php echo esc_html( 'Gutenberg Version: ' . self::get_gutenberg_version() ); ?></p>
-			<p><?php echo esc_html( 'Gutenberg Commit Hash: ' . self::get_gutenberg_commit_hash() ); ?></p>
+			<p>
+				<?php
+				/* translators: %s: Plugin version */
+				echo esc_html( sprintf( __( 'Plugin Version: %s', 'vip-real-time-collaboration' ), self::get_vip_rtc_version() ) );
+				?>
+			</p>
+			<p>
+				<?php
+				/* translators: %s: Gutenberg version */
+				echo esc_html( sprintf( __( 'Gutenberg Version: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_version() ) );
+				?>
+			</p>
+			<p>
+				<?php
+				/* translators: %s: Gutenberg commit hash */
+				echo esc_html( sprintf( __( 'Gutenberg Commit Hash: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_commit_hash() ) );
+				?>
+			</p>
 		</div>
 		<?php
 	}
@@ -126,9 +141,9 @@ final class Settings {
 	 * @param array{field_id: string, enabled_label: string, disabled_label: string, description: string} $args Field configuration.
 	 */
 	public static function display_settings_radio( array $args ): void {
-		/** @var array<string> */
+		/** @var array<string, mixed> */
 		$options = get_option( self::OPTION_NAME, self::get_default_options() );
-		$value = isset( $options[ $args['field_id'] ] ) && $options[ $args['field_id'] ];
+		$value = ! empty( $options[ $args['field_id'] ] );
 		$field_name = self::OPTION_NAME . '[' . $args['field_id'] . ']';
 		?>
 		<fieldset>
@@ -160,32 +175,37 @@ final class Settings {
 		<?php
 	}
 
+	/**
+	 * Get a string constant value safely.
+	 *
+	 * @param string $constant_name The constant name to check.
+	 * @return string The constant value or 'Unknown' if not defined or not a string.
+	 */
+	private static function get_string_constant( string $constant_name ): string {
+		if ( ! defined( $constant_name ) || ! is_string( constant( $constant_name ) ) ) {
+			return 'Unknown';
+		}
+
+		/** @var string $value */
+		$value = constant( $constant_name );
+
+		return $value;
+	}
+
+	public static function get_vip_rtc_version(): string {
+		return self::get_string_constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION' );
+	}
+
 	public static function get_gutenberg_version(): string {
 		// For dev builds, this is defined in the Gutenberg plugin's main file.
-		// For production builds, this is removed entirely.
 		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
 			return 'Development';
 		}
 
-		// If its not development mode, and the version is set, get the version.
-		if ( defined( 'GUTENBERG_VERSION' ) && is_string( constant( 'GUTENBERG_VERSION' ) ) ) {
-			/** @var string $gutenberg_version */
-			$gutenberg_version = constant( 'GUTENBERG_VERSION' );
-
-			return $gutenberg_version;
-		}
-
-		return 'Unknown';
+		return self::get_string_constant( 'GUTENBERG_VERSION' );
 	}
 
 	public static function get_gutenberg_commit_hash(): string {
-		if ( defined( 'GUTENBERG_GIT_COMMIT' ) && is_string( constant( 'GUTENBERG_GIT_COMMIT' ) ) ) {
-			/** @var string $gutenberg_commit_hash */
-			$gutenberg_commit_hash = constant( 'GUTENBERG_GIT_COMMIT' );
-
-			return $gutenberg_commit_hash;
-		}
-
-		return 'Unknown';
+		return self::get_string_constant( 'GUTENBERG_GIT_COMMIT' );
 	}
 }
