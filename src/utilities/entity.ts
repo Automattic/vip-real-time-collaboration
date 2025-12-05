@@ -1,15 +1,24 @@
 import { store as coreStore } from '@wordpress/core-data';
 import { select, resolveSelect } from '@wordpress/data';
 
+import { Logger } from '@/utilities/logger';
+
 import type { WordPressUserInfo } from '@/store/awareness-store';
 import type { User } from '@wordpress/core-data/build-types/entity-types';
 
+const logger = new Logger( 'entity-utils' );
+
 async function getUserEmail( userId: number ): Promise< string | undefined > {
-	// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
-	const user = ( await resolveSelect( coreStore ).getUser( userId, {
-		context: 'edit',
-	} ) ) as User< 'edit' > | undefined;
-	return user?.email;
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+		const user = ( await resolveSelect( coreStore ).getUser( userId, {
+			context: 'edit',
+		} ) ) as User< 'edit' > | undefined;
+		return user?.email;
+	} catch ( error ) {
+		logger.error( `Error getting email for user (userId: ${ userId })`, { error, userId } );
+	}
+	return '';
 }
 
 export async function getCurrentUserInfo(): Promise< WordPressUserInfo > {
