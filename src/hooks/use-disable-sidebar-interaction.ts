@@ -1,8 +1,8 @@
 /**
  * WordPress dependencies
  */
-import { store as coreDataStore, type CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
+import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useEffect } from '@wordpress/element';
 
 /**
@@ -19,8 +19,8 @@ import {
  */
 export function useDisableSidebarInteraction() {
 	// Get the current collaboration mode (view or edit).
-	const currentCollaborationEditorMode = useSelect< CoreDataSelectors, 'view' | 'edit' >( select =>
-		select( coreDataStore ).getCollaboratorMode()
+	const currentCollaborationEditorMode = useSelect< EditorStoreSelectors, 'view' | 'edit' >(
+		select => select( editorStore ).getCollaboratorMode()
 	);
 
 	// Check if the Collaboration Mode Picker setting is enabled.

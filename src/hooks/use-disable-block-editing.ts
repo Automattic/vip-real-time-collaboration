@@ -2,8 +2,8 @@
  * WordPress dependencies
  */
 import { useBlockEditingMode } from '@wordpress/block-editor';
-import { store as coreDataStore, type CoreDataSelectors } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
+import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useEffect } from '@wordpress/element';
 import { addFilter, removeFilter } from '@wordpress/hooks';
 
@@ -31,8 +31,8 @@ export function useDisableBlockEditing() {
 	);
 
 	// Get the current collaboration mode (view or edit).
-	const currentCollaborationEditorMode = useSelect< CoreDataSelectors, 'view' | 'edit' >( select =>
-		select( coreDataStore ).getCollaboratorMode()
+	const currentCollaborationEditorMode = useSelect< EditorStoreSelectors, 'view' | 'edit' >(
+		select => select( editorStore ).getCollaboratorMode()
 	);
 
 	// Determine if view-only mode should be active.
