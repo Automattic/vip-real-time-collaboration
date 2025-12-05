@@ -47,6 +47,46 @@ interface AwarenessStateChange {
 	removed: AwarenessClientID[];
 }
 
+// Type for serializable left/right item references to avoid deep nesting
+type SerializableYItemRef = Pick< Y.Item, 'id' | 'length' | 'origin' | 'content' >;
+
+// Serializable Y.Item - only includes data properties with shallow left/right references
+type SerializableYItem = Pick<
+	Y.Item,
+	| 'id'
+	| 'length'
+	| 'origin'
+	| 'rightOrigin'
+	| 'parent'
+	| 'parentSub'
+	| 'redone'
+	| 'content'
+	| 'info'
+> & {
+	left: SerializableYItemRef | null;
+	right: SerializableYItemRef | null;
+};
+
+// WordPress user info for debug export (subset of UserInfo from awareness-store)
+interface WpUserData {
+	wpUserId: number;
+	name: string;
+	email: string;
+}
+
+interface YDocDebugData {
+	doc: Record< string, unknown >;
+	clients: Record< number, Array< SerializableYItem > >;
+	userMap: Record< string, WpUserData >;
+}
+
+/**
+ * Type guard to check if a struct is a Y.Item (not Y.GC)
+ */
+function isYItem( struct: Y.Item | Y.GC ): struct is Y.Item {
+	return 'content' in struct;
+}
+
 export class AwarenessManager {
 	private static __instance: AwarenessManager;
 	private logger: Logger = new Logger( 'awareness-manager' );
@@ -91,6 +131,62 @@ export class AwarenessManager {
 			position,
 			AwarenessManager.__instance.awareness.doc
 		);
+	}
+
+	public static getDebugData(): YDocDebugData {
+		if ( ! AwarenessManager.__instance?.awareness?.doc ) {
+			AwarenessManager.__instance.logger.error( 'getDebugData() awareness document not found' );
+			return { doc: {}, clients: {}, userMap: {} };
+		}
+
+		const ydoc = AwarenessManager.__instance.awareness.doc;
+
+		// Manually extract doc data to avoid deprecated toJSON method
+		const docData: Record< string, unknown > = Object.fromEntries(
+			Array.from( ydoc.share, ( [ key, value ] ) => [ key, value.toJSON() ] )
+		);
+
+		// Build userMap from awareness store (all users seen this session)
+		const { getSeenUsers } = select( awarenessStore );
+		const allSeenUsers = getSeenUsers(); // Returns userMap with all seen users
+		const userMapData = new Map< string, WpUserData >();
+
+		allSeenUsers.forEach( ( userState, clientId ) => {
+			userMapData.set( String( clientId ), {
+				wpUserId: userState.userInfo.id,
+				name: userState.userInfo.name,
+				email: userState.userInfo.email,
+			} );
+		} );
+
+		// Serialize Yjs client items to avoid deep nesting
+		const serializableClientItems: Record< number, Array< SerializableYItem > > = {};
+
+		ydoc.store.clients.forEach( ( structs, clientId ) => {
+			// Filter for Y.Item only (skip Y.GC garbage collection structs)
+			const items = structs.filter( isYItem );
+
+			// eslint-disable-next-line security/detect-object-injection -- clientId is a number from Yjs, not user input
+			serializableClientItems[ clientId ] = items.map( item => {
+				const { left, right, ...rest } = item;
+
+				return {
+					...rest,
+					left: left
+						? { id: left.id, length: left.length, origin: left.origin, content: left.content }
+						: null,
+					right: right
+						? { id: right.id, length: right.length, origin: right.origin, content: right.content }
+						: null,
+				};
+			} );
+		} );
+
+		return {
+			doc: docData,
+			clients: serializableClientItems,
+			userMap: Object.fromEntries( userMapData ),
+		};
 	}
 
 	private setCurrentUserState(): void {
