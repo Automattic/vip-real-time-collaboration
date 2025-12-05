@@ -32,17 +32,29 @@ export function useDisableSidebarInteraction() {
 	const shouldSidebarBeReadOnly =
 		isCollaborationModeEnabled && currentCollaborationEditorMode === 'view';
 
-	// Manage sidebar interaction.
 	useEffect( () => {
+		// Disable sidebar interaction.
 		const sidebarElement = document.querySelector( '.editor-sidebar' );
-		const headerSettingsElement = document.querySelector( '.editor-header__settings' );
-
-		if (
-			sidebarElement instanceof HTMLDivElement &&
-			headerSettingsElement instanceof HTMLDivElement
-		) {
+		if ( sidebarElement instanceof HTMLDivElement ) {
 			sidebarElement.style.pointerEvents = shouldSidebarBeReadOnly ? 'none' : 'auto';
+		}
+
+		// Disable header settings interaction - publish button, etc.
+		const headerSettingsElement = document.querySelector( '.editor-header__settings' );
+		if ( headerSettingsElement instanceof HTMLDivElement ) {
 			headerSettingsElement.style.pointerEvents = shouldSidebarBeReadOnly ? 'none' : 'auto';
+		}
+
+		// Disable undo buttons interaction.
+		const undoElement = document.querySelector( '.editor-history__undo' );
+		if ( undoElement instanceof HTMLButtonElement ) {
+			undoElement.style.pointerEvents = shouldSidebarBeReadOnly ? 'none' : 'auto';
+		}
+
+		// Disable redo buttons interaction.
+		const redoElement = document.querySelector( '.editor-history__redo' );
+		if ( redoElement instanceof HTMLButtonElement ) {
+			redoElement.style.pointerEvents = shouldSidebarBeReadOnly ? 'none' : 'auto';
 		}
 	}, [ shouldSidebarBeReadOnly ] );
 }
