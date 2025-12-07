@@ -112,7 +112,7 @@ final class Settings {
 				?>
 			</form>
 
-			<h2><?php esc_html_e( 'Plugin Debug Information', 'vip-real-time-collaboration' ); ?></h2>
+			<h2><?php esc_html_e( 'Debug Information', 'vip-real-time-collaboration' ); ?></h2>
 			<p>
 				<?php
 				/* translators: %s: Plugin version */
