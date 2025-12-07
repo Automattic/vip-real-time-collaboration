@@ -14,10 +14,10 @@ final class Settings {
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
-		/** @var array<string> */
+		/** @var array<string, mixed> */
 		$options = get_option( self::OPTION_NAME, self::get_default_options() );
 
-		return isset( $options['enable-vip-rtc'] ) && (bool) $options['enable-vip-rtc'];
+		return ! empty( $options['enable-vip-rtc'] );
 	}
 
 	/**
@@ -62,7 +62,7 @@ final class Settings {
 		add_settings_section(
 			'plugin-settings',
 			'',
-			[ __CLASS__, 'display_settings_instructions' ],
+			'__return_null',
 			self::SETTINGS_PAGE_SLUG
 		);
 
@@ -101,7 +101,9 @@ final class Settings {
 	public static function settings_page_content(): void {
 		?>
 		<div id="vip-real-time-collaboration-settings-wrapper" class="wrap">
-			<h1><?php esc_html_e( 'VIP Real-Time Collaboration Settings', 'vip-real-time-collaboration' ); ?></h1>
+			<h1><?php esc_html_e( 'VIP Real-Time Collaboration', 'vip-real-time-collaboration' ); ?></h1>
+
+			<h2><?php esc_html_e( 'Plugin Settings', 'vip-real-time-collaboration' ); ?></h2>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( self::SETTINGS_PAGE_SLUG );
@@ -109,6 +111,26 @@ final class Settings {
 				submit_button();
 				?>
 			</form>
+
+			<h2><?php esc_html_e( 'Debug Information', 'vip-real-time-collaboration' ); ?></h2>
+			<p>
+				<?php
+				/* translators: %s: Plugin version */
+				echo esc_html( sprintf( __( 'Plugin Version: %s', 'vip-real-time-collaboration' ), self::get_vip_rtc_version() ) );
+				?>
+			</p>
+			<p>
+				<?php
+				/* translators: %s: Gutenberg version */
+				echo esc_html( sprintf( __( 'Gutenberg Version: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_version() ) );
+				?>
+			</p>
+			<p>
+				<?php
+				/* translators: %s: Gutenberg commit hash */
+				echo esc_html( sprintf( __( 'Gutenberg Commit Hash: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_commit_hash() ) );
+				?>
+			</p>
 		</div>
 		<?php
 	}
@@ -119,9 +141,9 @@ final class Settings {
 	 * @param array{field_id: string, enabled_label: string, disabled_label: string, description: string} $args Field configuration.
 	 */
 	public static function display_settings_radio( array $args ): void {
-		/** @var array<string> */
+		/** @var array<string, mixed> */
 		$options = get_option( self::OPTION_NAME, self::get_default_options() );
-		$value = isset( $options[ $args['field_id'] ] ) && $options[ $args['field_id'] ];
+		$value = ! empty( $options[ $args['field_id'] ] );
 		$field_name = self::OPTION_NAME . '[' . $args['field_id'] . ']';
 		?>
 		<fieldset>
@@ -154,11 +176,36 @@ final class Settings {
 	}
 
 	/**
-	 * Display settings instructions.
+	 * Get a string constant value safely.
+	 *
+	 * @param string $constant_name The constant name to check.
+	 * @return string The constant value or 'Unknown' if not defined or not a string.
 	 */
-	public static function display_settings_instructions(): void {
-		?>
-		<p><?php esc_html_e( 'Configure the settings for the VIP Real-Time Collaboration plugin below.', 'vip-real-time-collaboration' ); ?></p>
-		<?php
+	private static function get_string_constant( string $constant_name ): string {
+		if ( ! defined( $constant_name ) || ! is_string( constant( $constant_name ) ) ) {
+			return 'Unknown';
+		}
+
+		/** @var string $value */
+		$value = constant( $constant_name );
+
+		return $value;
+	}
+
+	public static function get_vip_rtc_version(): string {
+		return self::get_string_constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_VERSION' );
+	}
+
+	public static function get_gutenberg_version(): string {
+		// For dev builds, this is defined in the Gutenberg plugin's main file.
+		if ( defined( 'GUTENBERG_DEVELOPMENT_MODE' ) && constant( 'GUTENBERG_DEVELOPMENT_MODE' ) ) {
+			return 'Development';
+		}
+
+		return self::get_string_constant( 'GUTENBERG_VERSION' );
+	}
+
+	public static function get_gutenberg_commit_hash(): string {
+		return self::get_string_constant( 'GUTENBERG_GIT_COMMIT' );
 	}
 }
