@@ -6,6 +6,11 @@ declare module '@wordpress/editor' {
 		getCurrentPostId(): number | null;
 		getCurrentPostType(): string | null;
 		getEditedPostContent(): string | null;
+		getCollaboratorMode(): 'view' | 'edit';
+	}
+
+	interface EditorStoreActions {
+		setCollaboratorMode: ( mode: 'view' | 'edit' ) => void;
 	}
 
 	export interface EditorPrivateApis {

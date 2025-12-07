@@ -1,20 +1,18 @@
 import { Button, Popover, Icon } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
+import {
+	store as editorStore,
+	type EditorStoreActions,
+	type EditorStoreSelectors,
+} from '@wordpress/editor';
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
-import { pencil, seen } from '@wordpress/icons';
-
-import {
-	store as collaborationModeStore,
-	type CollaborationModeStoreSelectors,
-	type CollaborationModeStoreActions,
-	CollaborationMode,
-} from '@/store/collaboration-mode-store';
+import { pencil, seen, chevronDown } from '@wordpress/icons';
 
 import '@/components/collaboration-mode-picker.scss';
 
 interface ModeOption {
-	value: CollaborationMode;
+	value: 'edit' | 'view';
 	label: string;
 	description: string;
 	icon: JSX.Element;
@@ -22,13 +20,13 @@ interface ModeOption {
 
 const MODES: ModeOption[] = [
 	{
-		value: CollaborationMode.EDIT,
+		value: 'edit',
 		label: __( 'Editing', 'vip-real-time-collaboration' ),
 		description: __( 'Edit document directly', 'vip-real-time-collaboration' ),
 		icon: pencil,
 	},
 	{
-		value: CollaborationMode.VIEW,
+		value: 'view',
 		label: __( 'Viewing', 'vip-real-time-collaboration' ),
 		description: __( 'Focus on content', 'vip-real-time-collaboration' ),
 		icon: seen,
@@ -43,17 +41,16 @@ export function CollaborationModePicker() {
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
-	// Default value is Edit mode
-	const selectedMode = useSelect< CollaborationModeStoreSelectors, CollaborationMode >( select =>
-		select( collaborationModeStore ).getMode()
+	const selectedCollaborationEditorMode = useSelect< EditorStoreSelectors, 'edit' | 'view' >(
+		select => select( editorStore ).getCollaboratorMode()
 	);
 
-	const { setMode } = useDispatch< CollaborationModeStoreActions >( collaborationModeStore );
+	const { setCollaboratorMode } = useDispatch< EditorStoreActions >( editorStore );
 
-	const currentMode = MODES.find( mode => mode.value === selectedMode );
+	const currentMode = MODES.find( mode => mode.value === selectedCollaborationEditorMode );
 
-	const handleModeSelect = ( mode: CollaborationMode ) => {
-		setMode( mode );
+	const handleModeSelect = ( mode: 'edit' | 'view' ) => {
+		setCollaboratorMode( mode );
 		setIsPopoverVisible( false );
 	};
 
@@ -68,7 +65,9 @@ export function CollaborationModePicker() {
 				ref={ setPopoverAnchor }
 				text={ currentMode?.label }
 				icon={ currentMode?.icon }
-			/>
+			>
+				<Icon icon={ chevronDown } />
+			</Button>
 			{ isPopoverVisible && (
 				<Popover
 					anchor={ popoverAnchor }
@@ -79,7 +78,7 @@ export function CollaborationModePicker() {
 				>
 					<div className="vip-collaboration-mode-menu">
 						{ MODES.map( ( { value, label, description, icon } ) => {
-							const isSelected = value === selectedMode;
+							const isSelected = value === selectedCollaborationEditorMode;
 							return (
 								<button
 									key={ value }

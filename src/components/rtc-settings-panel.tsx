@@ -18,7 +18,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
+import { useDisableSidebarInteraction } from '@/hooks/use-disable-sidebar-interaction';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -71,8 +71,7 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
-	// Manage read-only state for the code editor.
-	useModifyCodeEditor();
+	useDisableSidebarInteraction();
 
 	return (
 		<>
@@ -128,14 +127,6 @@ export function RTCSettingsPanel() {
 								label="Show debug tools"
 								checked={ isDebugToolsEnabled }
 								onChange={ ( enabled: boolean ) => setSetting( Setting.DEBUG_TOOLS, enabled ) }
-							/>
-
-							<ToggleControl
-								label={ __( 'Enable collaboration modes', 'vip-real-time-collaboration' ) }
-								checked={ isCollaborationModePickerEnabled }
-								onChange={ ( enabled: boolean ) =>
-									setSetting( Setting.COLLABORATION_MODE_PICKER, enabled )
-								}
 							/>
 						</>
 					) }
