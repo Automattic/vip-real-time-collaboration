@@ -2,14 +2,14 @@ import { speak } from '@wordpress/a11y';
 import { Popover, Button } from '@wordpress/components';
 import { close } from '@wordpress/icons';
 
+import { type EnhancedState, type PostEditorState } from '@/awareness/awareness-types';
 import { Avatar } from '@/components/avatar';
-import { type UserState } from '@/store/awareness-store';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/collaborators-list.scss';
 
 interface CollaboratorsListProps {
-	activeUsers: UserState[];
+	activeUsers: EnhancedState< PostEditorState >[];
 	cursorRegistry: CursorRegistry;
 	popoverAnchor?: HTMLElement | null;
 	setIsPopoverVisible: ( isVisible: boolean ) => void;
@@ -26,7 +26,7 @@ export function CollaboratorsList( {
 	setIsPopoverVisible,
 }: CollaboratorsListProps ) {
 	const handleCollaboratorClick = ( clientId: number ) => {
-		const userName = activeUsers.find( user => user.userInfo.clientId === clientId )?.userInfo.name;
+		const userName = activeUsers.find( user => user.clientId === clientId )?.userInfo.name;
 
 		const success = cursorRegistry.scrollToCursor( clientId, {
 			behavior: 'smooth',
@@ -70,13 +70,13 @@ export function CollaboratorsList( {
 				<div className="vip-real-time-collaboration-collaborators-list-items">
 					{ activeUsers.map( userState => (
 						<button
-							key={ userState.userInfo.clientId }
+							key={ userState.clientId }
 							className="vip-real-time-collaboration-collaborators-list-item"
-							onClick={ () => handleCollaboratorClick( userState.userInfo.clientId ) }
-							disabled={ ! userState.userInfo.isConnected }
+							onClick={ () => handleCollaboratorClick( userState.clientId ) }
+							disabled={ ! userState.isConnected }
 							aria-description="Clicking scrolls to cursor position in the editor"
 							style={ {
-								opacity: userState.userInfo.isConnected ? 1 : 0.5,
+								opacity: userState.isConnected ? 1 : 0.5,
 							} }
 						>
 							<Avatar userInfo={ userState.userInfo } showUserColorBorder={ true } size="medium" />

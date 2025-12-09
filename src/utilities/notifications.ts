@@ -3,7 +3,7 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { store as settingsStore, Setting } from '@/store/settings-store';
 
-import type { UserInfo } from '@/store/awareness-store';
+import type { UserInfo } from '@/awareness/awareness-types';
 
 export enum NotificationType {
 	PostUpdated = 'remote-user-post-updated',
@@ -73,7 +73,7 @@ function shouldSendNotification(
 	// If the current user is the one who joined/left, skip.
 	if (
 		( type === NotificationType.UserEntered || type === NotificationType.UserExited ) &&
-		userInfo.isMe
+		userInfo.id === currentMeUserInfo?.id
 	) {
 		return false;
 	}
@@ -136,7 +136,7 @@ export function sendNotification(
 
 	// Send the notification, via a notice.
 	void createNotice( 'info', content, {
-		id: `${ type }-${ userInfoToSendAbout.clientId }`,
+		id: `${ type }-${ userInfoToSendAbout.id }`,
 		isDismissible: false,
 		type: 'snackbar',
 	} );

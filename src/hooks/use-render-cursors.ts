@@ -1,8 +1,10 @@
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
-import { AwarenessManager } from '@/awareness-manager';
-import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
+import {
+	useActiveUsers,
+	useGetAbsolutePositionIndex,
+} from '@/hooks/use-post-editor-awareness-state';
 import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 import { Logger } from '@/utilities/logger';
@@ -44,18 +46,19 @@ export function useRenderCursors(
 		return DrawType.None;
 	}, [] );
 
-	const sortedUsers = useSortedAwarenessUsers();
+	const sortedUsers = useActiveUsers();
+	const getAbsolutePositionIndex = useGetAbsolutePositionIndex();
 
 	// Draw user cursors in the overlay.
 	useEffect( () => {
 		renderCursorsRef.current = () => {
 			const userSelections = sortedUsers.map( user => ( {
 				userName: user.userInfo.name,
-				clientId: user.userInfo.clientId,
+				clientId: user.clientId,
 				// Replace local user's selection with the current selection from the editor state.
 				selection: user.editorState?.selection ?? { type: SelectionType.None },
 				color: user.userInfo.color,
-				isMe: user.userInfo.isMe,
+				isMe: user.isMe,
 			} ) );
 
 			drawUserSelections(
@@ -63,7 +66,8 @@ export function useRenderCursors(
 				blockEditorDocument,
 				userSelections,
 				drawType,
-				cursorRegistry
+				cursorRegistry,
+				getAbsolutePositionIndex
 			);
 		};
 
@@ -92,7 +96,8 @@ const drawUserSelections = (
 		isMe: boolean;
 	}[],
 	drawType: DrawType,
-	cursorRegistry: CursorRegistry
+	cursorRegistry: CursorRegistry,
+	getAbsolutePositionIndex: ( selection: SelectionCursor ) => number | null
 ) => {
 	if ( ! overlay || ! editorDocument ) {
 		return;
@@ -118,7 +123,12 @@ const drawUserSelections = (
 		} else if ( selection.type === SelectionType.WholeBlock ) {
 			// Don't draw a cursor for a whole block selection.
 		} else if ( selection.type === SelectionType.Cursor ) {
-			coords = getCursorPosition( selection, editorDocument, overlay );
+			coords = getCursorPosition(
+				getAbsolutePositionIndex( selection ),
+				selection.blockId,
+				editorDocument,
+				overlay
+			);
 		} else if ( selection.type === SelectionType.SelectionInOneBlock ) {
 			// Until selection logic is implemented, render a selection as a cursor at the beginning of the selection.
 			const selectionAsCursor: SelectionCursor = {
@@ -127,7 +137,12 @@ const drawUserSelections = (
 				cursorPosition: selection.cursorStartPosition,
 			};
 
-			coords = getCursorPosition( selectionAsCursor, editorDocument, overlay );
+			coords = getCursorPosition(
+				getAbsolutePositionIndex( selectionAsCursor ),
+				selectionAsCursor.blockId,
+				editorDocument,
+				overlay
+			);
 		} else if ( selection.type === SelectionType.SelectionInMultipleBlocks ) {
 			// Until selection logic is implemented, render a selection as a cursor at the beginning of the selection.
 			const selectionAsCursor: SelectionCursor = {
@@ -136,7 +151,12 @@ const drawUserSelections = (
 				cursorPosition: selection.cursorStartPosition,
 			};
 
-			coords = getCursorPosition( selectionAsCursor, editorDocument, overlay );
+			coords = getCursorPosition(
+				getAbsolutePositionIndex( selectionAsCursor ),
+				selectionAsCursor.blockId,
+				editorDocument,
+				overlay
+			);
 		}
 
 		if ( coords ) {
@@ -180,24 +200,19 @@ const drawUserSelections = (
  * @returns The position of the cursor
  */
 const getCursorPosition = (
-	selection: SelectionCursor,
+	absolutePositionIndex: number | null,
+	blockId: string,
 	editorDocument: Document,
 	overlay: HTMLElement
 ): { x: number; y: number; height: number } | null => {
-	const absolutePosition = AwarenessManager.convertRelativePositionToAbsolutePosition(
-		selection.cursorPosition.relativePosition
-	);
-
-	if ( absolutePosition === null ) {
-		// An absolute position can be null if a cursor was set in a block that
+	if ( absolutePositionIndex === null ) {
+		// An absolute position index can be null if a cursor was set in a block that
 		// has since been deleted.
 		// Return null so we don't try to draw it.
 		return null;
 	}
 
-	const blockElement = editorDocument.querySelector(
-		`[data-block="${ selection.blockId }"]`
-	) as HTMLElement;
+	const blockElement = editorDocument.querySelector( `[data-block="${ blockId }"]` ) as HTMLElement;
 
 	if ( ! blockElement ) {
 		return null;
@@ -205,7 +220,7 @@ const getCursorPosition = (
 
 	const coords = getOffsetPositionInBlock(
 		blockElement,
-		absolutePosition.index,
+		absolutePositionIndex,
 		editorDocument,
 		overlay
 	);

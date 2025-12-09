@@ -6,11 +6,7 @@ import {
 	Setting,
 	SettingsStoreSelectors,
 } from '../store/settings-store';
-import {
-	AwarenessStoreSelectors,
-	UserState,
-	store as awarenessStore,
-} from '@/store/awareness-store';
+import { useActiveUsers } from '@/hooks/use-post-editor-awareness-state';
 import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
 
 /**
@@ -19,9 +15,7 @@ import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
  */
 export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
-	const userStates = useSelect< AwarenessStoreSelectors, UserState[] >( select => {
-		return Array.from( select( awarenessStore ).getActiveUsers().values() );
-	} );
+	const userStates = useActiveUsers();
 
 	const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = useSelect<
 		SettingsStoreSelectors,
@@ -58,7 +52,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			.map( userState => {
 				const isWholeBlockSelected =
 					userState.editorState?.selection?.type === SelectionType.WholeBlock;
-				const shouldDrawUser = userState.userInfo.isMe ? isSelfAwarenessEnabled : true;
+				const shouldDrawUser = userState.isMe ? isSelfAwarenessEnabled : true;
 
 				if ( isWholeBlockSelected && shouldDrawUser ) {
 					const selection = userState.editorState?.selection as SelectionWholeBlock;

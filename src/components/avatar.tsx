@@ -1,4 +1,4 @@
-import { UserInfo } from '@/store/awareness-store';
+import type { UserInfo } from '@/awareness/awareness-types';
 
 import '@/components/avatar.scss';
 

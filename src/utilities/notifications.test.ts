@@ -3,16 +3,13 @@ import { afterEach, before, describe, it, mock, type Mock } from 'node:test';
 
 import { Setting } from '@/store/settings-store';
 
-import type { UserInfo } from '@/store/awareness-store';
+import type { UserInfo } from '@/awareness/awareness-types';
 
 const baseUserInfo: UserInfo = {
-	id: 1,
+	id: 123,
 	name: 'Alice',
-	clientId: 123,
 	color: '#000000',
 	browserType: 'chrome',
-	isConnected: true,
-	isMe: false,
 	email: 'alice@example.com',
 	enteredAt: Date.now(),
 };
@@ -230,9 +227,8 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'user is me', () => {
-				const meUserInfo = { ...baseUserInfo, isMe: true };
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( NotificationType.UserEntered, meUserInfo );
+				sendNotification( NotificationType.UserEntered, baseUserInfo, undefined, baseUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
@@ -247,7 +243,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'current user just entered', () => {
-				const currentMeUserInfo = { ...baseUserInfo, isMe: true, enteredAt: Date.now() };
+				const currentMeUserInfo = { ...baseUserInfo, enteredAt: Date.now() };
 				getSettingMock.mock.mockImplementationOnce( () => true );
 				sendNotification(
 					NotificationType.UserEntered,
@@ -269,7 +265,7 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'user to send about just entered before current user', () => {
-				const currentMeUserInfo = { ...baseUserInfo, isMe: true, enteredAt: Date.now() - 10000 };
+				const currentMeUserInfo = { ...baseUserInfo, id: 456, enteredAt: Date.now() - 10000 };
 				getSettingMock.mock.mockImplementationOnce( () => true );
 				sendNotification(
 					NotificationType.UserEntered,
@@ -327,9 +323,8 @@ describe( 'notifications', () => {
 			} );
 
 			it( 'user is me', () => {
-				const meUserInfo = { ...baseUserInfo, isMe: true };
 				getSettingMock.mock.mockImplementationOnce( () => true );
-				sendNotification( NotificationType.UserExited, meUserInfo );
+				sendNotification( NotificationType.UserExited, baseUserInfo, undefined, baseUserInfo );
 
 				assert.strictEqual(
 					createNoticeMock.mock.callCount(),
