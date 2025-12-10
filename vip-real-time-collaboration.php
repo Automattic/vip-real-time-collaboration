@@ -123,3 +123,5 @@ function vip_real_time_collaboration_pre_init(): bool {
 
 	return true;
 }
+
+require_once __DIR__ . '/examples/scf-block/scf-block.php';
