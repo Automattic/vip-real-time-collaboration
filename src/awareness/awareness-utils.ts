@@ -10,7 +10,7 @@ import type { AwarenessState } from '@/awareness/awareness-state';
 import type { UserInfo } from '@/awareness/awareness-types';
 
 // WordPress user info for debug export (subset of UserInfo)
-type DebugUserData = Pick< UserInfo, 'name' | 'email' > & {
+type DebugUserData = Pick< UserInfo, 'name' > & {
 	wpUserId: UserInfo[ 'id' ];
 };
 
@@ -53,7 +53,6 @@ export function getDebugData( awareness: AwarenessState ): YDocDebugData {
 		Array.from( awareness.getSeenStates().entries() ).map( ( [ clientId, userState ] ) => [
 			String( clientId ),
 			{
-				email: userState.userInfo.email,
 				name: userState.userInfo.name,
 				wpUserId: userState.userInfo.id,
 			},

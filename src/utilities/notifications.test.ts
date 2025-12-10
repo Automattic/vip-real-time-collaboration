@@ -10,7 +10,6 @@ const baseUserInfo: UserInfo = {
 	name: 'Alice',
 	color: '#000000',
 	browserType: 'chrome',
-	email: 'alice@example.com',
 	enteredAt: Date.now(),
 };
 

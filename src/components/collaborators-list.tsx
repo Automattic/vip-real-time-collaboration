@@ -84,9 +84,6 @@ export function CollaboratorsList( {
 								<div className="vip-real-time-collaboration-collaborators-list-item-name">
 									{ userState.userInfo.name }
 								</div>
-								<div className="vip-real-time-collaboration-collaborators-list-item-email">
-									{ userState.userInfo.email }
-								</div>
 							</div>
 						</button>
 					) ) }
