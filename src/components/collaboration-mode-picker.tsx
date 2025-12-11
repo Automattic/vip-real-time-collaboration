@@ -1,10 +1,10 @@
 import { Button, Popover, Icon } from '@wordpress/components';
-import { useSelect, useDispatch } from '@wordpress/data';
 import {
-	store as editorStore,
-	type EditorStoreActions,
-	type EditorStoreSelectors,
-} from '@wordpress/editor';
+	store as coreStore,
+	type CoreDataSelectors,
+	type CoreDataStoreActions,
+} from '@wordpress/core-data';
+import { useSelect, useDispatch } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { pencil, seen, chevronDown } from '@wordpress/icons';
@@ -41,11 +41,11 @@ export function CollaborationModePicker() {
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
-	const selectedCollaborationEditorMode = useSelect< EditorStoreSelectors, 'edit' | 'view' >(
-		select => select( editorStore ).getCollaboratorMode()
+	const selectedCollaborationEditorMode = useSelect< CoreDataSelectors, 'edit' | 'view' >( select =>
+		select( coreStore ).getCollaboratorMode()
 	);
 
-	const { setCollaboratorMode } = useDispatch< EditorStoreActions >( editorStore );
+	const { setCollaboratorMode } = useDispatch< CoreDataStoreActions >( coreStore );
 
 	const currentMode = MODES.find( mode => mode.value === selectedCollaborationEditorMode );
 

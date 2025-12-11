@@ -8,5 +8,10 @@ declare module '@wordpress/core-data' {
 
 	interface CoreDataSelectors {
 		getCurrentUser(): User;
+		getCollaboratorMode(): 'view' | 'edit';
+	}
+
+	interface CoreDataStoreActions {
+		setCollaboratorMode: ( mode: 'view' | 'edit' ) => void;
 	}
 }
