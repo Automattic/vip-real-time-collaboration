@@ -278,15 +278,12 @@ export abstract class AwarenessState<
 
 		if ( ! forceUpdate ) {
 			if ( areMapsEqual( this.previousSnapshot, updatedStates, this.isStateEqual.bind( this ) ) ) {
-				this.logger.debug( 'Awareness state unchanged, not updating subscribers.' );
+				// Awareness state unchanged, do not update subscribers.
 				return;
 			}
-
-			this.logger.debug( 'Awareness state changed, updating subscribers.' );
-		} else {
-			this.logger.debug( 'Forcing awareness store update.' );
 		}
 
+		// Update subscribers.
 		this.previousSnapshot = updatedStates;
 		this.stateSubscriptions.forEach( callback => {
 			callback( Array.from( updatedStates.values() ) );
