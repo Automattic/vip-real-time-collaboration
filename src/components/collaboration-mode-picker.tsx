@@ -56,27 +56,27 @@ export function CollaborationModePicker() {
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
 	const { selectedCollaborationEditorMode, shouldPickerBeLockedDown } = useSelect( select => {
-		const { getCurrentPostType, getCurrentPostId } = select( editorStore ) as EditorStoreSelectors;
-		const { getEditedEntityRecord, getCollaboratorMode } = select( coreStore ) as CoreDataSelectors;
+		const editorSelectors = select( editorStore ) as EditorStoreSelectors;
+		const coreSelectors = select( coreStore ) as CoreDataSelectors;
 
-		const postType = getCurrentPostType();
-		const postId = getCurrentPostId();
+		const postType = editorSelectors.getCurrentPostType();
+		const postId = editorSelectors.getCurrentPostId();
 
 		let isLockedDown = false;
 
 		if ( postType && postId ) {
 			// This mirrors the way it's done in the switchEditorMode action.
-			const entityRecord = getEditedEntityRecord( 'postType', postType, postId ) as
+			const entityRecord = coreSelectors.getEditedEntityRecord( 'postType', postType, postId ) as
 				| EntityRecordWithRtcMeta
 				| undefined;
-			const rtcMeta = entityRecord?.meta?.rtc as RtcMeta | undefined;
+			const rtcMeta = entityRecord?.meta?.rtc;
 			if ( rtcMeta?.enforcedModeOwner && rtcMeta?.enforcedMode === 'codeEditor' ) {
 				isLockedDown = true;
 			}
 		}
 
 		return {
-			selectedCollaborationEditorMode: getCollaboratorMode() as 'edit' | 'view',
+			selectedCollaborationEditorMode: coreSelectors.getCollaboratorMode(),
 			shouldPickerBeLockedDown: isLockedDown,
 		};
 	} );
