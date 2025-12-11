@@ -1,5 +1,5 @@
 import '@wordpress/core-data';
-import { User } from '@wordpress/core-data';
+import { User, EntityRecord } from '@wordpress/core-data';
 
 declare module '@wordpress/core-data' {
 	const store: {
@@ -9,6 +9,7 @@ declare module '@wordpress/core-data' {
 	interface CoreDataSelectors {
 		getCurrentUser(): User;
 		getCollaboratorMode(): 'view' | 'edit';
+		getEditedEntityRecord( kind: string, name: string, recordId: string | number ): EntityRecord;
 	}
 
 	interface CoreDataStoreActions {

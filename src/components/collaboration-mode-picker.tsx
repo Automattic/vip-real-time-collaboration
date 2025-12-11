@@ -5,6 +5,7 @@ import {
 	type CoreDataStoreActions,
 } from '@wordpress/core-data';
 import { useSelect, useDispatch } from '@wordpress/data';
+import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { pencil, seen, chevronDown } from '@wordpress/icons';
@@ -16,6 +17,19 @@ interface ModeOption {
 	label: string;
 	description: string;
 	icon: JSX.Element;
+}
+
+// RTC meta structure for enforced collaboration mode.
+interface RtcMeta {
+	enforcedMode?: 'codeEditor' | null;
+	enforcedModeOwner?: number | null;
+}
+
+// Entity record with RTC meta.
+interface EntityRecordWithRtcMeta {
+	meta?: {
+		rtc?: RtcMeta;
+	};
 }
 
 const MODES: ModeOption[] = [
@@ -41,9 +55,31 @@ export function CollaborationModePicker() {
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
 
-	const selectedCollaborationEditorMode = useSelect< CoreDataSelectors, 'edit' | 'view' >( select =>
-		select( coreStore ).getCollaboratorMode()
-	);
+	const { selectedCollaborationEditorMode, shouldPickerBeLockedDown } = useSelect( select => {
+		const { getCurrentPostType, getCurrentPostId } = select( editorStore ) as EditorStoreSelectors;
+		const { getEditedEntityRecord, getCollaboratorMode } = select( coreStore ) as CoreDataSelectors;
+
+		const postType = getCurrentPostType();
+		const postId = getCurrentPostId();
+
+		let isLockedDown = false;
+
+		if ( postType && postId ) {
+			// This mirrors the way it's done in the switchEditorMode action.
+			const entityRecord = getEditedEntityRecord( 'postType', postType, postId ) as
+				| EntityRecordWithRtcMeta
+				| undefined;
+			const rtcMeta = entityRecord?.meta?.rtc as RtcMeta | undefined;
+			if ( rtcMeta?.enforcedModeOwner && rtcMeta?.enforcedMode === 'codeEditor' ) {
+				isLockedDown = true;
+			}
+		}
+
+		return {
+			selectedCollaborationEditorMode: getCollaboratorMode() as 'edit' | 'view',
+			shouldPickerBeLockedDown: isLockedDown,
+		};
+	} );
 
 	const { setCollaboratorMode } = useDispatch< CoreDataStoreActions >( coreStore );
 
@@ -63,6 +99,7 @@ export function CollaborationModePicker() {
 				isPressed={ isPopoverVisible }
 				size="compact"
 				ref={ setPopoverAnchor }
+				disabled={ shouldPickerBeLockedDown }
 				text={ currentMode?.label }
 				icon={ currentMode?.icon }
 			>
