@@ -37,7 +37,7 @@ export class TypedAwareness< State extends BaseState > extends Awareness {
 	}
 }
 
-export type WordPressUserInfo = Pick< User, 'id' | 'name' | 'email' > & {
+export type WordPressUserInfo = Pick< User, 'id' | 'name' > & {
 	avatarUrl?: string;
 };
 
