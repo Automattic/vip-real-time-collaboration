@@ -3,7 +3,7 @@ import { useState } from '@wordpress/element';
 
 import { Avatar } from '@/components/avatar';
 import { CollaboratorsList } from '@/components/collaborators-list';
-import { useSortedAwarenessUsers } from '@/hooks/use-sorted-awareness-users';
+import { useActiveUsers } from '@/hooks/use-post-editor-awareness-state';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/avatars.scss';
@@ -17,10 +17,10 @@ interface AvatarsProps {
  * Shows a popover with all users on hover.
  */
 export function Avatars( { cursorRegistry }: AvatarsProps ) {
-	const activeUsers = useSortedAwarenessUsers();
+	const activeUsers = useActiveUsers();
 
 	// Filter out current user - we never show ourselves in the list
-	const otherActiveUsers = activeUsers.filter( user => ! user.userInfo.isMe );
+	const otherActiveUsers = activeUsers.filter( user => ! user.isMe );
 
 	const [ isPopoverVisible, setIsPopoverVisible ] = useState( false );
 	const [ popoverAnchor, setPopoverAnchor ] = useState< HTMLElement | null >( null );
@@ -45,7 +45,7 @@ export function Avatars( { cursorRegistry }: AvatarsProps ) {
 			>
 				{ visibleUsers.map( userState => (
 					<Avatar
-						key={ userState.userInfo.clientId }
+						key={ userState.clientId }
 						userInfo={ userState.userInfo }
 						showUserColorBorder={ false }
 						size="small"

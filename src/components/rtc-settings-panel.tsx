@@ -5,6 +5,7 @@ import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@w
 import { useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
+import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
 import { Avatars } from './avatars';
 import { CollaborationModePicker } from './collaboration-mode-picker';
@@ -21,6 +22,19 @@ import {
 import { useDisableSidebarInteraction } from '@/hooks/use-disable-sidebar-interaction';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
+
+interface SelectResult {
+	isAvatarsEnabled: boolean;
+	isCursorsEnabled: boolean;
+	isDebugToolsEnabled: boolean;
+	isSelfAwarenessEnabled: boolean;
+	isPostUpdateNotificationEnabled: boolean;
+	isUserEnterNotificationEnabled: boolean;
+	isUserExitNotificationEnabled: boolean;
+	isCollaborationModePickerEnabled: boolean;
+	objectId?: ObjectID;
+	objectType?: ObjectType;
+}
 
 const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
@@ -39,20 +53,9 @@ export function RTCSettingsPanel() {
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
 		isCollaborationModePickerEnabled,
-	} = useSelect<
-		SettingsStoreSelectors,
-		{
-			isAvatarsEnabled: boolean;
-			isCursorsEnabled: boolean;
-			isDebugToolsEnabled: boolean;
-			isSelfAwarenessEnabled: boolean;
-			isPostUpdateNotificationEnabled: boolean;
-			isUserEnterNotificationEnabled: boolean;
-			isUserExitNotificationEnabled: boolean;
-			isCollaborationModePickerEnabled: boolean;
-		}
-	>( select => {
+	} = useSelect< SettingsStoreSelectors, SelectResult >( select => {
 		const { getSetting } = select( rtcSettingsStore );
+
 		return {
 			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),

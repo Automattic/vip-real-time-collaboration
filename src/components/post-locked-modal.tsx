@@ -9,7 +9,7 @@ import { __ } from '@wordpress/i18n';
 import { error } from '@wordpress/icons';
 
 import { useCopyPostContentToClipboard } from '@/hooks/use-copy-post-content-to-clipboard';
-import { useIsDisconnected } from '@/hooks/use-is-disconnected';
+import { useIsDisconnected } from '@/hooks/use-post-editor-awareness-state';
 import '@/components/post-locked-modal.scss';
 
 export function PostLockedModal() {

@@ -1,7 +1,7 @@
 import { store as coreStore } from '@wordpress/core-data';
 import { select, resolveSelect } from '@wordpress/data';
 
-import type { WordPressUserInfo } from '@/store/awareness-store';
+import type { WordPressUserInfo } from '@/awareness/awareness-types';
 import type { User } from '@wordpress/core-data/build-types/entity-types';
 
 async function getUserEmail( userId: number ): Promise< string | undefined > {

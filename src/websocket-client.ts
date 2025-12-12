@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { AwarenessManager } from '@/awareness-manager';
+import { createAwareness, setConnectionStatus } from '@/awareness/awareness-manager';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -18,7 +18,6 @@ import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
 import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
-import type { Awareness } from 'y-protocols/awareness.js';
 import type * as Y from 'yjs';
 
 export interface WebSocketConnectionConfig {
@@ -78,8 +77,9 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 }
 
 function onStatusChange(
-	event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' },
-	provider: WebsocketProvider
+	objectType: ObjectType,
+	objectId: ObjectID | null,
+	event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' }
 ): void {
 	switch ( event.status ) {
 		case 'connecting': {
@@ -87,17 +87,17 @@ function onStatusChange(
 		}
 
 		case 'connection-error': {
-			AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
+			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
 		case 'connected': {
-			AwarenessManager.setConnectionStatus( provider.awareness.clientID, true );
+			setConnectionStatus( objectType, objectId, true );
 			break;
 		}
 
 		case 'disconnected': {
-			AwarenessManager.setConnectionStatus( provider.awareness.clientID, false );
+			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 	}
@@ -174,12 +174,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function (
-		objectType: ObjectType,
-		objectId: ObjectID | null,
-		doc: Y.Doc,
-		awareness?: Awareness
-	) {
+	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc ) {
 		try {
 			// For now, we only support collections and traditional post types.
 			if (
@@ -202,6 +197,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
+			const awareness = await createAwareness( objectType, objectId, doc );
 			const options = { ...config.options, awareness };
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
@@ -210,9 +206,9 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			provider.on( 'connection-error', () => {
 				// The provider does not change status on connection error, so we
 				// manually trigger a synthetic status change.
-				onStatusChange( { status: 'connection-error' }, provider );
+				onStatusChange( objectType, objectId, { status: 'connection-error' } );
 			} );
-			provider.on( 'status', event => onStatusChange( event, provider ) );
+			provider.on( 'status', event => onStatusChange( objectType, objectId, event ) );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
@@ -225,11 +221,6 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 					provider.on( 'connection-close', connect );
 					void connect();
 				};
-			}
-
-			if ( awareness ) {
-				logger.debug( 'Initializing awareness for WebSocket connection', { objectType, objectId } );
-				await AwarenessManager.initialize( awareness );
 			}
 
 			await connect();
