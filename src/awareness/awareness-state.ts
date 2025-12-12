@@ -123,16 +123,13 @@ export abstract class AwarenessState<
 	private stateSubscriptions: Array< ( newState: EnhancedState< State >[] ) => void > = [];
 
 	/**
-	 * In some cases, we want to debounce setting local state fields to avoid
-	 * overwhelming the awareness document with rapid updates. We use this map
-	 * to hold timeouts for each field being debounced.
-	 *
-	 * At the same time, we want to ensure that when we read our own state, we get
-	 * the latest value even if it hasn't yet been set on the awareness instance.
-	 * We use `myDebouncedState` to hold these "pending" values.
+	 * In some cases, we may want to throttle setting local state fields to avoid
+	 * overwhelming the awareness document with rapid updates. At the same time, we
+	 * want to ensure that when we read our own state locally, we get the latest
+	 * value -- even if it hasn't yet been set on the awareness instance.
 	 */
-	private debounceTimeouts: Map< string, NodeJS.Timeout > = new Map();
-	private myDebouncedState: Partial< State > = {};
+	private myThrottledState: Partial< State > = {};
+	private throttleTimeouts: Map< string, NodeJS.Timeout > = new Map();
 
 	protected logger = new Logger( 'awareness-state' );
 
@@ -197,31 +194,32 @@ export abstract class AwarenessState<
 	}
 
 	/**
-	 * Set a local state field on an awareness document with debounce. See caveats
+	 * Set a local state field on an awareness document with throttle. See caveats
 	 * of this.setLocalStateField.
 	 */
-	public setLocalStateFieldWithDebounce< FieldName extends string & keyof State >(
+	public setThrottledLocalStateField< FieldName extends string & keyof State >(
 		field: FieldName,
 		value: State[ FieldName ],
-		debounceMs: number
+		wait: number
 	): void {
-		if ( this.debounceTimeouts.has( field ) ) {
-			clearTimeout( this.debounceTimeouts.get( field ) );
+		if ( this.throttleTimeouts.has( field ) ) {
+			this.myThrottledState[ field ] = value;
+			this.updateSubscribers( true /* force update */ );
+			return;
 		}
 
-		// Store the debounced value locally to merge with the actual state. We do
-		// this so that when we read our own state, we get the latest value even
-		// when it hasn't yet been set on the awareness instance.
-		// eslint-disable-next-line security/detect-object-injection
-		this.myDebouncedState[ field ] = value;
+		this.setLocalStateField( field, value );
 
-		this.debounceTimeouts.set(
+		this.throttleTimeouts.set(
 			field,
 			setTimeout( () => {
-				// eslint-disable-next-line @typescript-eslint/no-dynamic-delete, security/detect-object-injection
-				delete this.myDebouncedState[ field ];
-				this.setLocalStateField( field, value );
-			}, debounceMs )
+				this.throttleTimeouts.delete( field );
+				if ( this.myThrottledState[ field ] ) {
+					this.setLocalStateField( field, this.myThrottledState[ field ] );
+					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete, security/detect-object-injection
+					delete this.myThrottledState[ field ];
+				}
+			}, wait )
 		);
 	}
 
@@ -263,7 +261,7 @@ export abstract class AwarenessState<
 
 					const isConnected = ! this.disconnectedUsers.has( clientId );
 					const isMe = clientId === this.clientID;
-					const myState: Partial< State > = isMe ? this.myDebouncedState : {};
+					const myState: Partial< State > = isMe ? this.myThrottledState : {};
 					const state: EnhancedState< State > = {
 						...rawState,
 						...myState,

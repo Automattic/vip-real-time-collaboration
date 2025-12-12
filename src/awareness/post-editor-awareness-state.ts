@@ -16,7 +16,7 @@ import * as Y from 'yjs';
  */
 import { AwarenessState } from '@/awareness/awareness-state';
 import {
-	AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS,
+	AWARENESS_CURSOR_UPDATE_THROTTLE_IN_MS,
 	LOCAL_CURSOR_UPDATE_DEBOUNCE_IN_MS,
 } from '@/utilities/config';
 import { NotificationType, sendNotification } from '@/utilities/notifications';
@@ -148,11 +148,11 @@ export class PostEditorAwarenessState extends AwarenessState< PostEditorState > 
 		const yBlocks = ydoc.get( 'blocks' ) as Y.Array< SelectableBlock >;
 		const selection = getSelectionState( selectionStart, selectionEnd, yBlocks );
 
-		// Debounce remote awareness updates.
-		this.setLocalStateFieldWithDebounce(
+		// Throttle remote awareness updates.
+		this.setThrottledLocalStateField(
 			'editorState',
 			{ selection },
-			AWARENESS_CURSOR_UPDATE_DEBOUNCE_IN_MS
+			AWARENESS_CURSOR_UPDATE_THROTTLE_IN_MS
 		);
 	}
 }
