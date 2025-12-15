@@ -22,7 +22,7 @@ import {
 import { NotificationType, sendNotification } from '@/utilities/notifications';
 import {
 	getSelectionState,
-	type SelectableBlock,
+	type YBlockProperties,
 	updateSelectionInEntityRecord,
 } from '@/utilities/selection';
 import { areEditorStatesEqual, areUserInfosEqual } from '@/utilities/user';
@@ -145,8 +145,8 @@ export class PostEditorAwarenessState extends AwarenessState< PostEditorState > 
 		selectionEnd: WPBlockSelection
 	): void {
 		const ydoc = this.doc.getMap( RECORD_KEY );
-		const yBlocks = ydoc.get( 'blocks' ) as Y.Array< SelectableBlock >;
-		const selection = getSelectionState( selectionStart, selectionEnd, yBlocks );
+		const blockProperties = ydoc.get( 'blockProperties' ) as YBlockProperties;
+		const selection = getSelectionState( selectionStart, selectionEnd, blockProperties );
 
 		// Throttle remote awareness updates.
 		this.setThrottledLocalStateField(

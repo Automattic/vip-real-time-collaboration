@@ -10,9 +10,10 @@ const logger = new Logger( 'selection' );
 
 // Convenience types to manage block values with a clientId, attributes, and innerBlocks.
 type BlockClientId = string;
-type BlockInnerBlocks = Y.Array< SelectableBlock >;
+type BlockInnerBlocks = Y.Array< string >; // Array of clientIds in flat structure
 type BlockAttributes = Y.Map< Y.Text >;
 export type SelectableBlock = Y.Map< BlockClientId | BlockAttributes | BlockInnerBlocks >;
+export type YBlockProperties = Y.Map< SelectableBlock >; // Flat map of blocks keyed by clientId
 
 export enum SelectionType {
 	None = 'none',
@@ -85,12 +86,13 @@ export type SelectionState =
  *
  * @param selectionStart - The start position of the selection
  * @param selectionEnd - The end position of the selection
+ * @param blockProperties - Flat map of blocks keyed by clientId
  * @returns The SelectionState
  */
 export function getSelectionState(
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
-	yBlocks: Y.Array< SelectableBlock >
+	blockProperties: YBlockProperties
 ): SelectionState {
 	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
 	const noSelection: SelectionNone = {
@@ -118,7 +120,7 @@ export function getSelectionState(
 		};
 	} else if ( isCursorOnly ) {
 		// Case 3: Cursor only, no text selected
-		const cursorPosition = getCursorPosition( selectionStart, yBlocks );
+		const cursorPosition = getCursorPosition( selectionStart, blockProperties );
 
 		if ( ! cursorPosition ) {
 			// If we can't find the cursor position in block text, treat it as a non-selection.
@@ -132,8 +134,8 @@ export function getSelectionState(
 		};
 	} else if ( isSelectionInOneBlock ) {
 		// Case 4: Selection in a single block
-		const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
-		const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+		const cursorStartPosition = getCursorPosition( selectionStart, blockProperties );
+		const cursorEndPosition = getCursorPosition( selectionEnd, blockProperties );
 
 		if ( ! cursorStartPosition || ! cursorEndPosition ) {
 			// If we can't find the cursor positions in block text, treat it as a non-selection.
@@ -149,8 +151,8 @@ export function getSelectionState(
 	}
 
 	// Caes 5: Selection in multiple blocks
-	const cursorStartPosition = getCursorPosition( selectionStart, yBlocks );
-	const cursorEndPosition = getCursorPosition( selectionEnd, yBlocks );
+	const cursorStartPosition = getCursorPosition( selectionStart, blockProperties );
+	const cursorEndPosition = getCursorPosition( selectionEnd, blockProperties );
 	if ( ! cursorStartPosition || ! cursorEndPosition ) {
 		// If we can't find the cursor positions in block text, treat it as a non-selection.
 		return noSelection;
@@ -205,9 +207,9 @@ export async function updateSelectionInEntityRecord(
 
 export function getCursorPosition(
 	selection: WPBlockSelection,
-	blocks: Y.Array< SelectableBlock >
+	blockProperties: YBlockProperties
 ): CursorPosition | null {
-	const block = findBlockByClientId( selection.clientId, blocks );
+	const block = blockProperties.get( selection.clientId );
 	if ( ! block ) {
 		return null;
 	}
@@ -221,32 +223,6 @@ export function getCursorPosition(
 		relativePosition,
 		absoluteOffset: selection.offset,
 	};
-}
-
-function findBlockByClientId(
-	blockId: string,
-	blocks: Y.Array< SelectableBlock >
-): SelectableBlock | null {
-	for ( const block of blocks ) {
-		if ( block.get( 'clientId' ) === blockId ) {
-			return block;
-		}
-
-		const innerBlocks = block.get( 'innerBlocks' ) as BlockInnerBlocks;
-
-		if ( innerBlocks.length > 0 ) {
-			const innerBlock = findBlockByClientId(
-				blockId,
-				block.get( 'innerBlocks' ) as Y.Array< SelectableBlock >
-			);
-
-			if ( innerBlock ) {
-				return innerBlock;
-			}
-		}
-	}
-
-	return null;
 }
 
 export function areSelectionsEqual(
