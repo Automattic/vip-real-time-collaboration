@@ -53,7 +53,7 @@
     "wp-cli": "wp-env run cli -- wp"
   },
   "devDependencies": {
-    "@automattic/eslint-plugin-wpvip": "0.13.1",
+    "@automattic/eslint-plugin-wpvip": "1.0.0",
     "@playwright/test": "^1.57.0",
     "@types/wordpress__block-editor": "^14.21.0",
     "@wordpress/a11y": "4.34.0",
