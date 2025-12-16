@@ -18,6 +18,7 @@ interface RTCOverlayProps {
 export function RTCOverlay( { containerRef, cursorRegistry }: RTCOverlayProps ) {
 	const overlayRef = useRef< HTMLDivElement >( null );
 	const [ document, setDocument ] = useState< Document | null >( null );
+	const renderCursorsRef = useRenderCursors( overlayRef, document, cursorRegistry );
 
 	useEffect( () => {
 		const ownerDocument = containerRef.current?.ownerDocument ?? null;
@@ -32,9 +33,7 @@ export function RTCOverlay( { containerRef, cursorRegistry }: RTCOverlayProps ) 
 				renderCursorsRef.current?.();
 			}, 500 );
 		}
-	}, [] );
-
-	const renderCursorsRef = useRenderCursors( overlayRef, document, cursorRegistry );
+	}, [ containerRef, renderCursorsRef ] );
 
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.

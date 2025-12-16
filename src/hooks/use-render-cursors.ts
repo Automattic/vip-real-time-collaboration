@@ -73,7 +73,7 @@ export function useRenderCursors(
 
 		// Render cursors immediately when data changes
 		renderCursorsRef.current();
-	}, [ drawType, sortedUsers, overlayRef.current, blockEditorDocument, cursorRegistry ] );
+	}, [ drawType, sortedUsers, overlayRef, blockEditorDocument, cursorRegistry ] );
 
 	return renderCursorsRef;
 }
