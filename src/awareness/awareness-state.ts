@@ -22,7 +22,7 @@ interface AwarenessStateChange {
  * Abstract class to hold and manage awareness state with equality checks.
  */
 abstract class AwarenessWithEqualityChecks<
-	State extends BaseState = BaseState
+	State extends BaseState = BaseState,
 > extends TypedAwareness< State > {
 	/** OVERRIDDEN METHODS **/
 
@@ -100,7 +100,7 @@ abstract class AwarenessWithEqualityChecks<
  * state updates.
  */
 export abstract class AwarenessState<
-	State extends BaseState = BaseState
+	State extends BaseState = BaseState,
 > extends AwarenessWithEqualityChecks< State > {
 	/** CUSTOM PROPERTIES **/
 
@@ -216,7 +216,7 @@ export abstract class AwarenessState<
 				this.throttleTimeouts.delete( field );
 				if ( this.myThrottledState[ field ] ) {
 					this.setLocalStateField( field, this.myThrottledState[ field ] );
-					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete, security/detect-object-injection
+					// eslint-disable-next-line @typescript-eslint/no-dynamic-delete
 					delete this.myThrottledState[ field ];
 				}
 			}, wait )
