@@ -91,7 +91,10 @@ export function RTCSettingsPanel() {
 			<BlockCanvasCover.Fill>
 				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
 					<>
-						<RTCOverlay containerRef={ containerRef } cursorRegistry={ cursorRegistry.current } />
+						<RTCOverlay
+							blockEditorDocument={ containerRef.current?.ownerDocument ?? null }
+							cursorRegistry={ cursorRegistry.current }
+						/>
 						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 						) }

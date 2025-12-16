@@ -1,5 +1,5 @@
 import { useSelect } from '@wordpress/data';
-import { useEffect, useRef } from '@wordpress/element';
+import { type RefObject, useEffect, useMemo } from 'react';
 
 import {
 	useActiveUsers,
@@ -10,29 +10,25 @@ import { type CursorRegistry } from '@/utilities/cursor-registry';
 import { Logger } from '@/utilities/logger';
 import { type SelectionCursor, type SelectionState, SelectionType } from '@/utilities/selection';
 
-import type { MutableRefObject } from 'react';
-
 enum DrawType {
 	None,
 	OtherUsers,
 	All,
 }
 
+type RenderCursorsFunction = () => void;
+
 const logger = new Logger( 'use-render-cursors' );
 
 /**
  * Custom hook for rendering cursors for each user in the editor.
- * @param overlayRef - The ref to the overlay element
- * @param blockEditorDocument - The block editor document
- * @returns A ref to the render function. Can be used by parent to trigger a re-render.
+ * @returns A cursor render function. Can be used by parent to redraw cursors as needed.
  */
 export function useRenderCursors(
-	overlayRef: MutableRefObject< HTMLElement | null >,
+	overlayRef: RefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null,
 	cursorRegistry: CursorRegistry
 ) {
-	const renderCursorsRef = useRef< () => void >();
-
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { getSetting } = select( rtcSettingsStore );
 		if ( getSetting( Setting.AWARENESS_CURSORS ) ) {
@@ -49,9 +45,12 @@ export function useRenderCursors(
 	const sortedUsers = useActiveUsers();
 	const getAbsolutePositionIndex = useGetAbsolutePositionIndex();
 
-	// Draw user cursors in the overlay.
-	useEffect( () => {
-		renderCursorsRef.current = () => {
+	const renderCursors = useMemo< RenderCursorsFunction >(
+		() => (): void => {
+			if ( ! overlayRef.current || ! blockEditorDocument ) {
+				return;
+			}
+
 			const userSelections = sortedUsers.map( user => ( {
 				userName: user.userInfo.name,
 				clientId: user.clientId,
@@ -69,13 +68,25 @@ export function useRenderCursors(
 				cursorRegistry,
 				getAbsolutePositionIndex
 			);
-		};
+		},
+		[
+			blockEditorDocument,
+			cursorRegistry,
+			drawType,
+			getAbsolutePositionIndex,
+			overlayRef,
+			sortedUsers,
+		]
+	);
 
-		// Render cursors immediately when data changes
-		renderCursorsRef.current();
-	}, [ drawType, sortedUsers, overlayRef, blockEditorDocument, cursorRegistry ] );
+	useEffect( () => {
+		renderCursors();
+	}, [ drawType, sortedUsers, renderCursors ] );
 
-	return renderCursorsRef;
+	// Return function so that it can be called manually.
+	return () => {
+		setTimeout( renderCursors, 500 );
+	};
 }
 
 /**
