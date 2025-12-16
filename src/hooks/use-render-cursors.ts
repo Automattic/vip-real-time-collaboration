@@ -79,13 +79,13 @@ export function useRenderCursors(
 		]
 	);
 
-	useEffect( () => {
-		renderCursors();
-	}, [ drawType, renderCursors, sortedUsers ] );
+	useEffect( renderCursors, [ drawType, renderCursors, sortedUsers ] );
 
 	// Return function so that it can be called manually.
 	return () => {
-		setTimeout( renderCursors, 500 );
+		const timeout = setTimeout( renderCursors, 500 );
+
+		return () => clearTimeout( timeout );
 	};
 }
 
