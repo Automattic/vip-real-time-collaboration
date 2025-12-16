@@ -3,7 +3,7 @@
  */
 import { useSelect } from '@wordpress/data';
 import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useMemo, useState } from '@wordpress/element';
 import * as Y from 'yjs';
 
 /**
@@ -17,35 +17,34 @@ import type { SelectionCursor } from '@/utilities/selection';
 
 interface PostEditorAwarenessState {
 	activeUsers: EnhancedState< PostEditorState >[];
-	getAbsolutePositionIndex: ( selection: SelectionCursor ) => number | null;
 	getDebugData: () => YDocDebugData | null;
 	isCurrentUserDisconnected: boolean;
 }
 
-interface EditorStoreSelectorResult {
+interface PostDetails {
 	postId: number | null;
 	postType: string | null;
 }
 
 const defaultState: PostEditorAwarenessState = {
 	activeUsers: [],
-	getAbsolutePositionIndex: () => null,
 	getDebugData: () => null,
 	isCurrentUserDisconnected: false,
 };
 
+function usePostDetails(): PostDetails {
+	return useSelect< EditorStoreSelectors, PostDetails >( select => {
+		const editorStoreSelectors = select( editorStore );
+		return {
+			postId: editorStoreSelectors.getCurrentPostId(),
+			postType: editorStoreSelectors.getCurrentPostType(),
+		};
+	}, [] );
+}
+
 function usePostEditorAwarenessState(): PostEditorAwarenessState {
 	const [ state, setState ] = useState< PostEditorAwarenessState >( defaultState );
-	const { postId, postType } = useSelect< EditorStoreSelectors, EditorStoreSelectorResult >(
-		select => {
-			const editorStoreSelectors = select( editorStore );
-			return {
-				postId: editorStoreSelectors.getCurrentPostId(),
-				postType: editorStoreSelectors.getCurrentPostType(),
-			};
-		},
-		[]
-	);
+	const { postId, postType } = usePostDetails();
 
 	useEffect( () => {
 		if ( null === postId || null === postType ) {
@@ -57,11 +56,6 @@ function usePostEditorAwarenessState(): PostEditorAwarenessState {
 			( newState: EnhancedState< PostEditorState >[] ) => {
 				setState( {
 					activeUsers: newState,
-					getAbsolutePositionIndex: ( selection: SelectionCursor ) =>
-						Y.createAbsolutePositionFromRelativePosition(
-							selection.cursorPosition.relativePosition,
-							awareness.doc
-						)?.index ?? null,
 					getDebugData: () => getDebugData( awareness ),
 					isCurrentUserDisconnected: newState.find( user => user.isMe )?.isConnected === false,
 				} );
@@ -79,7 +73,27 @@ export function useActiveUsers(): EnhancedState< PostEditorState >[] {
 }
 
 export function useGetAbsolutePositionIndex(): ( selection: SelectionCursor ) => number | null {
-	return usePostEditorAwarenessState().getAbsolutePositionIndex;
+	const { postId, postType } = usePostDetails();
+
+	return useMemo( () => {
+		const defaultValue = () => null;
+
+		if ( null === postId || null === postType ) {
+			return defaultValue;
+		}
+
+		const awareness = getPostEditorAwareness( postId, postType );
+
+		if ( ! awareness ) {
+			return defaultValue;
+		}
+
+		return ( selection: SelectionCursor ): number | null =>
+			Y.createAbsolutePositionFromRelativePosition(
+				selection.cursorPosition.relativePosition,
+				awareness.doc
+			)?.index ?? null;
+	}, [ postId, postType ] );
 }
 
 export function useGetDebugData(): () => YDocDebugData | null {
