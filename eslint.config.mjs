@@ -16,11 +16,6 @@ export default defineConfig( [
 		],
 	},
 	{
-		rules: {
-			'prettier/prettier': 'off', // Handled by format check
-		},
-	},
-	{
 		files: [ 'websocket-server/**/*.ts' ],
 		ignores: [ 'websocket-server/utils.ts', 'websocket-server/**/*.test.ts' ],
 		rules: {
