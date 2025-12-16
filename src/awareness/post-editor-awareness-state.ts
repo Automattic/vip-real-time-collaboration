@@ -105,6 +105,8 @@ export class PostEditorAwarenessState extends AwarenessState< PostEditorState > 
 		let selectionEnd = getSelectionEnd();
 		let localCursorTimeout: NodeJS.Timeout | null = null;
 
+		// Provided type is generic `Function`.
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-call
 		subscribe( () => {
 			const newSelectionStart = getSelectionStart();
 			const newSelectionEnd = getSelectionEnd();

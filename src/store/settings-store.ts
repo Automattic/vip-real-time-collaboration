@@ -53,6 +53,7 @@ const actions = {
 };
 
 const reducer = (
+	// eslint-disable-next-line @typescript-eslint/default-param-last
 	state = loadFromLocalStorage( LOCAL_STORAGE_KEY, DEFAULT_STATE ),
 	action: SettingsAction
 ): SettingsState => {
