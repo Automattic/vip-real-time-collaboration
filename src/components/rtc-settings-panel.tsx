@@ -92,7 +92,7 @@ export function RTCSettingsPanel() {
 				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
 					<>
 						<RTCOverlay
-							blockEditorDocument={ containerRef.current?.ownerDocument ?? null }
+							blockEditorDocument={ containerRef.current?.ownerDocument }
 							cursorRegistry={ cursorRegistry.current }
 						/>
 						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (

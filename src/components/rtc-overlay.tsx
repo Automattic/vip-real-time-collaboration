@@ -1,5 +1,5 @@
 import { useResizeObserver, useMergeRefs } from '@wordpress/compose';
-import { useRef } from '@wordpress/element';
+import { useEffect, useRef } from '@wordpress/element';
 
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
@@ -8,7 +8,7 @@ import { type CursorRegistry } from '@/utilities/cursor-registry';
 import '@/components/rtc-overlay.scss';
 
 interface RTCOverlayProps {
-	blockEditorDocument: Document | null;
+	blockEditorDocument?: Document;
 	cursorRegistry: CursorRegistry;
 }
 
@@ -19,13 +19,14 @@ export function RTCOverlay( { blockEditorDocument, cursorRegistry }: RTCOverlayP
 	const overlayRef = useRef< HTMLDivElement >( null );
 	const rerenderCursorsAfterDelay = useRenderCursors(
 		overlayRef,
-		blockEditorDocument,
+		blockEditorDocument ?? null,
 		cursorRegistry
 	);
 
 	// Detect layout changes on overlay (e.g. turning on "Show Template") and window
 	// resizes, and re-render the cursors.
 	const resizeObserverRef = useResizeObserver( rerenderCursorsAfterDelay );
+	useEffect( rerenderCursorsAfterDelay, [ rerenderCursorsAfterDelay ] );
 
 	// Merge the refs to use the same element for both overlay and resize observation
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );

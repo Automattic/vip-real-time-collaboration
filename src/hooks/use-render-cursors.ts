@@ -81,7 +81,7 @@ export function useRenderCursors(
 
 	useEffect( () => {
 		renderCursors();
-	}, [ drawType, sortedUsers, renderCursors ] );
+	}, [ drawType, renderCursors, sortedUsers ] );
 
 	// Return function so that it can be called manually.
 	return () => {
