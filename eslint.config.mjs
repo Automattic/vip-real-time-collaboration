@@ -52,8 +52,5 @@ export default defineConfig( [
 				},
 			},
 		},
-		rules: {
-			'no-unused-vars': 'off', // Allow unused vars in example code
-		},
 	},
 ] );
