@@ -100,7 +100,7 @@ export function isRequestAuthenticated(
 			return { authenticated: false, reason: 'invalid_token_payload' };
 		}
 		return { authenticated: true };
-	} catch ( error ) {
+	} catch {
 		return { authenticated: false, reason: 'invalid_token' };
 	}
 }

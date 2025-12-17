@@ -1,8 +1,0 @@
-build
-node_modules
-vendor
-*.php
-yjs-inspector
-tests/e2e
-websocket-server/node_modules
-websocket-server/dist

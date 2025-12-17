@@ -74,7 +74,7 @@ export function CollaboratorsList( {
 							className="vip-real-time-collaboration-collaborators-list-item"
 							onClick={ () => handleCollaboratorClick( userState.clientId ) }
 							disabled={ ! userState.isConnected }
-							aria-description="Clicking scrolls to cursor position in the editor"
+							aria-label="Clicking scrolls to cursor position in the editor"
 							style={ {
 								opacity: userState.isConnected ? 1 : 0.5,
 							} }
