@@ -254,6 +254,15 @@ export abstract class AwarenessState<
 		const updatedStates = new Map< number, EnhancedState< State > >(
 			[ ...this.disconnectedUsers, ...states.keys() ]
 				.filter( clientId => this.seenStates.has( clientId ) )
+				.filter( clientId => {
+					const rawState = this.seenStates.get( clientId );
+					// Exclude any users without userInfo
+					// This can happen from the Yjs inspector, which joins the awareness
+					// state without providing user data.
+
+					const isUserInfoPresent = rawState?.userInfo !== undefined;
+					return isUserInfoPresent;
+				} )
 				.map( clientId => {
 					// The filter above ensures that seenStates has the clientId.
 					// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
