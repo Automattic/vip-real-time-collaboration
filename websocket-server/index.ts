@@ -3,6 +3,7 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { RawData, WebSocketServer, type WebSocket } from 'ws';
 
 import { getConnectionId, isRequestAuthenticated } from './auth';
+import { ClientConnectionStore } from './client-connections';
 import {
 	DEFAULT_CONNECTION_TIMEOUT,
 	DEFAULT_HOST,
@@ -34,6 +35,15 @@ const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
 const connectionTimeout =
 	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
+
+/**
+ * ------------------------------------------------------------
+ * Client connection store with configured limits
+ * ------------------------------------------------------------
+ */
+export const clientConnectionStore = new ClientConnectionStore( {
+	max: MAX_CONNECTIONS,
+} );
 
 /**
  * ------------------------------------------------------------
@@ -72,13 +82,14 @@ setPersistence( new NoopPersistenceProvider() );
 wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	const connectionStartTime = Date.now();
 	const connectionId = getConnectionId( request, JWT_SECRET );
+	clientConnectionStore.addConnection( connectionId );
 
 	/**
 	 * Set up the connection
 	 */
 	setupWSConnection( ws, request );
 
-	recordConnectionOpen( connectionId );
+	recordConnectionOpen( connectionId, clientConnectionStore.getActiveClientCount() );
 
 	/**
 	 * Track message metrics
@@ -101,7 +112,13 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	 */
 	ws.on( 'close', ( code: number ): void => {
 		clearTimeout( timeout );
-		recordConnectionClose( code, connectionStartTime, connectionId );
+		clientConnectionStore.removeConnection( connectionId );
+		recordConnectionClose(
+			code,
+			connectionStartTime,
+			connectionId,
+			clientConnectionStore.getActiveClientCount()
+		);
 	} );
 } );
 
@@ -119,10 +136,14 @@ server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer )
 
 	wss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
 		/**
-		 * Check connection limit (if configured)
-		 * The value of MAX_CONNECTIONS=-1 means no limit
+		 * Check connection limits
 		 */
-		if ( MAX_CONNECTIONS !== -1 && wss.clients.size > MAX_CONNECTIONS ) {
+		if (
+			! clientConnectionStore.shouldAllowConnection(
+				getConnectionId( request, JWT_SECRET ),
+				wss.clients.size
+			)
+		) {
 			recordConnectionFailure( 'connection_limit_exceeded' );
 			ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
 			return;

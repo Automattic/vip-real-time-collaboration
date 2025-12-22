@@ -34,9 +34,14 @@ const recentDisconnects = new Map< string, number >(); // connection_id -> disco
  * Prometheus metrics
  * ------------------------------------------------------------
  */
-const connectedClientsGauge = new Gauge( {
-	name: `${ METRICS_NAMESPACE }_connected_clients`,
-	help: 'Number of currently connected WebSocket clients',
+const activeConnectionsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_connections`,
+	help: 'Number of currently active WebSocket connections',
+} );
+
+const activeClientsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_clients`,
+	help: 'Number of active clients (unique connections by connection_id)',
 } );
 
 const messagesCounter = new Counter( {
@@ -79,7 +84,7 @@ const reconnectionTimeHistogram = new Histogram( {
  * ------------------------------------------------------------
  */
 function reconcileConnectedClients( wss: WebSocketServer ): void {
-	connectedClientsGauge.set( wss.clients.size );
+	activeConnectionsGauge.set( wss.clients.size );
 }
 
 export function recordMessage( data: RawData, isBinary: boolean ): void {
@@ -94,17 +99,23 @@ export function recordConnectionFailure( reason: string ): void {
 	connectionFailuresCounter.inc( { reason } );
 }
 
-export function recordConnectionOpen( connectionId: string | null ): void {
-	connectedClientsGauge.inc();
+export function recordConnectionOpen(
+	connectionId: string | null,
+	activeClientCount: number
+): void {
+	activeConnectionsGauge.inc();
+	activeClientsGauge.set( activeClientCount );
 	checkReconnection( connectionId );
 }
 
 export function recordConnectionClose(
 	code: number,
 	connectionStartTime: number,
-	connectionId: string | null
+	connectionId: string | null,
+	activeClientCount: number
 ): void {
-	connectedClientsGauge.dec();
+	activeConnectionsGauge.dec();
+	activeClientsGauge.set( activeClientCount );
 	connectionCloseCounter.inc( { code: code.toString() } );
 
 	const now = Date.now();
