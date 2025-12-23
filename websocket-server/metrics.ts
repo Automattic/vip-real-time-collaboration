@@ -1,6 +1,7 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
 
+import { getActiveClientCount, getActiveConnectionCount } from './connection-limits';
 import { getRawDataSizeBytes, getRequestPathname } from './utils';
 
 import type { RawData, WebSocketServer } from 'ws';
@@ -84,7 +85,8 @@ const reconnectionTimeHistogram = new Histogram( {
  * ------------------------------------------------------------
  */
 function reconcileConnectedClients( wss: WebSocketServer ): void {
-	activeConnectionsGauge.set( wss.clients.size );
+	activeConnectionsGauge.set( getActiveConnectionCount( wss ) );
+	activeClientsGauge.set( getActiveClientCount( wss ) );
 }
 
 export function recordMessage( data: RawData, isBinary: boolean ): void {
