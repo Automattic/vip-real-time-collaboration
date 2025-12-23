@@ -12,7 +12,7 @@ declare module 'ws' {
 		/**
 		 * Client identifier from JWT token
 		 *
-		 * Represents a single browser tab session. The connection_id is a UUID
+		 * Represents a single browser tab session. The wp_client_id is a UUID
 		 * generated in-memory per page load and changes on refresh.
 		 */
 		wpClientId?: string;

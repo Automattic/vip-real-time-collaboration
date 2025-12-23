@@ -1,13 +1,13 @@
 /**
  * Client connections tracking
  *
- * Tracks which clients (by connection_id) have active WebSocket connections.
+ * Tracks which clients (by wp_client_id) have active WebSocket connections.
  * Each sync-enabled entity (post, widget, pattern, etc.) establishes a separate
  * WebSocket connection. When the server reaches soft capacity, only clients with
  * existing connections can establish connections for additional entities, ensuring
  * atomic behavior - either all required entities connect or none do.
  *
- * A client represents a single browser tab session. The connection_id is a UUID
+ * A client represents a single browser tab session. The wp_client_id is a UUID
  * generated in-memory per page load and changes on refresh. Multiple tabs from
  * the same user are independent clients.
  *
@@ -70,13 +70,13 @@ export class ClientConnectionStore {
 	/**
 	 * Check if a client has any active connections
 	 */
-	public isClientActive( connectionId: string | null, wss: WebSocketServer ): boolean {
-		if ( ! connectionId ) {
+	public isClientActive( wpClientId: string | null, wss: WebSocketServer ): boolean {
+		if ( ! wpClientId ) {
 			return false;
 		}
 
 		for ( const ws of wss.clients ) {
-			if ( ws.wpClientId === connectionId ) {
+			if ( ws.wpClientId === wpClientId ) {
 				return true;
 			}
 		}
@@ -96,7 +96,7 @@ export class ClientConnectionStore {
 	/**
 	 * Check if a new connection should be allowed based on current limits
 	 */
-	public shouldAllowConnection( connectionId: string | null, wss: WebSocketServer ): boolean {
+	public shouldAllowConnection( wpClientId: string | null, wss: WebSocketServer ): boolean {
 		// No limit configured
 		if ( this.max === -1 ) {
 			return true;
@@ -110,7 +110,7 @@ export class ClientConnectionStore {
 		}
 
 		// Check soft limit (reject new clients, allow existing clients)
-		if ( currentTotalConnections >= this.soft && ! this.isClientActive( connectionId, wss ) ) {
+		if ( currentTotalConnections >= this.soft && ! this.isClientActive( wpClientId, wss ) ) {
 			return false;
 		}
 
