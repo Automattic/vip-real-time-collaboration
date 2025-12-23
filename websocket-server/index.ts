@@ -3,16 +3,14 @@ import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { RawData, WebSocketServer, type WebSocket } from 'ws';
 
 import { getWpClientId, isRequestAuthenticated } from './auth';
-import { ClientConnectionStore } from './client-connections';
-import './types';
 import {
 	DEFAULT_CONNECTION_TIMEOUT,
 	DEFAULT_HOST,
 	DEFAULT_PORT,
 	JWT_SECRET,
-	MAX_CONNECTIONS,
 	WEBSOCKET_CLOSE_CODES,
 } from './config';
+import { shouldAllowConnection, getActiveClientCount } from './connection-limits';
 import {
 	recordMessage,
 	recordConnectionClose,
@@ -22,6 +20,7 @@ import {
 	recordConnectionOpen,
 } from './metrics';
 import { NoopPersistenceProvider } from './noop-persistence-provider';
+import './types';
 import { getRequestPathname } from './utils';
 
 import type { Duplex } from 'node:stream';
@@ -36,15 +35,6 @@ const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
 const connectionTimeout =
 	parseInt( process.env.CONNECTION_TIMEOUT || '', 10 ) || DEFAULT_CONNECTION_TIMEOUT;
-
-/**
- * ------------------------------------------------------------
- * Client connection store with configured limits
- * ------------------------------------------------------------
- */
-export const clientConnectionStore = new ClientConnectionStore( {
-	max: MAX_CONNECTIONS,
-} );
 
 /**
  * ------------------------------------------------------------
@@ -94,7 +84,7 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	 */
 	setupWSConnection( ws, request );
 
-	recordConnectionOpen( wpClientId, clientConnectionStore.getActiveClientCount( wss ) );
+	recordConnectionOpen( wpClientId, getActiveClientCount( wss ) );
 
 	/**
 	 * Track message metrics
@@ -117,12 +107,7 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	 */
 	ws.on( 'close', ( code: number ): void => {
 		clearTimeout( timeout );
-		recordConnectionClose(
-			code,
-			connectionStartTime,
-			wpClientId,
-			clientConnectionStore.getActiveClientCount( wss )
-		);
+		recordConnectionClose( code, connectionStartTime, wpClientId, getActiveClientCount( wss ) );
 	} );
 } );
 
@@ -142,9 +127,7 @@ server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer )
 		/**
 		 * Check connection limits
 		 */
-		if (
-			! clientConnectionStore.shouldAllowConnection( getWpClientId( request, JWT_SECRET ), wss )
-		) {
+		if ( ! shouldAllowConnection( wss, getWpClientId( request, JWT_SECRET ) ) ) {
 			recordConnectionFailure( 'connection_limit_exceeded' );
 			ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
 			return;
