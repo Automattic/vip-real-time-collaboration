@@ -57,7 +57,16 @@ final class AuthApiController extends WP_REST_Controller {
 							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
-						'required' => true,
+						'required' => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'connectionId' => [
+						'description' => __(
+							'(Deprecated) The client ID to track reconnections. Use wpClientId instead.',
+							'vip-real-time-collaboration'
+						),
+						'type' => 'string',
+						'required' => false,
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 				],
@@ -78,12 +87,19 @@ final class AuthApiController extends WP_REST_Controller {
 		$sync_object_id = $request->get_param( 'syncObjectId' );
 		/** @psalm-suppress MixedAssignment */
 		$wp_client_id = $request->get_param( 'wpClientId' );
+		/** @psalm-suppress MixedAssignment */
+		$connection_id = $request->get_param( 'connectionId' );
+
+		// Fallback to connectionId if wpClientId is not provided (for backwards compatibility)
+		if ( ! is_string( $wp_client_id ) && is_string( $connection_id ) ) {
+			$wp_client_id = $connection_id;
+		}
 
 		// Validate parameter types
 		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) || ! is_string( $wp_client_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
-				__( 'syncObjectType, syncObjectId, and wpClientId must be strings.', 'vip-real-time-collaboration' ),
+				__( 'syncObjectType, syncObjectId, and wpClientId (or connectionId) must be strings.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
 		}
