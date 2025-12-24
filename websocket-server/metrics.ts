@@ -1,6 +1,7 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
 
+import { getActiveClientCount, getActiveConnectionCount } from './connection-limits';
 import { getRawDataSizeBytes, getRequestPathname } from './utils';
 
 import type { RawData, WebSocketServer } from 'ws';
@@ -27,16 +28,21 @@ const metricsTrackReconnectsWindow =
  * ------------------------------------------------------------
  */
 // Track recent disconnections for reconnection time measurement
-const recentDisconnects = new Map< string, number >(); // connection_id -> disconnect_timestamp
+const recentDisconnects = new Map< string, number >(); // wp_client_id -> disconnect_timestamp
 
 /**
  * ------------------------------------------------------------
  * Prometheus metrics
  * ------------------------------------------------------------
  */
-const connectedClientsGauge = new Gauge( {
-	name: `${ METRICS_NAMESPACE }_connected_clients`,
-	help: 'Number of currently connected WebSocket clients',
+const activeConnectionsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_connections`,
+	help: 'Number of currently active WebSocket connections',
+} );
+
+const activeClientsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_clients`,
+	help: 'Number of active clients (unique connections by wp_client_id)',
 } );
 
 const messagesCounter = new Counter( {
@@ -79,7 +85,8 @@ const reconnectionTimeHistogram = new Histogram( {
  * ------------------------------------------------------------
  */
 function reconcileConnectedClients( wss: WebSocketServer ): void {
-	connectedClientsGauge.set( wss.clients.size );
+	activeConnectionsGauge.set( getActiveConnectionCount( wss ) );
+	activeClientsGauge.set( getActiveClientCount( wss ) );
 }
 
 export function recordMessage( data: RawData, isBinary: boolean ): void {
@@ -94,35 +101,38 @@ export function recordConnectionFailure( reason: string ): void {
 	connectionFailuresCounter.inc( { reason } );
 }
 
-export function recordConnectionOpen( connectionId: string | null ): void {
-	connectedClientsGauge.inc();
-	checkReconnection( connectionId );
+export function recordConnectionOpen( wpClientId: string | null, activeClientCount: number ): void {
+	activeConnectionsGauge.inc();
+	activeClientsGauge.set( activeClientCount );
+	checkReconnection( wpClientId );
 }
 
 export function recordConnectionClose(
 	code: number,
 	connectionStartTime: number,
-	connectionId: string | null
+	wpClientId: string | null,
+	activeClientCount: number
 ): void {
-	connectedClientsGauge.dec();
+	activeConnectionsGauge.dec();
+	activeClientsGauge.set( activeClientCount );
 	connectionCloseCounter.inc( { code: code.toString() } );
 
 	const now = Date.now();
 	const durationSeconds = ( now - connectionStartTime ) / 1000;
 	connectionDurationHistogram.observe( durationSeconds );
 
-	trackDisconnection( connectionId, now );
+	trackDisconnection( wpClientId, now );
 }
 
 /**
  * Store a disconnect event (cleanup handled by global interval)
  */
-function trackDisconnection( connectionId: string | null, timestamp: number ): void {
-	if ( ! connectionId ) {
+function trackDisconnection( wpClientId: string | null, timestamp: number ): void {
+	if ( ! wpClientId ) {
 		return;
 	}
 
-	recentDisconnects.set( connectionId, timestamp );
+	recentDisconnects.set( wpClientId, timestamp );
 }
 
 /**
@@ -132,9 +142,9 @@ function cleanupOldDisconnects(): void {
 	const now = Date.now();
 	const cleanupThreshold = ( metricsTrackReconnectsWindow + 10 ) * 1000;
 
-	recentDisconnects.forEach( ( disconnectTime, connectionId ) => {
+	recentDisconnects.forEach( ( disconnectTime, wpClientId ) => {
 		if ( now - disconnectTime > cleanupThreshold ) {
-			recentDisconnects.delete( connectionId );
+			recentDisconnects.delete( wpClientId );
 		}
 	} );
 }
@@ -142,12 +152,12 @@ function cleanupOldDisconnects(): void {
 /**
  * Check for reconnection and record metric if found
  */
-function checkReconnection( connectionId: string | null ): void {
-	if ( ! connectionId ) {
+function checkReconnection( wpClientId: string | null ): void {
+	if ( ! wpClientId ) {
 		return;
 	}
 
-	const disconnectTime = recentDisconnects.get( connectionId );
+	const disconnectTime = recentDisconnects.get( wpClientId );
 	const now = Date.now();
 
 	if ( disconnectTime && now - disconnectTime <= metricsTrackReconnectsWindow * 1000 ) {
@@ -155,7 +165,7 @@ function checkReconnection( connectionId: string | null ): void {
 		reconnectionTimeHistogram.observe( reconnectionTimeSeconds );
 
 		// Remove from map since we found the reconnection
-		recentDisconnects.delete( connectionId );
+		recentDisconnects.delete( wpClientId );
 	}
 }
 

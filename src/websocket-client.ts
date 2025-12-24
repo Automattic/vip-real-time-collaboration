@@ -30,9 +30,9 @@ const defaultResult = {
 };
 
 /**
- * Creates a connection ID generator with in-memory storage
+ * Creates a client ID generator with in-memory storage
  */
-const getConnectionId = memoizeFn( (): string => generateUUID() );
+const getWpClientId = memoizeFn( (): string => generateUUID() );
 
 const logger = new Logger( 'websocket-client' );
 
@@ -46,7 +46,7 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 		data: {
 			syncObjectType,
 			syncObjectId,
-			connectionId: getConnectionId(),
+			wpClientId: getWpClientId(),
 		},
 	} );
 

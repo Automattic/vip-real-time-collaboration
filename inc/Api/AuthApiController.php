@@ -51,13 +51,22 @@ final class AuthApiController extends WP_REST_Controller {
 						'required' => true,
 						'sanitize_callback' => 'sanitize_text_field',
 					],
-					'connectionId' => [
+					'wpClientId' => [
 						'description' => __(
-							'The connection ID to track reconnections',
+							'The client ID to track reconnections',
 							'vip-real-time-collaboration'
 						),
 						'type' => 'string',
-						'required' => true,
+						'required' => false,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+					'connectionId' => [
+						'description' => __(
+							'(Deprecated) The client ID to track reconnections. Use wpClientId instead.',
+							'vip-real-time-collaboration'
+						),
+						'type' => 'string',
+						'required' => false,
 						'sanitize_callback' => 'sanitize_text_field',
 					],
 				],
@@ -77,19 +86,26 @@ final class AuthApiController extends WP_REST_Controller {
 		$sync_object_type = $request->get_param( 'syncObjectType' );
 		$sync_object_id = $request->get_param( 'syncObjectId' );
 		/** @psalm-suppress MixedAssignment */
+		$wp_client_id = $request->get_param( 'wpClientId' );
+		/** @psalm-suppress MixedAssignment */
 		$connection_id = $request->get_param( 'connectionId' );
 
+		// Fallback to connectionId if wpClientId is not provided (for backwards compatibility)
+		if ( ! is_string( $wp_client_id ) && is_string( $connection_id ) ) {
+			$wp_client_id = $connection_id;
+		}
+
 		// Validate parameter types
-		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) || ! is_string( $connection_id ) ) {
+		if ( ! is_string( $sync_object_type ) || ! is_string( $sync_object_id ) || ! is_string( $wp_client_id ) ) {
 			return new WP_Error(
 				'invalid_parameters',
-				__( 'syncObjectType, syncObjectId, and connectionId must be strings.', 'vip-real-time-collaboration' ),
+				__( 'syncObjectType, syncObjectId, and wpClientId (or connectionId) must be strings.', 'vip-real-time-collaboration' ),
 				[ 'status' => 400 ]
 			);
 		}
 
 		// Generate a short-lived token with sync object information
-		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id, $connection_id );
+		$token = WebSocketAuth::generate_token( $sync_object_type, $sync_object_id, $wp_client_id );
 
 		if ( is_wp_error( $token ) ) {
 			// Log error for debugging

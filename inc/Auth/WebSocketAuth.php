@@ -17,14 +17,14 @@ final class WebSocketAuth {
 	 *
 	 * @param string $sync_object_type Sync object type to include in token.
 	 * @param string $sync_object_id Sync object ID to include in token.
-	 * @param string $connection_id Connection ID to track reconnections.
+	 * @param string $wp_client_id Client ID to track reconnections.
 	 *
 	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
 	 */
 	public static function generate_token(
 		string $sync_object_type,
 		string $sync_object_id,
-		string $connection_id,
+		string $wp_client_id,
 	): string|WP_Error {
 		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
 		if ( true !== $permission_check ) {
@@ -65,7 +65,7 @@ final class WebSocketAuth {
 			'username' => $current_user->user_login,
 			'room_name' => sprintf( 'site-%d/%s-%s', $blog_id, $sync_object_type, $sync_object_id ),
 			'blog_id' => $blog_id,
-			'connection_id' => $connection_id,
+			'wp_client_id' => $wp_client_id,
 			'iat' => time(), // Issued at
 			'exp' => $expires,
 		];

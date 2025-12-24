@@ -2,15 +2,15 @@ import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { RawData, WebSocketServer, type WebSocket } from 'ws';
 
-import { getConnectionId, isRequestAuthenticated } from './auth';
+import { getWpClientId, isRequestAuthenticated } from './auth';
 import {
 	DEFAULT_CONNECTION_TIMEOUT,
 	DEFAULT_HOST,
 	DEFAULT_PORT,
 	JWT_SECRET,
-	MAX_CONNECTIONS,
 	WEBSOCKET_CLOSE_CODES,
 } from './config';
+import { shouldAllowConnection, getActiveClientCount } from './connection-limits';
 import {
 	recordMessage,
 	recordConnectionClose,
@@ -20,6 +20,7 @@ import {
 	recordConnectionOpen,
 } from './metrics';
 import { NoopPersistenceProvider } from './noop-persistence-provider';
+import './types';
 import { getRequestPathname } from './utils';
 
 import type { Duplex } from 'node:stream';
@@ -71,14 +72,19 @@ setPersistence( new NoopPersistenceProvider() );
  */
 wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	const connectionStartTime = Date.now();
-	const connectionId = getConnectionId( request, JWT_SECRET );
+	const wpClientId = getWpClientId( request, JWT_SECRET );
+
+	/**
+	 * Store client ID on WebSocket for tracking
+	 */
+	ws.wpClientId = wpClientId ?? undefined;
 
 	/**
 	 * Set up the connection
 	 */
 	setupWSConnection( ws, request );
 
-	recordConnectionOpen( connectionId );
+	recordConnectionOpen( wpClientId, getActiveClientCount( wss ) );
 
 	/**
 	 * Track message metrics
@@ -101,7 +107,7 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	 */
 	ws.on( 'close', ( code: number ): void => {
 		clearTimeout( timeout );
-		recordConnectionClose( code, connectionStartTime, connectionId );
+		recordConnectionClose( code, connectionStartTime, wpClientId, getActiveClientCount( wss ) );
 	} );
 } );
 
@@ -119,10 +125,9 @@ server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer )
 
 	wss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
 		/**
-		 * Check connection limit (if configured)
-		 * The value of MAX_CONNECTIONS=-1 means no limit
+		 * Check connection limits
 		 */
-		if ( MAX_CONNECTIONS !== -1 && wss.clients.size > MAX_CONNECTIONS ) {
+		if ( ! shouldAllowConnection( wss, getWpClientId( request, JWT_SECRET ) ) ) {
 			recordConnectionFailure( 'connection_limit_exceeded' );
 			ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
 			return;
