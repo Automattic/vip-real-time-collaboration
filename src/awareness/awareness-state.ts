@@ -22,7 +22,7 @@ interface AwarenessStateChange {
  * Abstract class to hold and manage awareness state with equality checks.
  */
 abstract class AwarenessWithEqualityChecks<
-	State extends BaseState = BaseState
+	State extends BaseState = BaseState,
 > extends TypedAwareness< State > {
 	/** OVERRIDDEN METHODS **/
 
@@ -100,7 +100,7 @@ abstract class AwarenessWithEqualityChecks<
  * state updates.
  */
 export abstract class AwarenessState<
-	State extends BaseState = BaseState
+	State extends BaseState = BaseState,
 > extends AwarenessWithEqualityChecks< State > {
 	/** CUSTOM PROPERTIES **/
 
