@@ -44,6 +44,18 @@ The plugin handles brief connection interruptions gracefully. If the connection 
 
 The plugin uses a [CRDT](https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type) to automatically merge changes from multiple users and prevent conflicts.
 
+## Common Issues
+
+Plugin development has historically been done with the understanding that only one user would be changing the data at a time. With Real Time Collaboration, this paradigm has changed. Some plugins, custom blocks, or other third-party code may have been written in ways that won't fully support data changing from other clients.
+
+We will continue to update our [Common Issues](./docs/COMMON_ISSUES.md) doc with examples of problematic code and ways to improve it. The following prompt can be helpful to identify common issues in your codebase.
+
+### AI Prompt for Identifying Common Issues in WordPress Plugins
+
+```
+Analyze this codebase to identify any components or code segments that may lead to issues as outlined in the [COMMON_ISSUES.md](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/refs/heads/trunk/docs/COMMON_ISSUES.md). Provide suggestions for refactoring to ensure compatibility and optimal performance. Look through all files and identify any file that registers custom post meta or implements client-side custom WordPress blocks.
+```
+
 ## Development
 
 For development setup, contributing guidelines, and technical information, please see:
