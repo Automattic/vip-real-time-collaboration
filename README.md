@@ -46,7 +46,7 @@ The plugin uses a [CRDT](https://en.wikipedia.org/wiki/Conflict-free_replicated_
 
 ## Common Issues
 
-Plugin development has historically been done with the understanding that only one user would be changing the data at a time. With Real Time Collaboration, this paradigm has changed. Some plugins, custom blocks, or other 3rd party code may have been written in ways that won't fully support data changing from other clients.
+Plugin development has historically been done with the understanding that only one user would be changing the data at a time. With Real Time Collaboration, this paradigm has changed. Some plugins, custom blocks, or other third-party code may have been written in ways that won't fully support data changing from other clients.
 
 We will continue to update our [Common Issues](./docs/COMMON_ISSUES.md) doc with examples of problematic code and ways to improve it. The following prompt can be helpful to identify common issues in your codebase.
 

@@ -146,13 +146,13 @@ We have seen custom blocks that open a modal for user input when the block is ad
 
 ## Solution
 
-If it's not possible to provide defaults and forego the initial modal entirely, one option is for the block to show a placeholder UI that requires the user to click a button before showing the modal.
+If it's not possible to provide defaults and forgo the initial modal entirely, one option is for the block to show a placeholder UI that requires the user to click a button before showing the modal.
 
 # Custom post meta values not present in the store
 
 The post meta must be [registered](https://developer.wordpress.org/reference/functions/register_meta/) with the `show_in_rest` argument set to `true`. This makes the meta available in the REST API, which is used by the block editor.
 
-```
+```php
 register_post_meta( 'post', 'example', [
 	'show_in_rest' => true, // required for syncing
 	'single' => true,
