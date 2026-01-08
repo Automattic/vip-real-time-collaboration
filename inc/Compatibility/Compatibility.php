@@ -71,7 +71,14 @@ final class Compatibility {
 	 * @return array<string>
 	 */
 	public static function get_supported_post_types(): array {
-		return get_post_types_by_support( [ 'editor' ] );
+		$post_types = get_post_types_by_support( [ 'editor' ] );
+
+		/**
+		 * Filters the post types that support real-time collaboration.
+		 *
+		 * @param array<string> $post_types Array of post type slugs that support collaborative editing.
+		 */
+		return apply_filters( 'vip_real_time_collaboration_supported_post_types', $post_types );
 	}
 
 	/**

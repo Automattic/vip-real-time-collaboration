@@ -155,4 +155,75 @@ final class CompatibilityTest extends TestCase {
 
 		$pagenow = $previous_pagenow;
 	}
+
+	/**
+	 * Verifies that get_supported_post_types() returns post types with editor support.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::get_supported_post_types
+	 */
+	public function test_get_supported_post_types_returns_default_post_types(): void {
+		$supported_post_types = Compatibility::get_supported_post_types();
+
+		self::assertIsArray( $supported_post_types, 'Should return an array' );
+		self::assertContains( 'post', $supported_post_types, 'Should include post type' );
+		self::assertContains( 'page', $supported_post_types, 'Should include page type' );
+	}
+
+	/**
+	 * Verifies that the vip_real_time_collaboration_supported_post_types filter works correctly.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::get_supported_post_types
+	 */
+	public function test_get_supported_post_types_filter_can_exclude_post_types(): void {
+		$filter_callback = function ( array $post_types ): array {
+			return array_diff( $post_types, [ 'page' ] );
+		};
+
+		add_filter( 'vip_real_time_collaboration_supported_post_types', $filter_callback );
+
+		$supported_post_types = Compatibility::get_supported_post_types();
+
+		self::assertIsArray( $supported_post_types, 'Should return an array' );
+		self::assertContains( 'post', $supported_post_types, 'Should include post type' );
+		self::assertNotContains( 'page', $supported_post_types, 'Should not include page type after filtering' );
+
+		remove_filter( 'vip_real_time_collaboration_supported_post_types', $filter_callback );
+	}
+
+	/**
+	 * Verifies that the vip_real_time_collaboration_supported_post_types filter works with custom post types.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Compatibility::get_supported_post_types
+	 */
+	public function test_get_supported_post_types_filter_can_exclude_custom_post_types(): void {
+		// Register a custom post type for testing.
+		register_post_type(
+			'product',
+			[
+				'public' => true,
+				'supports' => [ 'editor' ],
+			]
+		);
+
+		// Verify the custom post type is included by default.
+		$supported_post_types = Compatibility::get_supported_post_types();
+		self::assertContains( 'product', $supported_post_types, 'Custom post type should be included by default' );
+
+		// Add filter to exclude the custom post type.
+		$filter_callback = function ( array $post_types ): array {
+			return array_diff( $post_types, [ 'product' ] );
+		};
+
+		add_filter( 'vip_real_time_collaboration_supported_post_types', $filter_callback );
+
+		$supported_post_types = Compatibility::get_supported_post_types();
+
+		self::assertNotContains( 'product', $supported_post_types, 'Custom post type should be excluded after filtering' );
+		self::assertContains( 'post', $supported_post_types, 'Other post types should still be included' );
+
+		remove_filter( 'vip_real_time_collaboration_supported_post_types', $filter_callback );
+
+		// Clean up.
+		unregister_post_type( 'product' );
+	}
 }

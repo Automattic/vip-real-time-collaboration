@@ -22,6 +22,28 @@ VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same Wo
 
 Out of the box, the plugin works with all WordPress posts and pages, including Custom Post Types.
 
+### Excluding content types from real-time collaboration
+
+If you need to exclude specific content types from real-time collaboration, you can use the `vip_real_time_collaboration_supported_post_types` filter:
+
+```php
+add_filter( 'vip_real_time_collaboration_supported_post_types', function( $post_types ) {
+	// Remove specific post types from collaboration
+	$post_types = array_diff( $post_types, [ 'product', 'custom_post_type' ] );
+	return $post_types;
+} );
+```
+
+**Note:** This filter should be added after the `init` hook has run, as post types are registered at that point. The recommended approach is to add this in a plugin or theme with a priority higher than 10:
+
+```php
+add_action( 'init', function() {
+	add_filter( 'vip_real_time_collaboration_supported_post_types', function( $post_types ) {
+		return array_diff( $post_types, [ 'product' ] );
+	} );
+}, 20 );
+```
+
 ## Requirements
 
 - **WordPress**: 6.7 or newer
