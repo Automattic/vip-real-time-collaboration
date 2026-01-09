@@ -1,4 +1,5 @@
 import { addFilter } from '@wordpress/hooks';
+
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';

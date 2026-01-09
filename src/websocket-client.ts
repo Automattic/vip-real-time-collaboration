@@ -18,7 +18,6 @@ import { Logger } from '@/utilities/logger';
 
 import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
 import type * as Y from 'yjs';
-import type { Awareness } from 'y-protocols/awareness';
 
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
@@ -88,19 +87,16 @@ function onStatusChange(
 
 		case 'connection-error': {
 			console.log( 'connection-error', { objectType, objectId } );
-			// setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
 		case 'connected': {
 			console.log( 'connected', { objectType, objectId } );
-			// setConnectionStatus( objectType, objectId, true );
 			break;
 		}
 
 		case 'disconnected': {
 			console.log( 'disconnected', { objectType, objectId } );
-			// setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 	}
@@ -177,12 +173,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function (
-		objectType: ObjectType,
-		objectId: ObjectID | null,
-		doc: Y.Doc,
-		awareness?: Awareness
-	) {
+	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc ) {
 		try {
 			// For now, we only support collections and traditional post types.
 			if (
@@ -205,8 +196,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
-			// const awareness = await createAwareness( objectType, objectId, doc );
-			const options = { ...config.options, awareness };
+			const options = { ...config.options };
 			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
