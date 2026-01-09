@@ -177,7 +177,12 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc, awareness?: Awareness ) {
+	return async function (
+		objectType: ObjectType,
+		objectId: ObjectID | null,
+		doc: Y.Doc,
+		awareness?: Awareness
+	) {
 		try {
 			// For now, we only support collections and traditional post types.
 			if (
