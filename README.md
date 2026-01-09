@@ -22,6 +22,97 @@ VIP Real-Time Collaboration (VIP RTC) enables multiple users to edit the same Wo
 
 Out of the box, the plugin works with all WordPress posts and pages, including Custom Post Types.
 
+### Customizing collaboration access
+
+By default, users can collaborate on any content they have permission to edit. You can customize collaboration access using the `vip_rtc_post_sync_check_permission` filter to implement your own permission logic.
+
+#### Restricting collaboration by post type
+
+To exclude specific post types from real-time collaboration:
+
+```php
+add_filter( 'vip_rtc_post_sync_check_permission', function( $result, $post_id ) {
+	// If previous checks failed, respect that
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	$post_type = get_post_type( $post_id );
+	$excluded_types = [ 'product', 'private_content' ];
+
+	if ( in_array( $post_type, $excluded_types, true ) ) {
+		return new WP_Error(
+			'collaboration_disabled',
+			'Real-time collaboration is not available for this content type.'
+		);
+	}
+
+	return $result;
+}, 10, 2 );
+```
+
+#### Restricting collaboration by user role
+
+To limit collaboration to specific roles for certain post types:
+
+```php
+add_filter( 'vip_rtc_post_sync_check_permission', function( $result, $post_id ) {
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	$post_type = get_post_type( $post_id );
+	$current_user = wp_get_current_user();
+
+	// Only allow editors and admins to collaborate on pages
+	if ( 'page' === $post_type ) {
+		$allowed_roles = [ 'editor', 'administrator' ];
+		$user_roles = $current_user->roles;
+
+		if ( empty( array_intersect( $allowed_roles, $user_roles ) ) ) {
+			return new WP_Error(
+				'insufficient_role',
+				'Your user role does not have permission to collaborate on pages.'
+			);
+		}
+	}
+
+	return $result;
+}, 10, 2 );
+```
+
+#### Other permission customizations
+
+You can use the filter to implement various permission strategies:
+
+```php
+// Disable collaboration based on post meta
+add_filter( 'vip_rtc_post_sync_check_permission', function( $result, $post_id ) {
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	if ( get_post_meta( $post_id, '_disable_collaboration', true ) ) {
+		return new WP_Error( 'collaboration_disabled', 'Collaboration disabled for this post.' );
+	}
+
+	return $result;
+}, 10, 2 );
+
+// Restrict by taxonomy terms
+add_filter( 'vip_rtc_post_sync_check_permission', function( $result, $post_id ) {
+	if ( is_wp_error( $result ) ) {
+		return $result;
+	}
+
+	if ( has_term( 'sensitive', 'category', $post_id ) ) {
+		return new WP_Error( 'sensitive_content', 'Collaboration not available for sensitive content.' );
+	}
+
+	return $result;
+}, 10, 2 );
+```
+
 ## Requirements
 
 - **WordPress**: 6.7 or newer
