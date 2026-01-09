@@ -263,11 +263,11 @@ final class SyncPermissionsFilterTest extends TestCase {
 		wp_set_current_user( $this->editor_id );
 
 		// Add two filters - the second should respect the first's error.
-		add_filter( 'vip_rtc_post_sync_check_permission', function ( $result, $post_id ) {
+		add_filter( 'vip_rtc_post_sync_check_permission', function () {
 			return new WP_Error( 'first_error', 'First filter error' );
-		}, 10, 2 );
+		}, 10, 0 );
 
-		add_filter( 'vip_rtc_post_sync_check_permission', function ( $result, $post_id ) {
+		add_filter( 'vip_rtc_post_sync_check_permission', function ( $result ) {
 			// Should return the error from the first filter unchanged.
 			if ( is_wp_error( $result ) ) {
 				return $result;
@@ -275,7 +275,7 @@ final class SyncPermissionsFilterTest extends TestCase {
 
 			// This should never execute because the first filter returns an error.
 			return new WP_Error( 'second_error', 'Second filter error' );
-		}, 20, 2 );
+		}, 20, 1 );
 
 		$result = SyncPermissions::can_sync( 'postType/post', (string) $this->post_id );
 
