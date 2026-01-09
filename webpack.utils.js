@@ -20,7 +20,7 @@ function modernize( config, additionalScripts = {}, additionalPlugins = [], watc
 			'@wordpress/sync': 'wp.sync',
 
 			// Resolve Yjs to the global `wp.sync.Y` provided by the sync package.
-			// Since dependencies import 'yhs' directly, we need to avoid importing
+			// Since dependencies import 'yjs' directly, we need to avoid importing
 			// and packaging two different Yjs instances, which would result in this
 			// conflict:
 			//
