@@ -46,10 +46,13 @@ final class Assets {
 		 */
 		$asset = include $asset_file;
 
+		// Ensure that the script includes 'wp-sync' as a dependency.
+		$dependencies = array_unique( array_merge( $asset['dependencies'], [ 'wp-sync' ] ) );
+
 		wp_enqueue_script(
 			'vip-real-time-collaboration',
 			$script_file,
-			$asset['dependencies'],
+			$dependencies,
 			$asset['version'],
 			[ 'in_footer' => false ]
 		);
