@@ -16,7 +16,7 @@ import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
-import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
+import { type ObjectID, type ObjectType, type ProviderCreator, setConnectionStatus } from '@wordpress/sync';
 import type * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
 
@@ -87,17 +87,17 @@ function onStatusChange(
 		}
 
 		case 'connection-error': {
-			console.log( 'connection-error', { objectType, objectId } );
+			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
 		case 'connected': {
-			console.log( 'connected', { objectType, objectId } );
+			setConnectionStatus( objectType, objectId, true );
 			break;
 		}
 
 		case 'disconnected': {
-			console.log( 'disconnected', { objectType, objectId } );
+			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 	}

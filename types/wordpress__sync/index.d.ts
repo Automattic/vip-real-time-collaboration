@@ -23,4 +23,10 @@ declare module '@wordpress/sync' {
 		ydoc: Y.Doc,
 		awareness?: Awareness
 	) => Promise< ProviderCreatorResult >;
+
+	function setConnectionStatus(
+		objectType: ObjectType,
+		objectId: ObjectID | null,
+		isConnected: boolean
+	): void;
 }
