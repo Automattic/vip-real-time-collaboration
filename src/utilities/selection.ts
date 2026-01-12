@@ -223,7 +223,7 @@ export function getCursorPosition(
 	};
 }
 
-function findBlockByClientId(
+export function findBlockByClientId(
 	blockId: string,
 	blocks: Y.Array< SelectableBlock >
 ): SelectableBlock | null {

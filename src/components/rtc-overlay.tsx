@@ -3,6 +3,7 @@ import { useEffect, useRef } from '@wordpress/element';
 
 import { useBlockHighlighting } from '@/hooks/use-block-highlighting';
 import { useRenderCursors } from '@/hooks/use-render-cursors';
+import { useRepositionCursor } from '@/hooks/use-reposition-cursor';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/rtc-overlay.scss';
@@ -32,6 +33,9 @@ export function RTCOverlay( { blockEditorDocument, cursorRegistry }: RTCOverlayP
 	const mergedRef = useMergeRefs( [ overlayRef, resizeObserverRef ] );
 
 	useBlockHighlighting( document );
+
+	// Automatically reposition cursor when other users type in the same block
+	useRepositionCursor();
 
 	// This is a full overlay that covers the entire iframe document. Good for
 	// scrollable elements like cursor indicators.
