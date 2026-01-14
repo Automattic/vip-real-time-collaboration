@@ -1,7 +1,6 @@
 import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 
-import { disableBlockEditingForViewMode } from './components/disable-block-editing-for-view-mode';
 import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
@@ -23,5 +22,3 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 registerPlugin( 'vip-rtc-settings-panel', {
 	render: RTCSettingsPanel,
 } );
-
-disableBlockEditingForViewMode();

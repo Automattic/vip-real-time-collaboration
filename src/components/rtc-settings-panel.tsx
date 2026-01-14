@@ -8,7 +8,6 @@ import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/pri
 import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
 import { Avatars } from './avatars';
-import { CollaborationModePicker } from './collaboration-mode-picker';
 import { DebugDataExportButton } from './debug-data-export-button';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
@@ -19,7 +18,7 @@ import {
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useDisableSidebarInteraction } from '@/hooks/use-disable-sidebar-interaction';
+import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
@@ -31,7 +30,6 @@ interface SelectResult {
 	isPostUpdateNotificationEnabled: boolean;
 	isUserEnterNotificationEnabled: boolean;
 	isUserExitNotificationEnabled: boolean;
-	isCollaborationModePickerEnabled: boolean;
 	objectId?: ObjectID;
 	objectType?: ObjectType;
 }
@@ -41,7 +39,7 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 	'@wordpress/editor'
 );
 
-const { EditorPresence, CollaborationMode } = unlock( editorPrivateApis );
+const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
 	const {
@@ -52,7 +50,6 @@ export function RTCSettingsPanel() {
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
-		isCollaborationModePickerEnabled,
 	} = useSelect< SettingsStoreSelectors, SelectResult >( select => {
 		const { getSetting } = select( rtcSettingsStore );
 
@@ -64,7 +61,6 @@ export function RTCSettingsPanel() {
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
-			isCollaborationModePickerEnabled: getSetting( Setting.COLLABORATION_MODE_PICKER ),
 		};
 	}, [] );
 
@@ -74,15 +70,10 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
-	useDisableSidebarInteraction();
+	useModifyCodeEditor();
 
 	return (
 		<>
-			{ isCollaborationModePickerEnabled && (
-				<CollaborationMode>
-					<CollaborationModePicker />
-				</CollaborationMode>
-			) }
 			{ isAvatarsEnabled && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />
