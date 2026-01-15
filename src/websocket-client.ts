@@ -3,6 +3,7 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
+import { type ObjectID, type ObjectType, type ProviderCreator } from '@wordpress/sync';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
 import {
@@ -16,9 +17,8 @@ import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
-import { type ObjectID, type ObjectType, type ProviderCreator, setConnectionStatus } from '@wordpress/sync';
-import type * as Y from 'yjs';
 import type { Awareness } from 'y-protocols/awareness';
+import type * as Y from 'yjs';
 
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
@@ -87,17 +87,17 @@ function onStatusChange(
 		}
 
 		case 'connection-error': {
-			setConnectionStatus( objectType, objectId, false );
+			// setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
 		case 'connected': {
-			setConnectionStatus( objectType, objectId, true );
+			// setConnectionStatus( objectType, objectId, true );
 			break;
 		}
 
 		case 'disconnected': {
-			setConnectionStatus( objectType, objectId, false );
+			// setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 	}
@@ -174,7 +174,12 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc, awareness?: Awareness ) {
+	return async function (
+		objectType: ObjectType,
+		objectId: ObjectID | null,
+		doc: Y.Doc,
+		awareness?: Awareness
+	) {
 		try {
 			// For now, we only support collections and traditional post types.
 			if (
