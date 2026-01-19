@@ -26,7 +26,6 @@ interface SelectResult {
 	isAvatarsEnabled: boolean;
 	isCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
-	isSelfAwarenessEnabled: boolean;
 	isPostUpdateNotificationEnabled: boolean;
 	isUserEnterNotificationEnabled: boolean;
 	isUserExitNotificationEnabled: boolean;
@@ -46,7 +45,6 @@ export function RTCSettingsPanel() {
 		isAvatarsEnabled,
 		isCursorsEnabled,
 		isDebugToolsEnabled,
-		isSelfAwarenessEnabled,
 		isPostUpdateNotificationEnabled,
 		isUserEnterNotificationEnabled,
 		isUserExitNotificationEnabled,
@@ -57,7 +55,6 @@ export function RTCSettingsPanel() {
 			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
-			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
 			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
 			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
 			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
@@ -110,12 +107,6 @@ export function RTCSettingsPanel() {
 						label="Enable cursors"
 						checked={ isCursorsEnabled }
 						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_CURSORS, enabled ) }
-					/>
-
-					<ToggleControl
-						label="Show my awareness"
-						checked={ isSelfAwarenessEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.SELF_AWARENESS, enabled ) }
 					/>
 
 					{ isDevelopment() && (
