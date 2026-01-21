@@ -239,12 +239,26 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
+				// Because there are multiple providers, disconnectWebSocket() and
+				// reconnectWebSocket() will be overridden by the last entity or collection
+				// provider created. Call the previous function if present.
+
+				const previousDisconnectFunction = window.VIP_RTC.debug.disconnectWebSocket;
 				window.VIP_RTC.debug.disconnectWebSocket = () => {
+					if ( previousDisconnectFunction ) {
+						previousDisconnectFunction();
+					}
+
 					provider.off( 'connection-close', connect );
 					provider.disconnect();
 				};
 
+				const previousReconnectFunction = window.VIP_RTC.debug.reconnectWebSocket;
 				window.VIP_RTC.debug.reconnectWebSocket = () => {
+					if ( previousReconnectFunction ) {
+						previousReconnectFunction();
+					}
+
 					provider.on( 'connection-close', connect );
 					void connect();
 				};
