@@ -23,8 +23,7 @@ import type {
 	ProviderCreator,
 	ProviderCreatorOptions,
 	ProviderCreatorResult,
-	ProviderEventMap,
-	SyncConnectionState,
+	SyncConnectionStatus,
 } from '@wordpress/sync';
 
 export interface WebSocketConnectionConfig {
@@ -84,18 +83,16 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
 }
 
+/**
+ * This is an event listener that responds to status events.
+ */
 function onStatusChange(
 	objectType: ObjectType,
 	objectId: ObjectID | null,
-	event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' }
+	event: { status: SyncConnectionStatus | 'connecting' | 'connection-error' }
 ): void {
 	switch ( event.status ) {
 		case 'connecting': {
-			break;
-		}
-
-		case 'connection-error': {
-			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
@@ -187,13 +184,6 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		objectId,
 		ydoc,
 	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
-		// Store status listeners registered via the on() method.
-		const statusListeners: Array< ( state: SyncConnectionState ) => void > = [];
-
-		const emitStatus = ( state: SyncConnectionState ): void => {
-			statusListeners.forEach( listener => listener( state ) );
-		};
-
 		try {
 			// For now, we only support collections and traditional post types.
 			const isUnsupportedObjectType =
@@ -225,16 +215,12 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			provider.on( 'connection-close', connect );
 			provider.on( 'connection-error', () => {
 				// The provider does not change status on connection error, so we
-				// manually trigger a synthetic status change.
-				onStatusChange( objectType, objectId, { status: 'connection-error' } );
-				emitStatus( { status: 'disconnected' } );
+				// manually emit a "disconnected" status.
+				provider.emit( 'status', [ { status: 'disconnected' } ] );
 			} );
 
 			provider.on( 'status', event => {
 				onStatusChange( objectType, objectId, event );
-				emitStatus( {
-					status: event.status === 'connected' ? 'connected' : 'disconnected',
-				} );
 			} );
 
 			// Provide some debugging functions in development mode.
@@ -268,14 +254,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			return {
 				destroy: () => provider.destroy(),
-				on: < K extends keyof ProviderEventMap >(
-					event: K,
-					callback: ( data: ProviderEventMap[ K ] ) => void
-				) => {
-					if ( event === 'status' ) {
-						statusListeners.push( callback as ( state: SyncConnectionState ) => void );
-					}
-				},
+				on: ( event, callback ) => provider.on( event, callback ),
 			};
 		} catch ( err ) {
 			logger.critical( 'Failed to create WebSocket connection', { error: err } );

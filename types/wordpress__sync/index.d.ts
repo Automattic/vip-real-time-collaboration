@@ -13,7 +13,7 @@ declare module '@wordpress/sync' {
 	const CRDT_RECORD_METADATA_SAVED_AT_KEY: string;
 	const CRDT_RECORD_METADATA_SAVED_BY_KEY: string;
 
-	type SyncConnectionStatus = 'connected' | 'disconnected';
+	type SyncConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
 	interface SyncConnectionError {
 		code: string;
