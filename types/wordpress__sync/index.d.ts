@@ -47,7 +47,5 @@ declare module '@wordpress/sync' {
 		on: ProviderOn;
 	}
 
-	type ProviderCreator = (
-		options: ProviderCreatorOptions
-	) => Promise< ProviderCreatorResult >;
+	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
 }
