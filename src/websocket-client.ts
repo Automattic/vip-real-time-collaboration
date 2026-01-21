@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { createAwareness, setConnectionStatus } from '@/awareness/awareness-manager';
+import { setConnectionStatus } from '@/awareness/awareness-manager';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -17,16 +17,24 @@ import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
-import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
-import type * as Y from 'yjs';
+import type {
+	ObjectID,
+	ObjectType,
+	ProviderCreator,
+	ProviderCreatorOptions,
+	ProviderCreatorResult,
+	ProviderEventMap,
+	SyncConnectionState,
+} from '@wordpress/sync';
 
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	serverUrl: string;
 }
 
-const defaultResult = {
+const defaultResult: ProviderCreatorResult = {
 	destroy: () => {},
+	on: () => {},
 };
 
 /**
@@ -174,13 +182,26 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc ) {
+	return async function ( {
+		objectType,
+		objectId,
+		ydoc,
+		awareness,
+	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
+		// Store status listeners registered via the on() method.
+		const statusListeners: Array< ( state: SyncConnectionState ) => void > = [];
+
+		const emitStatus = ( state: SyncConnectionState ): void => {
+			statusListeners.forEach( listener => listener( state ) );
+		};
+
 		try {
 			// For now, we only support collections and traditional post types.
-			if (
-				null !== objectId &&
-				( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) )
-			) {
+			const isUnsupportedObjectType =
+				! objectType.startsWith( 'postType/' ) || ! objectId || ! parseInt( objectId, 10 );
+			const isMissingAwareness = null === awareness;
+
+			if ( isUnsupportedObjectType || isMissingAwareness ) {
 				logger.debug( 'WebSocket connection skipped for unsupported object', {
 					objectType,
 					objectId,
@@ -197,9 +218,8 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
-			const awareness = await createAwareness( objectType, objectId, doc );
 			const options = { ...config.options, awareness };
-			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
+			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
 			provider.on( 'connection-close', connect );
@@ -207,8 +227,15 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				// The provider does not change status on connection error, so we
 				// manually trigger a synthetic status change.
 				onStatusChange( objectType, objectId, { status: 'connection-error' } );
+				emitStatus( { status: 'disconnected' } );
 			} );
-			provider.on( 'status', event => onStatusChange( objectType, objectId, event ) );
+
+			provider.on( 'status', event => {
+				onStatusChange( objectType, objectId, event );
+				emitStatus( {
+					status: event.status === 'connected' ? 'connected' : 'disconnected',
+				} );
+			} );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
@@ -227,6 +254,14 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			return {
 				destroy: () => provider.destroy(),
+				on: < K extends keyof ProviderEventMap >(
+					event: K,
+					callback: ( data: ProviderEventMap[ K ] ) => void
+				) => {
+					if ( event === 'status' ) {
+						statusListeners.push( callback as ( state: SyncConnectionState ) => void );
+					}
+				},
 			};
 		} catch ( err ) {
 			logger.critical( 'Failed to create WebSocket connection', { error: err } );
