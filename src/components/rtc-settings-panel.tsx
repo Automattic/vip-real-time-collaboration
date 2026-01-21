@@ -10,7 +10,6 @@ import { type ObjectID, type ObjectType } from '@wordpress/sync';
 import { Avatars } from './avatars';
 import { DebugDataExportButton } from './debug-data-export-button';
 import { DebugTools } from './debug-tools';
-import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
 import {
 	store as rtcSettingsStore,
@@ -89,11 +88,9 @@ export function RTCSettingsPanel() {
 						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 						) }
-						<PostLockedModal />
 					</>
 				) }
 			</BlockCanvasCover.Fill>
-			<PostLockedModal />
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
 				title="Real-time collaboration"
