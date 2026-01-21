@@ -13,14 +13,39 @@ declare module '@wordpress/sync' {
 	const CRDT_RECORD_METADATA_SAVED_AT_KEY: string;
 	const CRDT_RECORD_METADATA_SAVED_BY_KEY: string;
 
-	interface ProviderCreatorResult {
-		destroy: () => void;
+	type SyncConnectionStatus = 'connected' | 'connecting' | 'disconnected';
+
+	interface SyncConnectionError {
+		code: string;
+		message?: string;
+		description?: string;
 	}
 
-	type ProviderCreator = (
-		objectType: ObjectType,
-		objectId: ObjectID,
-		ydoc: Y.Doc,
-		awareness?: Awareness
-	) => Promise< ProviderCreatorResult >;
+	interface SyncConnectionState {
+		status: SyncConnectionStatus;
+		error?: SyncConnectionError;
+	}
+
+	interface ProviderEventMap {
+		status: SyncConnectionState;
+	}
+
+	type ProviderOn = < K extends keyof ProviderEventMap >(
+		event: K,
+		callback: ( data: ProviderEventMap[ K ] ) => void
+	) => void;
+
+	interface ProviderCreatorOptions {
+		objectType: ObjectType;
+		objectId: ObjectID | null;
+		ydoc: Y.Doc;
+		awareness?: Awareness;
+	}
+
+	interface ProviderCreatorResult {
+		destroy: () => void;
+		on: ProviderOn;
+	}
+
+	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
 }

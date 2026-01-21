@@ -17,16 +17,23 @@ import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
-import type { ObjectID, ObjectType, ProviderCreator } from '@wordpress/sync';
-import type * as Y from 'yjs';
+import type {
+	ObjectID,
+	ObjectType,
+	ProviderCreator,
+	ProviderCreatorOptions,
+	ProviderCreatorResult,
+	SyncConnectionStatus,
+} from '@wordpress/sync';
 
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	serverUrl: string;
 }
 
-const defaultResult = {
+const defaultResult: ProviderCreatorResult = {
 	destroy: () => {},
+	on: () => {},
 };
 
 /**
@@ -76,18 +83,16 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
 }
 
+/**
+ * This is an event listener that responds to status events.
+ */
 function onStatusChange(
 	objectType: ObjectType,
 	objectId: ObjectID | null,
-	event: { status: 'connected' | 'connecting' | 'connection-error' | 'disconnected' }
+	event: { status: SyncConnectionStatus | 'connecting' | 'connection-error' }
 ): void {
 	switch ( event.status ) {
 		case 'connecting': {
-			break;
-		}
-
-		case 'connection-error': {
-			setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 
@@ -174,13 +179,18 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		},
 	};
 
-	return async function ( objectType: ObjectType, objectId: ObjectID | null, doc: Y.Doc ) {
+	return async function ( {
+		objectType,
+		objectId,
+		ydoc,
+	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
 		try {
 			// For now, we only support collections and traditional post types.
-			if (
+			const isUnsupportedObjectType =
 				null !== objectId &&
-				( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) )
-			) {
+				( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) );
+
+			if ( isUnsupportedObjectType ) {
 				logger.debug( 'WebSocket connection skipped for unsupported object', {
 					objectType,
 					objectId,
@@ -197,27 +207,44 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
-			const awareness = await createAwareness( objectType, objectId, doc );
+			const awareness = await createAwareness( objectType, objectId, ydoc );
 			const options = { ...config.options, awareness };
-			const provider = new WebsocketProvider( config.serverUrl, roomName, doc, options );
+			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
 			provider.on( 'connection-close', connect );
 			provider.on( 'connection-error', () => {
 				// The provider does not change status on connection error, so we
-				// manually trigger a synthetic status change.
-				onStatusChange( objectType, objectId, { status: 'connection-error' } );
+				// manually emit a "disconnected" status.
+				provider.emit( 'status', [ { status: 'disconnected' } ] );
 			} );
-			provider.on( 'status', event => onStatusChange( objectType, objectId, event ) );
+
+			provider.on( 'status', event => {
+				onStatusChange( objectType, objectId, event );
+			} );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
+				// Because there are multiple providers, disconnectWebSocket() and
+				// reconnectWebSocket() will be overridden by the last entity or collection
+				// provider created. Call the previous function if present.
+
+				const previousDisconnectFunction = window.VIP_RTC.debug.disconnectWebSocket;
 				window.VIP_RTC.debug.disconnectWebSocket = () => {
+					if ( previousDisconnectFunction ) {
+						previousDisconnectFunction();
+					}
+
 					provider.off( 'connection-close', connect );
 					provider.disconnect();
 				};
 
+				const previousReconnectFunction = window.VIP_RTC.debug.reconnectWebSocket;
 				window.VIP_RTC.debug.reconnectWebSocket = () => {
+					if ( previousReconnectFunction ) {
+						previousReconnectFunction();
+					}
+
 					provider.on( 'connection-close', connect );
 					void connect();
 				};
@@ -227,6 +254,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			return {
 				destroy: () => provider.destroy(),
+				on: ( event, callback ) => provider.on( event, callback ),
 			};
 		} catch ( err ) {
 			logger.critical( 'Failed to create WebSocket connection', { error: err } );
