@@ -44,6 +44,10 @@ const getWpClientId = memoizeFn( (): string => generateUUID() );
 
 const logger = new Logger( 'websocket-client' );
 
+// Save disconnect and reconnect functions for each provider for use in debugging.
+const debugDisconnects: Map< string, () => void > = new Map();
+const debugReconnects: Map< string, () => void > = new Map();
+
 /**
  * Fetch a fresh authentication token from the REST API.
  */
@@ -222,6 +226,15 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
+			const handleStatusChange = ( event: {
+				status: 'connected' | 'connecting' | 'connection-error' | 'disconnected';
+			} ) => {
+				onStatusChange( objectType, objectId, event );
+				emitStatus( {
+					status: event.status === 'connected' ? 'connected' : 'disconnected',
+				} );
+			};
+
 			provider.on( 'connection-close', connect );
 			provider.on( 'connection-error', () => {
 				// The provider does not change status on connection error, so we
@@ -229,27 +242,34 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				onStatusChange( objectType, objectId, { status: 'connection-error' } );
 				emitStatus( { status: 'disconnected' } );
 			} );
+			provider.on( 'status', handleStatusChange );
 
-			provider.on( 'status', event => {
-				onStatusChange( objectType, objectId, event );
-				emitStatus( {
-					status: event.status === 'connected' ? 'connected' : 'disconnected',
-				} );
-			} );
-
-			// Provide some debugging functions in development mode.
+			// Register debug disconnect/reconnect functions for this provider.
 			if ( isDevelopment() ) {
-				window.VIP_RTC.debug.disconnectWebSocket = () => {
+				const debugDisconnect = () => {
 					provider.off( 'connection-close', connect );
+					provider.shouldConnect = false;
 					provider.disconnect();
-					onStatusChange( objectType, objectId, { status: 'disconnected' } );
-					emitStatus( { status: 'disconnected' } );
+					emitStatus( {
+						status: 'disconnected',
+						error: {
+							code: 'debug_disconnect',
+							message: 'Debug disconnect',
+							description: 'Manually disconnected via debug tools.',
+						},
+					} );
 				};
-
-				window.VIP_RTC.debug.reconnectWebSocket = () => {
+				const debugReconnect = () => {
 					provider.on( 'connection-close', connect );
 					void connect();
 				};
+				debugDisconnects.set( roomName, debugDisconnect );
+				debugReconnects.set( roomName, debugReconnect );
+
+				window.VIP_RTC.debug.disconnectWebSocket = () =>
+					debugDisconnects.forEach( disconnect => disconnect() );
+				window.VIP_RTC.debug.reconnectWebSocket = () =>
+					debugReconnects.forEach( reconnect => reconnect() );
 			}
 
 			await connect();
