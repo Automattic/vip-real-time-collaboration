@@ -197,7 +197,8 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		try {
 			// For now, we only support collections and traditional post types.
 			const isUnsupportedObjectType =
-				! objectType.startsWith( 'postType/' ) || ! objectId || ! parseInt( objectId, 10 );
+				null !== objectId &&
+				( ! objectType.startsWith( 'postType/' ) || ! parseInt( objectId, 10 ) );
 
 			if ( isUnsupportedObjectType ) {
 				logger.debug( 'WebSocket connection skipped for unsupported object', {
@@ -241,6 +242,8 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				window.VIP_RTC.debug.disconnectWebSocket = () => {
 					provider.off( 'connection-close', connect );
 					provider.disconnect();
+					onStatusChange( objectType, objectId, { status: 'disconnected' } );
+					emitStatus( { status: 'disconnected' } );
 				};
 
 				window.VIP_RTC.debug.reconnectWebSocket = () => {
