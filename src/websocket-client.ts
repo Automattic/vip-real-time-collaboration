@@ -5,7 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { setConnectionStatus } from '@/awareness/awareness-manager';
+import { createAwareness, setConnectionStatus } from '@/awareness/awareness-manager';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -186,7 +186,6 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 		objectType,
 		objectId,
 		ydoc,
-		awareness,
 	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
 		// Store status listeners registered via the on() method.
 		const statusListeners: Array< ( state: SyncConnectionState ) => void > = [];
@@ -199,9 +198,8 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			// For now, we only support collections and traditional post types.
 			const isUnsupportedObjectType =
 				! objectType.startsWith( 'postType/' ) || ! objectId || ! parseInt( objectId, 10 );
-			const isMissingAwareness = null === awareness;
 
-			if ( isUnsupportedObjectType || isMissingAwareness ) {
+			if ( isUnsupportedObjectType ) {
 				logger.debug( 'WebSocket connection skipped for unsupported object', {
 					objectType,
 					objectId,
@@ -218,6 +216,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
+			const awareness = await createAwareness( objectType, objectId, ydoc );
 			const options = { ...config.options, awareness };
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
