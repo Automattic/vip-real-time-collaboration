@@ -180,6 +180,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 	};
 
 	return async function ( {
+		awareness,
 		objectType,
 		objectId,
 		ydoc,
@@ -207,8 +208,10 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
-			const awareness = await createAwareness( objectType, objectId, ydoc );
-			const options = { ...config.options, awareness };
+			const options = {
+				...config.options,
+				awareness: awareness ?? ( await createAwareness( objectType, objectId, ydoc ) ),
+			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 

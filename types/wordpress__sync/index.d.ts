@@ -13,6 +13,8 @@ declare module '@wordpress/sync' {
 	const CRDT_RECORD_METADATA_SAVED_AT_KEY: string;
 	const CRDT_RECORD_METADATA_SAVED_BY_KEY: string;
 
+	type AwarenessState = Awareness;
+
 	type SyncConnectionStatus = 'connected' | 'connecting' | 'disconnected';
 
 	interface SyncConnectionError {
@@ -36,10 +38,10 @@ declare module '@wordpress/sync' {
 	) => void;
 
 	interface ProviderCreatorOptions {
+		awareness?: AwarenessState;
 		objectType: ObjectType;
 		objectId: ObjectID | null;
 		ydoc: Y.Doc;
-		awareness?: Awareness;
 	}
 
 	interface ProviderCreatorResult {
