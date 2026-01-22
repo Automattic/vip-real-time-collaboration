@@ -17,12 +17,10 @@ import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 
 import type {
-	ObjectID,
-	ObjectType,
 	ProviderCreator,
 	ProviderCreatorOptions,
 	ProviderCreatorResult,
-	SyncConnectionStatus,
+	SyncConnectionError,
 } from '@wordpress/sync';
 
 export interface WebSocketConnectionConfig {
@@ -83,27 +81,22 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 }
 
 /**
- * This is an event listener that responds to status events.
+ * Map WebSocket close codes to Gutenberg sync error types.
+ *
+ * @param {number} code - WebSocket close code
+ * @return {SyncConnectionError | undefined} Error object for known codes, undefined for generic disconnections
  */
-function onStatusChange(
-	objectType: ObjectType,
-	objectId: ObjectID | null,
-	event: { status: SyncConnectionStatus | 'connecting' | 'connection-error' }
-): void {
-	switch ( event.status ) {
-		case 'connecting': {
-			break;
-		}
-
-		case 'connected': {
-			// setConnectionStatus( objectType, objectId, true );
-			break;
-		}
-
-		case 'disconnected': {
-			// setConnectionStatus( objectType, objectId, false );
-			break;
-		}
+function getErrorFromCloseCode( code: number ): SyncConnectionError | undefined {
+	switch ( code ) {
+		case 4001:
+			// Connection timeout - server forces reconnect after configured duration
+			return { code: 'connection-expired' };
+		case 4002:
+			// Server reached maximum connection limit
+			return { code: 'too-many-connections' };
+		default:
+			// Generic disconnection, no specific error
+			return undefined;
 	}
 }
 
@@ -214,15 +207,27 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
-			provider.on( 'connection-close', connect );
-			provider.on( 'connection-error', () => {
-				// The provider does not change status on connection error, so we
-				// manually emit a "disconnected" status.
-				provider.emit( 'status', [ { status: 'disconnected' } ] );
-			} );
+			const handleConnectionClose = ( event: CloseEvent | null, _provider: WebsocketProvider ) => {
+				// Extract error information from WebSocket close code
+				const error = event?.code ? getErrorFromCloseCode( event.code ) : undefined;
 
-			provider.on( 'status', event => {
-				onStatusChange( objectType, objectId, event );
+				// Emit disconnected status with error details to Gutenberg's sync system
+				provider.emit( 'status', [
+					{
+						status: 'disconnected',
+						...( error && { error } ),
+					},
+				] );
+
+				// Trigger reconnection attempt
+				void connect();
+			};
+
+			provider.on( 'connection-close', handleConnectionClose );
+
+			provider.on( 'connection-error', () => {
+				// Emit generic disconnected status for connection errors
+				provider.emit( 'status', [ { status: 'disconnected' } ] );
 			} );
 
 			// Provide some debugging functions in development mode.
@@ -237,7 +242,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousDisconnectFunction();
 					}
 
-					provider.off( 'connection-close', connect );
+					provider.off( 'connection-close', handleConnectionClose );
 					provider.disconnect();
 				};
 
@@ -247,7 +252,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousReconnectFunction();
 					}
 
-					provider.on( 'connection-close', connect );
+					provider.on( 'connection-close', handleConnectionClose );
 					void connect();
 				};
 			}
