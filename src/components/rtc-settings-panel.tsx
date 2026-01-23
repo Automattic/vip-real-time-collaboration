@@ -74,25 +74,31 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			{ isAvatarsEnabled && (
+			{ isAvatarsEnabled && EditorPresence && (
 				<EditorPresence>
 					<Avatars cursorRegistry={ cursorRegistry.current } />
 				</EditorPresence>
 			) }
-			<BlockCanvasCover.Fill>
-				{ ( { containerRef }: { containerRef: React.MutableRefObject< HTMLElement | null > } ) => (
-					<>
-						<RTCOverlay
-							blockEditorDocument={ containerRef.current?.ownerDocument }
-							cursorRegistry={ cursorRegistry.current }
-						/>
-						{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
-							<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
-						) }
-						<PostLockedModal />
-					</>
-				) }
-			</BlockCanvasCover.Fill>
+			{ BlockCanvasCover && BlockCanvasCover.Fill && (
+				<BlockCanvasCover.Fill>
+					{ ( {
+						containerRef,
+					}: {
+						containerRef: React.MutableRefObject< HTMLElement | null >;
+					} ) => (
+						<>
+							<RTCOverlay
+								blockEditorDocument={ containerRef.current?.ownerDocument }
+								cursorRegistry={ cursorRegistry.current }
+							/>
+							{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
+								<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
+							) }
+							<PostLockedModal />
+						</>
+					) }
+				</BlockCanvasCover.Fill>
+			) }
 			<PostLockedModal />
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
