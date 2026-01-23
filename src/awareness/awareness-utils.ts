@@ -1,13 +1,9 @@
 /**
- * External dependencies
- */
-import * as Y from 'yjs';
-
-/**
  * Internal dependencies
  */
 import type { AwarenessState } from '@/awareness/awareness-state';
 import type { UserInfo } from '@/awareness/awareness-types';
+import type * as Y from 'yjs';
 
 // WordPress user info for debug export (subset of UserInfo)
 type DebugUserData = Pick< UserInfo, 'name' > & {

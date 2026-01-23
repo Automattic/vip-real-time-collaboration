@@ -4,7 +4,15 @@
 import { useSelect } from '@wordpress/data';
 import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useEffect, useState } from '@wordpress/element';
-import * as Y from 'yjs';
+import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
+import { privateApis as syncPrivateApis, type Y as _Y } from '@wordpress/sync';
+
+const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
+	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
+	'@wordpress/sync'
+);
+
+const { Y } = unlock( syncPrivateApis ) as { Y: typeof _Y };
 
 /**
  * Internal dependencies

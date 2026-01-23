@@ -2,17 +2,25 @@ import { store as coreStore } from '@wordpress/core-data';
 import { dispatch, select } from '@wordpress/data';
 import { store as editorStore } from '@wordpress/editor';
 import { type WPBlockSelection } from '@wordpress/editor/build-types/store/selectors';
-import * as Y from 'yjs';
+import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
+import { privateApis as syncPrivateApis, type Y as _Y } from '@wordpress/sync';
 
 import { Logger } from './logger';
+
+const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
+	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
+	'@wordpress/sync'
+);
+
+const { Y } = unlock( syncPrivateApis ) as { Y: typeof _Y };
 
 const logger = new Logger( 'selection' );
 
 // Convenience types to manage block values with a clientId, attributes, and innerBlocks.
 type BlockClientId = string;
-type BlockInnerBlocks = Y.Array< SelectableBlock >;
-type BlockAttributes = Y.Map< Y.Text >;
-export type SelectableBlock = Y.Map< BlockClientId | BlockAttributes | BlockInnerBlocks >;
+type BlockInnerBlocks = _Y.Array< SelectableBlock >;
+type BlockAttributes = _Y.Map< _Y.Text >;
+export type SelectableBlock = _Y.Map< BlockClientId | BlockAttributes | BlockInnerBlocks >;
 
 export enum SelectionType {
 	None = 'none',
@@ -23,7 +31,7 @@ export enum SelectionType {
 }
 
 export type CursorPosition = {
-	relativePosition: Y.RelativePosition;
+	relativePosition: _Y.RelativePosition;
 
 	// Also store the absolute offset index of the cursor from the perspective
 	// of the user who is updating the selection.
@@ -90,7 +98,7 @@ export type SelectionState =
 export function getSelectionState(
 	selectionStart: WPBlockSelection,
 	selectionEnd: WPBlockSelection,
-	yBlocks: Y.Array< SelectableBlock >
+	yBlocks: _Y.Array< SelectableBlock >
 ): SelectionState {
 	const isSelectionEmpty = Object.keys( selectionStart ).length === 0;
 	const noSelection: SelectionNone = {
@@ -205,15 +213,15 @@ export async function updateSelectionInEntityRecord(
 
 export function getCursorPosition(
 	selection: WPBlockSelection,
-	blocks: Y.Array< SelectableBlock >
+	blocks: _Y.Array< SelectableBlock >
 ): CursorPosition | null {
 	const block = findBlockByClientId( selection.clientId, blocks );
 	if ( ! block ) {
 		return null;
 	}
 
-	const attributes = block.get( 'attributes' ) as Y.Map< Y.Text >;
-	const currentYText = attributes.get( selection.attributeKey ) as Y.Text;
+	const attributes = block.get( 'attributes' ) as _Y.Map< _Y.Text >;
+	const currentYText = attributes.get( selection.attributeKey ) as _Y.Text;
 
 	const relativePosition = Y.createRelativePositionFromTypeIndex( currentYText, selection.offset );
 
@@ -225,7 +233,7 @@ export function getCursorPosition(
 
 function findBlockByClientId(
 	blockId: string,
-	blocks: Y.Array< SelectableBlock >
+	blocks: _Y.Array< SelectableBlock >
 ): SelectableBlock | null {
 	for ( const block of blocks ) {
 		if ( block.get( 'clientId' ) === blockId ) {
@@ -237,7 +245,7 @@ function findBlockByClientId(
 		if ( innerBlocks.length > 0 ) {
 			const innerBlock = findBlockByClientId(
 				blockId,
-				block.get( 'innerBlocks' ) as Y.Array< SelectableBlock >
+				block.get( 'innerBlocks' ) as _Y.Array< SelectableBlock >
 			);
 
 			if ( innerBlock ) {

@@ -9,7 +9,7 @@ import {
 	CRDT_RECORD_METADATA_SAVED_AT_KEY as SAVED_AT_KEY,
 	CRDT_RECORD_METADATA_SAVED_BY_KEY as SAVED_BY_KEY,
 } from '@wordpress/sync';
-import * as Y from 'yjs';
+import type * as Y from 'yjs';
 
 /**
  * Internal dependencies
