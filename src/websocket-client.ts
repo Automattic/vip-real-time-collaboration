@@ -86,7 +86,11 @@ function logInspectUrl( provider: WebsocketProvider ): void {
  * @param {number} code - WebSocket close code
  * @return {SyncConnectionError | undefined} Error object for known codes, undefined for generic disconnections
  */
-function getErrorFromCloseCode( code: number ): SyncConnectionError | undefined {
+function getErrorFromCloseCode( code?: number ): SyncConnectionError | undefined {
+	if ( ! code ) {
+		return undefined;
+	}
+
 	switch ( code ) {
 		case 4001:
 			// Connection timeout - server forces reconnect after configured duration
@@ -208,27 +212,17 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
 			const handleConnectionClose = ( event: CloseEvent | null, _provider: WebsocketProvider ) => {
-				// Extract error information from WebSocket close code
-				const error = event?.code ? getErrorFromCloseCode( event.code ) : undefined;
-
 				// Emit disconnected status with error details to Gutenberg's sync system
-				provider.emit( 'status', [
-					{
-						status: 'disconnected',
-						...( error && { error } ),
-					},
-				] );
+				provider.emit( 'sync-connection-status', {
+					status: 'disconnected',
+					error: getErrorFromCloseCode( event?.code ),
+				} );
 
 				// Trigger reconnection attempt
 				void connect();
 			};
 
 			provider.on( 'connection-close', handleConnectionClose );
-
-			provider.on( 'connection-error', () => {
-				// Emit generic disconnected status for connection errors
-				provider.emit( 'status', [ { status: 'disconnected' } ] );
-			} );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
