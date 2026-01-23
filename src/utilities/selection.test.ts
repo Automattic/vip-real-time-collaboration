@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unnecessary-type-assertion */
+import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
+import { privateApis as syncPrivateApis, type Y as _Y } from '@wordpress/sync';
 import assert from 'node:assert';
 import { before, describe, it, mock } from 'node:test';
-import * as Y from 'yjs';
 
 import type {
 	SelectionType,
@@ -12,6 +14,13 @@ import type {
 	SelectionWholeBlock,
 	CursorPosition,
 } from './selection';
+
+const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
+	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
+	'@wordpress/sync'
+);
+
+const { Y } = unlock( syncPrivateApis ) as { Y: typeof _Y };
 
 describe( 'areSelectionsEqual', () => {
 	let areSelectionsEqual: typeof import('./selection').areSelectionsEqual;
@@ -383,7 +392,7 @@ function createCursorPosition( text: string, offset: number ): CursorPosition {
 const yDoc = new Y.Doc();
 const yMap = yDoc.getMap( 'test-map' );
 
-function createYText( yTextValue: string, yTextKey: string = 'test-text' ): Y.Text {
+function createYText( yTextValue: string, yTextKey: string = 'test-text' ): _Y.Text {
 	const yText = new Y.Text( yTextValue );
 
 	// Y.Text objects must be attached to a Y.Doc in order to be used

@@ -46,12 +46,12 @@ final class Assets {
 		 */
 		$asset = include $asset_file;
 
-		$dependencies = array_unique( array_merge( $asset['dependencies'], [ 'wp-sync' ] ) );
+		// $dependencies = array_unique( array_merge( $asset['dependencies'], [ 'wp-sync' ] ) );
 
 		wp_enqueue_script(
 			'vip-real-time-collaboration',
 			$script_file,
-			$dependencies,
+			$asset['dependencies'],
 			$asset['version'],
 			[ 'in_footer' => false ]
 		);
