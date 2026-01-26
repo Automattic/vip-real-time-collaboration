@@ -17,14 +17,13 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
 	const userStates = useActiveUsers();
 
-	const { isAwarenessCursorsEnabled, isSelfAwarenessEnabled } = useSelect<
+	const { isAwarenessCursorsEnabled } = useSelect<
 		SettingsStoreSelectors,
-		{ isAwarenessCursorsEnabled: boolean; isSelfAwarenessEnabled: boolean }
+		{ isAwarenessCursorsEnabled: boolean }
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
 		return {
 			isAwarenessCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
-			isSelfAwarenessEnabled: getSetting( Setting.SELF_AWARENESS ),
 		};
 	}, [] );
 
@@ -52,7 +51,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 			.map( userState => {
 				const isWholeBlockSelected =
 					userState.editorState?.selection?.type === SelectionType.WholeBlock;
-				const shouldDrawUser = userState.isMe ? isSelfAwarenessEnabled : true;
+				const shouldDrawUser = ! userState.isMe;
 
 				if ( isWholeBlockSelected && shouldDrawUser ) {
 					const selection = userState.editorState?.selection as SelectionWholeBlock;
@@ -96,7 +95,7 @@ export function useBlockHighlighting( blockEditorDocument: Document | null ) {
 				highlightedBlockIds.current.add( blockId );
 			}
 		} );
-	}, [ userStates, isAwarenessCursorsEnabled, isSelfAwarenessEnabled, blockEditorDocument ] );
+	}, [ userStates, isAwarenessCursorsEnabled, blockEditorDocument ] );
 }
 
 const getBlockElementById = (

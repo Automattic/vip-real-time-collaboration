@@ -13,7 +13,6 @@ import { type SelectionCursor, type SelectionState, SelectionType } from '@/util
 enum DrawType {
 	None,
 	OtherUsers,
-	All,
 }
 
 type RenderCursorsFunction = () => void;
@@ -32,10 +31,6 @@ export function useRenderCursors(
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { getSetting } = select( rtcSettingsStore );
 		if ( getSetting( Setting.AWARENESS_CURSORS ) ) {
-			if ( getSetting( Setting.SELF_AWARENESS ) ) {
-				return DrawType.All;
-			}
-
 			return DrawType.OtherUsers;
 		}
 
