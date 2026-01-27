@@ -130,10 +130,6 @@ export function RTCSettingsPanel() {
 							/>
 						</>
 					) }
-
-					<Heading level={ 3 } style={ { marginTop: '24px' } }>
-						{ __( 'Debug', 'vip-real-time-collaboration' ) }
-					</Heading>
 				</div>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
