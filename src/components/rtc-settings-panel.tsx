@@ -22,6 +22,8 @@ import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
+import '@/components/rtc-settings-panel.scss';
+
 interface SelectResult {
 	isAvatarsEnabled: boolean;
 	isCursorsEnabled: boolean;
