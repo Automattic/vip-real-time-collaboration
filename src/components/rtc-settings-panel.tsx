@@ -1,10 +1,9 @@
 import { BlockCanvasCover } from '@wordpress/block-editor';
-import { ToggleControl, __experimentalHeading as Heading } from '@wordpress/components';
+import { ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
 import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useRef } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
