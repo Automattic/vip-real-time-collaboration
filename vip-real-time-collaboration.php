@@ -17,6 +17,7 @@ use VIPRealTimeCollaboration\Api\RestApi;
 use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
+use VIPRealTimeCollaboration\Compatibility\MetaCompatibility;
 use VIPRealTimeCollaboration\Settings\Settings;
 use VIPRealTimeCollaboration\Overrides\Overrides;
 
@@ -73,6 +74,7 @@ add_action( 'plugins_loaded', static function (): void {
 
 	new Assets();
 	new Overrides();
+	new MetaCompatibility();
 	new RestApi();
 
 	// Fire action to indicate that the plugin has loaded.

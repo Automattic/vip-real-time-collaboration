@@ -6,6 +6,7 @@ import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
 import { createAwareness, setConnectionStatus } from '@/awareness/awareness-manager';
+import { getMetaSyncManager } from '@/meta-sync';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -225,8 +226,20 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			await connect();
 
+			// Initialize meta sync for post types
+			if ( objectType.startsWith( 'postType/' ) && objectId ) {
+				const metaSyncManager = getMetaSyncManager();
+				metaSyncManager.initialize( doc, objectId );
+			}
+
 			return {
-				destroy: () => provider.destroy(),
+				destroy: () => {
+					// Clean up meta sync
+					if ( objectType.startsWith( 'postType/' ) && objectId ) {
+						getMetaSyncManager().destroy();
+					}
+					provider.destroy();
+				},
 			};
 		} catch ( err ) {
 			logger.critical( 'Failed to create WebSocket connection', { error: err } );
