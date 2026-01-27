@@ -50,4 +50,14 @@ declare module '@wordpress/sync' {
 	}
 
 	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
+
+	/**
+	 * An enhanced state includes additional metadata about the user's connection
+	 * that is not appropriate to synchronize via Yjs awareness.
+	 */
+	type EnhancedState< State > = State & {
+		clientId: number;
+		isConnected: boolean;
+		isMe: boolean;
+	};
 }

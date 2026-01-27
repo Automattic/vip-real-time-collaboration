@@ -5,7 +5,6 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { createAwareness, setConnectionStatus } from '@/awareness/awareness-manager';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -97,12 +96,12 @@ function onStatusChange(
 		}
 
 		case 'connected': {
-			setConnectionStatus( objectType, objectId, true );
+			// setConnectionStatus( objectType, objectId, true );
 			break;
 		}
 
 		case 'disconnected': {
-			setConnectionStatus( objectType, objectId, false );
+			// setConnectionStatus( objectType, objectId, false );
 			break;
 		}
 	}
@@ -210,7 +209,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
 			const options = {
 				...config.options,
-				awareness: awareness ?? ( await createAwareness( objectType, objectId, ydoc ) ),
+				awareness,
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );

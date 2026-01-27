@@ -1,23 +1,26 @@
 import { Button } from '@wordpress/components';
+import { useActiveUsers } from '@wordpress/core-data';
 import { useState } from '@wordpress/element';
 
 import { Avatar } from '@/components/avatar';
 import { CollaboratorsList } from '@/components/collaborators-list';
-import { useActiveUsers } from '@/hooks/use-post-editor-awareness-state';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/avatars.scss';
 
 interface AvatarsProps {
 	cursorRegistry: CursorRegistry;
+	postId: number | null;
+	postType: string | null;
+	isAvatarsEnabled: boolean;
 }
 
 /**
  * Renders a list of avatars for the active users, with a maximum of 3 visible avatars.
  * Shows a popover with all users on hover.
  */
-export function Avatars( { cursorRegistry }: AvatarsProps ) {
-	const activeUsers = useActiveUsers();
+export function Avatars( { cursorRegistry, postId, postType, isAvatarsEnabled }: AvatarsProps ) {
+	const activeUsers = useActiveUsers( postId, postType );
 
 	// Filter out current user - we never show ourselves in the list
 	const otherActiveUsers = activeUsers.filter( user => ! user.isMe );
@@ -34,7 +37,7 @@ export function Avatars( { cursorRegistry }: AvatarsProps ) {
 	const remainingUsers = otherActiveUsers.slice( 3 );
 	const remainingUsersText = remainingUsers.map( ( { userInfo } ) => userInfo.name ).join( ', ' );
 
-	return visibleUsers.length > 0 ? (
+	return isAvatarsEnabled && visibleUsers.length > 0 ? (
 		<>
 			<Button
 				className="vip-real-time-collaboration-avatars-container"

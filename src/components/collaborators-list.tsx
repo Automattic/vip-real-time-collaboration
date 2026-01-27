@@ -1,15 +1,15 @@
 import { speak } from '@wordpress/a11y';
 import { Popover, Button } from '@wordpress/components';
+import { type PostEditorAwarenessState as ActiveUser } from '@wordpress/core-data';
 import { close } from '@wordpress/icons';
 
-import { type EnhancedState, type PostEditorState } from '@/awareness/awareness-types';
 import { Avatar } from '@/components/avatar';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/collaborators-list.scss';
 
 interface CollaboratorsListProps {
-	activeUsers: EnhancedState< PostEditorState >[];
+	activeUsers: ActiveUser[];
 	cursorRegistry: CursorRegistry;
 	popoverAnchor?: HTMLElement | null;
 	setIsPopoverVisible: ( isVisible: boolean ) => void;

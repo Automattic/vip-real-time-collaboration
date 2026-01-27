@@ -1,3 +1,4 @@
+import { useActiveUsers, SelectionType, type SelectionWholeBlock } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
@@ -6,16 +7,18 @@ import {
 	Setting,
 	SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useActiveUsers } from '@/hooks/use-post-editor-awareness-state';
-import { SelectionType, type SelectionWholeBlock } from '@/utilities/selection';
 
 /**
  * Custom hook for highlighting selected blocks in the editor
  * @param blockEditorDocument - Ref to the block editor document, used to directly style block elements.
  */
-export function useBlockHighlighting( blockEditorDocument: Document | null ) {
+export function useBlockHighlighting(
+	blockEditorDocument: Document | null,
+	postId: number | null,
+	postType: string | null
+) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
-	const userStates = useActiveUsers();
+	const userStates = useActiveUsers( postId ?? null, postType ?? null );
 
 	const { isAwarenessCursorsEnabled } = useSelect<
 		SettingsStoreSelectors,

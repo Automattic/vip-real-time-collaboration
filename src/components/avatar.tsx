@@ -1,4 +1,4 @@
-import type { UserInfo } from '@/awareness/awareness-types';
+import type { UserInfo } from '@wordpress/core-data';
 
 import '@/components/avatar.scss';
 
@@ -24,8 +24,11 @@ export function Avatar( {
 		.filter( Boolean )
 		.join( ' ' );
 
+	const avatarUrl =
+		userInfo.avatar_urls?.[ 48 ] || userInfo.avatar_urls?.[ 96 ] || userInfo.avatar_urls?.[ 24 ];
+
 	const avatarStyles: React.CSSProperties & Record< `--${ string }`, string > = {
-		'--avatar-url': `url(${ userInfo.avatarUrl })`,
+		'--avatar-url': `url(${ avatarUrl })`,
 		'--user-color': userInfo.color,
 	};
 

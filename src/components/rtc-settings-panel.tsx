@@ -1,14 +1,13 @@
 import { BlockCanvasCover } from '@wordpress/block-editor';
-import { ToggleControl, __experimentalHeading as Heading } from '@wordpress/components';
+import { ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
+import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useRef } from '@wordpress/element';
-import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
 import { Avatars } from './avatars';
-import { DebugDataExportButton } from './debug-data-export-button';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -22,13 +21,12 @@ import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
 import { CursorRegistry } from '@/utilities/cursor-registry';
 
+import '@/components/rtc-settings-panel.scss';
+
 interface SelectResult {
 	isAvatarsEnabled: boolean;
 	isCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
-	isPostUpdateNotificationEnabled: boolean;
-	isUserEnterNotificationEnabled: boolean;
-	isUserExitNotificationEnabled: boolean;
 	objectId?: ObjectID;
 	objectType?: ObjectType;
 }
@@ -41,23 +39,16 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
-	const {
-		isAvatarsEnabled,
-		isCursorsEnabled,
-		isDebugToolsEnabled,
-		isPostUpdateNotificationEnabled,
-		isUserEnterNotificationEnabled,
-		isUserExitNotificationEnabled,
-	} = useSelect< SettingsStoreSelectors, SelectResult >( select => {
+	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled } = useSelect<
+		SettingsStoreSelectors,
+		SelectResult
+	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
 
 		return {
 			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
-			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
-			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
-			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
 		};
 	}, [] );
 
@@ -67,13 +58,25 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
+	const postId = useSelect< EditorStoreSelectors, number | null >( select =>
+		select( editorStore ).getCurrentPostId()
+	);
+	const postType = useSelect< EditorStoreSelectors, string | null >( select =>
+		select( editorStore ).getCurrentPostType()
+	);
+
 	useModifyCodeEditor();
 
 	return (
 		<>
-			{ isAvatarsEnabled && EditorPresence && (
+			{ EditorPresence && (
 				<EditorPresence>
-					<Avatars cursorRegistry={ cursorRegistry.current } />
+					<Avatars
+						cursorRegistry={ cursorRegistry.current }
+						postId={ postId }
+						postType={ postType }
+						isAvatarsEnabled={ isAvatarsEnabled }
+					/>
 				</EditorPresence>
 			) }
 			{ BlockCanvasCover && BlockCanvasCover.Fill && (
@@ -87,16 +90,18 @@ export function RTCSettingsPanel() {
 							<RTCOverlay
 								blockEditorDocument={ containerRef.current?.ownerDocument }
 								cursorRegistry={ cursorRegistry.current }
+								postId={ postId }
+								postType={ postType }
 							/>
 							{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 								<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 							) }
-							<PostLockedModal />
+							<PostLockedModal postId={ postId } postType={ postType } />
 						</>
 					) }
 				</BlockCanvasCover.Fill>
 			) }
-			<PostLockedModal />
+			<PostLockedModal postId={ postId } postType={ postType } />
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
 				title="Real-time collaboration"
@@ -124,47 +129,6 @@ export function RTCSettingsPanel() {
 							/>
 						</>
 					) }
-
-					<Heading level={ 2 } style={ { marginTop: '24px' } }>
-						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
-						{ __( 'Post', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<ToggleControl
-						label="Save/Publish"
-						checked={ isPostUpdateNotificationEnabled }
-						onChange={ ( enabled: boolean ) => {
-							setSetting( Setting.POST_UPDATE_NOTIFICATION, enabled );
-						} }
-					/>
-
-					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
-						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<ToggleControl
-						label="Enters"
-						checked={ isUserEnterNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_ENTER_NOTIFICATION, enabled )
-						}
-					/>
-
-					<ToggleControl
-						label="Exits"
-						checked={ isUserExitNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_EXIT_NOTIFICATION, enabled )
-						}
-					/>
-
-					<Heading level={ 3 } style={ { marginTop: '24px' } }>
-						{ __( 'Debug', 'vip-real-time-collaboration' ) }
-					</Heading>
-					<DebugDataExportButton />
 				</div>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
