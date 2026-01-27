@@ -1,10 +1,16 @@
 /**
+ * WordPress dependencies
+ */
+import type { PrivateApis } from '@wordpress/private-apis';
+
+/**
  * External dependencies
  */
 import type { Awareness } from 'y-protocols/awareness';
 import type * as Y from 'yjs';
 
 declare module '@wordpress/sync' {
+	type CRDTDoc = Y.Doc;
 	type ObjectID = string;
 	type ObjectType = string;
 
@@ -50,4 +56,10 @@ declare module '@wordpress/sync' {
 	}
 
 	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
+
+	interface SyncPrivateApis {
+		Y: typeof Y;
+	}
+
+	const privateApis: PrivateApis< SyncPrivateApis >;
 }
