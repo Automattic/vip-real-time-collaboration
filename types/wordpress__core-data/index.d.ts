@@ -4,40 +4,42 @@ import type { EnhancedState } from '@wordpress/sync';
 import type * as Y from 'yjs';
 
 declare module '@wordpress/core-data' {
-	export const store: {
+	const store: {
 		name: string;
 	};
 
-	export interface CoreDataSelectors {
+	interface CoreDataSelectors {
 		getCurrentUser(): User;
 	}
 
 	// Types from awareness/types.ts
-	export type UserInfo = Pick< User< 'view' >, 'id' | 'name' | 'slug' | 'avatar_urls' > & {
+	type UserInfo = Pick< User< 'view' >, 'id' | 'name' | 'slug' | 'avatar_urls' > & {
 		browserType: string;
 		color: string;
 		enteredAt: number;
 	};
 
-	export interface BaseState {
+	interface BaseState {
 		userInfo: UserInfo;
 	}
 
-	export interface EditorState {
+	interface EditorState {
 		selection: SelectionState;
 	}
 
-	export interface PostEditorState extends BaseState {
+	interface PostEditorState extends BaseState {
 		editorState?: EditorState;
 	}
 
+	type PostEditorAwarenessState = EnhancedState< PostEditorState >;
+
 	// Types from types.ts (Selection types)
-	export type CursorPosition = {
+	type CursorPosition = {
 		relativePosition: Y.RelativePosition;
 		absoluteOffset: number;
 	};
 
-	export enum SelectionType {
+	enum SelectionType {
 		None = 'none',
 		Cursor = 'cursor',
 		SelectionInOneBlock = 'selection-in-one-block',
@@ -45,24 +47,24 @@ declare module '@wordpress/core-data' {
 		WholeBlock = 'whole-block',
 	}
 
-	export type SelectionNone = {
+	type SelectionNone = {
 		type: SelectionType.None;
 	};
 
-	export type SelectionCursor = {
+	type SelectionCursor = {
 		type: SelectionType.Cursor;
 		blockId: string;
 		cursorPosition: CursorPosition;
 	};
 
-	export type SelectionInOneBlock = {
+	type SelectionInOneBlock = {
 		type: SelectionType.SelectionInOneBlock;
 		blockId: string;
 		cursorStartPosition: CursorPosition;
 		cursorEndPosition: CursorPosition;
 	};
 
-	export type SelectionInMultipleBlocks = {
+	type SelectionInMultipleBlocks = {
 		type: SelectionType.SelectionInMultipleBlocks;
 		blockStartId: string;
 		blockEndId: string;
@@ -70,12 +72,12 @@ declare module '@wordpress/core-data' {
 		cursorEndPosition: CursorPosition;
 	};
 
-	export type SelectionWholeBlock = {
+	type SelectionWholeBlock = {
 		type: SelectionType.WholeBlock;
 		blockId: string;
 	};
 
-	export type SelectionState =
+	type SelectionState =
 		| SelectionNone
 		| SelectionCursor
 		| SelectionInOneBlock
@@ -83,13 +85,15 @@ declare module '@wordpress/core-data' {
 		| SelectionWholeBlock;
 
 	// Hooks
-	export function useActiveUsers(
+	function useActiveUsers(
 		postId: number | null,
 		postType: string | null
 	): EnhancedState< PostEditorState >[];
-	export function useGetAbsolutePositionIndex(
+
+	function useGetAbsolutePositionIndex(
 		postId: number | null,
 		postType: string | null
 	): ( selection: SelectionCursor ) => number | null;
-	export function useIsDisconnected( postId: number | null, postType: string | null ): boolean;
+
+	function useIsDisconnected( postId: number | null, postType: string | null ): boolean;
 }
