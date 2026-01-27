@@ -1,4 +1,4 @@
-import { useActiveUsers, type SelectionWholeBlock } from '@wordpress/core-data';
+import { useActiveUsers, SelectionType, type SelectionWholeBlock } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
@@ -7,7 +7,6 @@ import {
 	Setting,
 	SettingsStoreSelectors,
 } from '../store/settings-store';
-import { SelectionType } from '@/types/selection';
 
 /**
  * Custom hook for highlighting selected blocks in the editor
