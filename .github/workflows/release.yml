@@ -32,7 +32,7 @@ jobs:
 
       - name: Build plugin zip
         if: steps.version_check.outputs.new_version
-        run: npm ci && npm run plugin-zip
+        run: npm ci && cd websocket-server && npm ci && cd .. && npm run plugin-zip
 
       - name: Create Release
         if: steps.version_check.outputs.new_version
