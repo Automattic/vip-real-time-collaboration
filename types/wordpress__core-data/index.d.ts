@@ -34,7 +34,12 @@ declare module '@wordpress/core-data' {
 		editorState?: EditorState;
 	}
 
-	// Types from utils/crdt-user-selections.ts
+	// Types from types.ts (Selection types)
+	export type CursorPosition = {
+		relativePosition: Y.RelativePosition;
+		absoluteOffset: number;
+	};
+
 	export enum SelectionType {
 		None = 'none',
 		Cursor = 'cursor',
@@ -42,11 +47,6 @@ declare module '@wordpress/core-data' {
 		SelectionInMultipleBlocks = 'selection-in-multiple-blocks',
 		WholeBlock = 'whole-block',
 	}
-
-	export type CursorPosition = {
-		relativePosition: Y.RelativePosition;
-		absoluteOffset: number;
-	};
 
 	export type SelectionNone = {
 		type: SelectionType.None;
