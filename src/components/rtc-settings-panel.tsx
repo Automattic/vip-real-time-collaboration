@@ -9,7 +9,6 @@ import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/pri
 import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
 import { Avatars } from './avatars';
-import { DebugDataExportButton } from './debug-data-export-button';
 import { DebugTools } from './debug-tools';
 import { PostLockedModal } from './post-locked-modal';
 import { RTCOverlay } from './rtc-overlay';
@@ -27,9 +26,6 @@ interface SelectResult {
 	isAvatarsEnabled: boolean;
 	isCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
-	isPostUpdateNotificationEnabled: boolean;
-	isUserEnterNotificationEnabled: boolean;
-	isUserExitNotificationEnabled: boolean;
 	objectId?: ObjectID;
 	objectType?: ObjectType;
 }
@@ -42,23 +38,16 @@ const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
 const { EditorPresence } = unlock( editorPrivateApis );
 
 export function RTCSettingsPanel() {
-	const {
-		isAvatarsEnabled,
-		isCursorsEnabled,
-		isDebugToolsEnabled,
-		isPostUpdateNotificationEnabled,
-		isUserEnterNotificationEnabled,
-		isUserExitNotificationEnabled,
-	} = useSelect< SettingsStoreSelectors, SelectResult >( select => {
+	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled } = useSelect<
+		SettingsStoreSelectors,
+		SelectResult
+	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
 
 		return {
 			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
-			isPostUpdateNotificationEnabled: getSetting( Setting.POST_UPDATE_NOTIFICATION ),
-			isUserEnterNotificationEnabled: getSetting( Setting.USER_ENTER_NOTIFICATION ),
-			isUserExitNotificationEnabled: getSetting( Setting.USER_EXIT_NOTIFICATION ),
 		};
 	}, [] );
 
@@ -142,7 +131,6 @@ export function RTCSettingsPanel() {
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>
 						{ __( 'Debug', 'vip-real-time-collaboration' ) }
 					</Heading>
-					<DebugDataExportButton postId={ postId } postType={ postType } />
 				</div>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>
