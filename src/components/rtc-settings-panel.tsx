@@ -70,12 +70,13 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			{ isAvatarsEnabled && EditorPresence && (
+			{ EditorPresence && (
 				<EditorPresence>
 					<Avatars
 						cursorRegistry={ cursorRegistry.current }
 						postId={ postId }
 						postType={ postType }
+						isAvatarsEnabled={ isAvatarsEnabled }
 					/>
 				</EditorPresence>
 			) }
