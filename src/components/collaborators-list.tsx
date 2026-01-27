@@ -1,8 +1,9 @@
 import { speak } from '@wordpress/a11y';
 import { Popover, Button } from '@wordpress/components';
+import { type PostEditorState } from '@wordpress/core-data';
 import { close } from '@wordpress/icons';
+import { type EnhancedState } from '@wordpress/sync';
 
-import { type EnhancedState, type PostEditorState } from '@/awareness/awareness-types';
 import { Avatar } from '@/components/avatar';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 

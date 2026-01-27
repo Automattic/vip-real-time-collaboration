@@ -5,16 +5,21 @@ import {
 	__experimentalVStack as VStack,
 	Icon,
 } from '@wordpress/components';
+import { useIsDisconnected } from '@wordpress/core-data';
 import { __ } from '@wordpress/i18n';
 import { error } from '@wordpress/icons';
 
 import { useCopyPostContentToClipboard } from '@/hooks/use-copy-post-content-to-clipboard';
-import { useIsDisconnected } from '@/hooks/use-post-editor-awareness-state';
 import '@/components/post-locked-modal.scss';
 
-export function PostLockedModal() {
+interface PostLockedModalProps {
+	postId: number | null;
+	postType: string | null;
+}
+
+export function PostLockedModal( { postId, postType }: PostLockedModalProps ) {
 	const buttonRef = useCopyPostContentToClipboard();
-	const isDisconnected = useIsDisconnected();
+	const isDisconnected = useIsDisconnected( postId ?? null, postType ?? null );
 
 	if ( ! isDisconnected ) {
 		return null;

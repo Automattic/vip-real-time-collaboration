@@ -1,10 +1,7 @@
+import { useActiveUsers, useGetAbsolutePositionIndex } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { type RefObject, useEffect, useMemo } from 'react';
 
-import {
-	useActiveUsers,
-	useGetAbsolutePositionIndex,
-} from '@/hooks/use-post-editor-awareness-state';
 import { store as rtcSettingsStore, Setting, SettingsStoreSelectors } from '@/store/settings-store';
 import { type CursorRegistry } from '@/utilities/cursor-registry';
 import { Logger } from '@/utilities/logger';
@@ -26,7 +23,9 @@ const logger = new Logger( 'use-render-cursors' );
 export function useRenderCursors(
 	overlayRef: RefObject< HTMLElement | null >,
 	blockEditorDocument: Document | null,
-	cursorRegistry: CursorRegistry
+	cursorRegistry: CursorRegistry,
+	postId: number | null,
+	postType: string | null
 ) {
 	const drawType = useSelect< SettingsStoreSelectors, DrawType >( select => {
 		const { getSetting } = select( rtcSettingsStore );
@@ -37,8 +36,8 @@ export function useRenderCursors(
 		return DrawType.None;
 	}, [] );
 
-	const sortedUsers = useActiveUsers();
-	const getAbsolutePositionIndex = useGetAbsolutePositionIndex();
+	const sortedUsers = useActiveUsers( postId ?? null, postType ?? null );
+	const getAbsolutePositionIndex = useGetAbsolutePositionIndex( postId ?? null, postType ?? null );
 
 	const renderCursors = useMemo< RenderCursorsFunction >(
 		() => (): void => {

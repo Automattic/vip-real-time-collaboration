@@ -3,7 +3,7 @@ import { store as noticesStore } from '@wordpress/notices';
 
 import { store as settingsStore, Setting } from '@/store/settings-store';
 
-import type { UserInfo } from '@/awareness/awareness-types';
+import type { UserInfo } from '@wordpress/core-data';
 
 export enum NotificationType {
 	PostUpdated = 'remote-user-post-updated',

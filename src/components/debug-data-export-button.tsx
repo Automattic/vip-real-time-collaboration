@@ -3,13 +3,15 @@ import { Button } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import safeStringify from 'safe-stringify';
 
-import { useGetDebugData } from '@/hooks/use-post-editor-awareness-state';
+// import { useGetDebugData } from '@/hooks/use-post-editor-awareness-state';
 
 export function DebugDataExportButton() {
-	const getDebugData = useGetDebugData();
+	// const getDebugData = useGetDebugData();
 
 	function handleDebugDataDownload(): void {
-		const debugData = getDebugData();
+		// TODO: Implement this
+		// const debugData = getDebugData();
+		const debugData = {};
 		const jsonData = safeStringify( debugData, { indentation: 2 } );
 		const timestamp = Date.now();
 		const filename = `rtc-debug-${ timestamp }.json`;

@@ -3,7 +3,7 @@ import { afterEach, before, describe, it, mock, type Mock } from 'node:test';
 
 import { Setting } from '@/store/settings-store';
 
-import type { UserInfo } from '@/awareness/awareness-types';
+import type { UserInfo } from '@wordpress/core-data';
 
 const baseUserInfo: UserInfo = {
 	id: 123,
@@ -11,6 +11,12 @@ const baseUserInfo: UserInfo = {
 	color: '#000000',
 	browserType: 'chrome',
 	enteredAt: Date.now(),
+	slug: 'alice',
+	avatar_urls: {
+		'48': 'https://example.com/avatar.png',
+		'96': 'https://example.com/avatar-96.png',
+		'24': 'https://example.com/avatar-24.png',
+	},
 };
 
 describe( 'notifications', () => {

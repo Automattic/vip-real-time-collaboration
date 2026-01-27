@@ -2,6 +2,7 @@ import { BlockCanvasCover } from '@wordpress/block-editor';
 import { ToggleControl, __experimentalHeading as Heading } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
 import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
+import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useRef } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
@@ -67,13 +68,24 @@ export function RTCSettingsPanel() {
 	// RTCOverlay. A ref is used to persist the instance across re-renders.
 	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
 
+	const postId = useSelect< EditorStoreSelectors, number | null >( select =>
+		select( editorStore ).getCurrentPostId()
+	);
+	const postType = useSelect< EditorStoreSelectors, string | null >( select =>
+		select( editorStore ).getCurrentPostType()
+	);
+
 	useModifyCodeEditor();
 
 	return (
 		<>
 			{ isAvatarsEnabled && EditorPresence && (
 				<EditorPresence>
-					<Avatars cursorRegistry={ cursorRegistry.current } />
+					<Avatars
+						cursorRegistry={ cursorRegistry.current }
+						postId={ postId ?? null }
+						postType={ postType ?? null }
+					/>
 				</EditorPresence>
 			) }
 			{ BlockCanvasCover && BlockCanvasCover.Fill && (
@@ -87,16 +99,18 @@ export function RTCSettingsPanel() {
 							<RTCOverlay
 								blockEditorDocument={ containerRef.current?.ownerDocument }
 								cursorRegistry={ cursorRegistry.current }
+								postId={ postId ?? null }
+								postType={ postType ?? null }
 							/>
 							{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 								<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 							) }
-							<PostLockedModal />
+							<PostLockedModal postId={ postId ?? null } postType={ postType ?? null } />
 						</>
 					) }
 				</BlockCanvasCover.Fill>
 			) }
-			<PostLockedModal />
+			<PostLockedModal postId={ postId ?? null } postType={ postType ?? null } />
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
 				title="Real-time collaboration"
