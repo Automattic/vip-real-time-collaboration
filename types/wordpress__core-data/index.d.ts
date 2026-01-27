@@ -13,10 +13,7 @@ declare module '@wordpress/core-data' {
 	}
 
 	// Types from awareness/types.ts
-	export type UserInfo = Pick<
-		User< 'view' >,
-		'id' | 'name' | 'slug' | 'avatar_urls'
-	> & {
+	export type UserInfo = Pick< User< 'view' >, 'id' | 'name' | 'slug' | 'avatar_urls' > & {
 		browserType: string;
 		color: string;
 		enteredAt: number;
@@ -86,7 +83,13 @@ declare module '@wordpress/core-data' {
 		| SelectionWholeBlock;
 
 	// Hooks
-	export function useActiveUsers( postId: number | null, postType: string | null ): EnhancedState< PostEditorState >[];
-	export function useGetAbsolutePositionIndex( postId: number | null, postType: string | null ): ( selection: SelectionCursor ) => number | null;
+	export function useActiveUsers(
+		postId: number | null,
+		postType: string | null
+	): EnhancedState< PostEditorState >[];
+	export function useGetAbsolutePositionIndex(
+		postId: number | null,
+		postType: string | null
+	): ( selection: SelectionCursor ) => number | null;
 	export function useIsDisconnected( postId: number | null, postType: string | null ): boolean;
 }
