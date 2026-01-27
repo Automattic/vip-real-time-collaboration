@@ -1,17 +1,24 @@
+/**
+ * External dependencies
+ */
 import { downloadBlob } from '@wordpress/blob';
 import { Button } from '@wordpress/components';
+import { useGetDebugData } from '@wordpress/core-data';
 import { __ } from '@wordpress/i18n';
 import safeStringify from 'safe-stringify';
 
-// import { useGetDebugData } from '@/hooks/use-post-editor-awareness-state';
-
-export function DebugDataExportButton() {
-	// const getDebugData = useGetDebugData();
+export function DebugDataExportButton( {
+	postId,
+	postType,
+}: {
+	postId: number | null;
+	postType: string | null;
+} ) {
+	const getDebugData = useGetDebugData( postId, postType );
 
 	function handleDebugDataDownload(): void {
-		// TODO: Implement this
-		// const debugData = getDebugData();
-		const debugData = {};
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+		const debugData = getDebugData();
 		const jsonData = safeStringify( debugData, { indentation: 2 } );
 		const timestamp = Date.now();
 		const filename = `rtc-debug-${ timestamp }.json`;

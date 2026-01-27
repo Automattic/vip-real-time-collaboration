@@ -83,8 +83,8 @@ export function RTCSettingsPanel() {
 				<EditorPresence>
 					<Avatars
 						cursorRegistry={ cursorRegistry.current }
-						postId={ postId ?? null }
-						postType={ postType ?? null }
+						postId={ postId }
+						postType={ postType }
 					/>
 				</EditorPresence>
 			) }
@@ -99,18 +99,18 @@ export function RTCSettingsPanel() {
 							<RTCOverlay
 								blockEditorDocument={ containerRef.current?.ownerDocument }
 								cursorRegistry={ cursorRegistry.current }
-								postId={ postId ?? null }
-								postType={ postType ?? null }
+								postId={ postId }
+								postType={ postType }
 							/>
 							{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
 								<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
 							) }
-							<PostLockedModal postId={ postId ?? null } postType={ postType ?? null } />
+							<PostLockedModal postId={ postId } postType={ postType } />
 						</>
 					) }
 				</BlockCanvasCover.Fill>
 			) }
-			<PostLockedModal postId={ postId ?? null } postType={ postType ?? null } />
+			<PostLockedModal postId={ postId } postType={ postType } />
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
 				title="Real-time collaboration"
@@ -139,46 +139,10 @@ export function RTCSettingsPanel() {
 						</>
 					) }
 
-					<Heading level={ 2 } style={ { marginTop: '24px' } }>
-						{ __( 'Notifications', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
-						{ __( 'Post', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<ToggleControl
-						label="Save/Publish"
-						checked={ isPostUpdateNotificationEnabled }
-						onChange={ ( enabled: boolean ) => {
-							setSetting( Setting.POST_UPDATE_NOTIFICATION, enabled );
-						} }
-					/>
-
-					<Heading level={ 3 } style={ { marginBottom: '2px' } }>
-						{ __( 'Collaborators', 'vip-real-time-collaboration' ) }
-					</Heading>
-
-					<ToggleControl
-						label="Enters"
-						checked={ isUserEnterNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_ENTER_NOTIFICATION, enabled )
-						}
-					/>
-
-					<ToggleControl
-						label="Exits"
-						checked={ isUserExitNotificationEnabled }
-						onChange={ ( enabled: boolean ) =>
-							setSetting( Setting.USER_EXIT_NOTIFICATION, enabled )
-						}
-					/>
-
 					<Heading level={ 3 } style={ { marginTop: '24px' } }>
 						{ __( 'Debug', 'vip-real-time-collaboration' ) }
 					</Heading>
-					<DebugDataExportButton />
+					<DebugDataExportButton postId={ postId } postType={ postType } />
 				</div>
 				<div className="vip-telemetry-target"></div>
 			</PluginDocumentSettingPanel>

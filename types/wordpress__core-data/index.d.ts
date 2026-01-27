@@ -1,5 +1,5 @@
 import '@wordpress/core-data';
-import { User } from '@wordpress/core-data';
+import { User, type YDocDebugData } from '@wordpress/core-data';
 import type { EnhancedState } from '@wordpress/sync';
 import type * as Y from 'yjs';
 
@@ -89,4 +89,5 @@ declare module '@wordpress/core-data' {
 	export function useActiveUsers( postId: number | null, postType: string | null ): EnhancedState< PostEditorState >[];
 	export function useGetAbsolutePositionIndex( postId: number | null, postType: string | null ): ( selection: SelectionCursor ) => number | null;
 	export function useIsDisconnected( postId: number | null, postType: string | null ): boolean;
+	export function useGetDebugData( postId: number | null, postType: string | null ): () => YDocDebugData | null;
 }
