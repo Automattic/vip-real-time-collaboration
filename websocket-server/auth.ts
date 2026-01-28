@@ -14,10 +14,11 @@ interface AuthFailureResult {
 }
 
 export interface SyncTokenPayload extends JwtPayload {
-	wp_client_id: string;
+	connection_id?: string; // @deprecated
 	room_name: string;
 	user_id: number;
 	username: string;
+	wp_client_id: string;
 }
 
 function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
@@ -27,7 +28,7 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 		'user_id' in payload &&
 		'username' in payload &&
 		'room_name' in payload &&
-		'wp_client_id' in payload
+		( 'connection_id' in payload || 'wp_client_id' in payload )
 	);
 }
 
@@ -76,7 +77,7 @@ export function getWpClientId( request: IncomingMessage, secret: string ): strin
 
 	try {
 		const jwtPayload = verifyToken( authToken, secret );
-		return jwtPayload.wp_client_id;
+		return jwtPayload.wp_client_id ?? jwtPayload.connection_id;
 	} catch {
 		return null;
 	}
