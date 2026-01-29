@@ -15,14 +15,14 @@ import { generateUUID } from '@/utilities/crypto';
 import { getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
+import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 
 import type {
-	ObjectID,
-	ObjectType,
 	ProviderCreator,
 	ProviderCreatorOptions,
 	ProviderCreatorResult,
-	SyncConnectionStatus,
+	ProviderEventMap,
+	SyncConnectionError,
 } from '@wordpress/sync';
 
 export interface WebSocketConnectionConfig {
@@ -83,27 +83,26 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 }
 
 /**
- * This is an event listener that responds to status events.
+ * Map WebSocket close codes to Gutenberg sync error types.
+ *
+ * @param {number} code - WebSocket close code
+ * @return {SyncConnectionError | undefined} Error object for known codes, undefined for generic disconnections
  */
-function onStatusChange(
-	objectType: ObjectType,
-	objectId: ObjectID | null,
-	event: { status: SyncConnectionStatus | 'connecting' | 'connection-error' }
-): void {
-	switch ( event.status ) {
-		case 'connecting': {
-			break;
-		}
+function getErrorFromCloseCode( code?: number ): SyncConnectionError | undefined {
+	if ( ! code ) {
+		return undefined;
+	}
 
-		case 'connected': {
-			// setConnectionStatus( objectType, objectId, true );
-			break;
-		}
-
-		case 'disconnected': {
-			// setConnectionStatus( objectType, objectId, false );
-			break;
-		}
+	switch ( code ) {
+		case 4001:
+			// Connection timeout - server forces reconnect after configured duration
+			return { code: 'connection-expired' };
+		case 4002:
+			// Server reached maximum connection limit
+			return { code: 'too-many-connections' };
+		default:
+			// Generic disconnection, no specific error
+			return undefined;
 	}
 }
 
@@ -214,15 +213,30 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
 
-			provider.on( 'connection-close', connect );
-			provider.on( 'connection-error', () => {
-				// The provider does not change status on connection error, so we
-				// manually emit a "disconnected" status.
-				provider.emit( 'status', [ { status: 'disconnected' } ] );
-			} );
+			// Create a typed event emitter for our custom sync-connection-status event.
+			const syncStatusEmitter = new SyncConnectionStatusEmitter();
 
-			provider.on( 'status', event => {
-				onStatusChange( objectType, objectId, event );
+			const handleConnectionClose = ( event: CloseEvent | null ): void => {
+				// Emit custom sync-connection-status event
+				syncStatusEmitter.emit( {
+					status: 'disconnected',
+					error: getErrorFromCloseCode( event?.code ),
+				} );
+
+				void connect();
+			};
+
+			provider.on( 'connection-close', handleConnectionClose );
+
+			// Listen to y-websocket's status event for connecting/connected states
+			provider.on( 'status', ( event: { status: 'connected' | 'disconnected' | 'connecting' } ) => {
+				/*
+				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
+				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).
+				 */
+				if ( event.status !== 'disconnected' ) {
+					syncStatusEmitter.emit( { status: event.status } );
+				}
 			} );
 
 			// Provide some debugging functions in development mode.
@@ -237,7 +251,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousDisconnectFunction();
 					}
 
-					provider.off( 'connection-close', connect );
+					provider.off( 'connection-close', handleConnectionClose );
 					provider.disconnect();
 				};
 
@@ -247,7 +261,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousReconnectFunction();
 					}
 
-					provider.on( 'connection-close', connect );
+					provider.on( 'connection-close', handleConnectionClose );
 					void connect();
 				};
 			}
@@ -255,8 +269,18 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			await connect();
 
 			return {
-				destroy: () => provider.destroy(),
-				on: ( event, callback ) => provider.on( event, callback ),
+				destroy: () => {
+					syncStatusEmitter.destroy();
+					provider.destroy();
+				},
+				on: < K extends keyof ProviderEventMap >(
+					event: K,
+					callback: ( data: ProviderEventMap[ K ] ) => void
+				) => {
+					if ( event === 'sync-connection-status' ) {
+						syncStatusEmitter.on( callback );
+					}
+				},
 			};
 		} catch ( err ) {
 			logger.critical( 'Failed to create WebSocket connection', { error: err } );
