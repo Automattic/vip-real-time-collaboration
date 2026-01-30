@@ -62,7 +62,7 @@ While we continue to push the latest version of our work to the VIP Real-Time Co
 
 To use this stable release, follow these steps:
 
-1. Disable the `VIP Real-Time Collaboration` integration in your environment.
+1. Deactivate the `VIP Real-Time Collaboration` integration in your environment.
 2. Download the `gutenberg.zip` and `vip-real-time-collaboration.zip` attachments from [`v0.2.1`](https://github.com/Automattic/vip-real-time-collaboration/releases/tag/v0.2.1).
 3. Extract the zip files to your application's `/plugins` directory.
 4. Commit and deploy the code.
