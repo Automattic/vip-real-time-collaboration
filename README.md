@@ -56,6 +56,14 @@ We will continue to update our [Common Issues](./docs/COMMON_ISSUES.md) doc with
 Analyze this codebase to identify any components or code segments that may lead to issues as outlined in the [COMMON_ISSUES.md](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/refs/heads/trunk/docs/COMMON_ISSUES.md). Provide suggestions for refactoring to ensure compatibility and optimal performance. Look through all files and identify any file that registers custom post meta or implements client-side custom WordPress blocks.
 ```
 
+### Stable Release
+
+While we continue to push the latest version of our work to the VIP Real-Time Collaboration integration, we offer a stable version of the plugins necessary to use RTC on WordPress VIP in the `0.2.1` release of this plugin.
+
+To use this stable release, download the `gutenberg.zip` and `vip-real-time-collaboration.zip` attachments from [`v0.2.1`](https://github.com/Automattic/vip-real-time-collaboration/releases/tag/v0.2.1), extract them to your application code's `/plugins` directory, deploy the change and activate the plugins. Do not disable the `VIP Real-Time Collaboration` integration. The integration will still handle the infrastructure necessary for RTC to run.
+
+NOTE: We are not able to support this release and it will only be updated for critical security fixes.
+
 ## Development
 
 For development setup, contributing guidelines, and technical information, please see:
