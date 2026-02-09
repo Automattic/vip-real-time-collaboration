@@ -7,7 +7,6 @@ const STORE_NAME = 'vip-real-time-collaboration/settings';
 const LOCAL_STORAGE_KEY = 'vip-rtc-settings';
 
 export enum Setting {
-	AWARENESS_AVATARS = 'Awareness_Avatars',
 	AWARENESS_CURSORS = 'Awareness_Cursors',
 	DEBUG_TOOLS = 'Debug_Tools',
 	POST_UPDATE_NOTIFICATION = 'Post_Update_Notification',
@@ -16,7 +15,6 @@ export enum Setting {
 }
 
 interface SettingsState {
-	[ Setting.AWARENESS_AVATARS ]: boolean;
 	[ Setting.AWARENESS_CURSORS ]: boolean;
 	[ Setting.DEBUG_TOOLS ]: boolean;
 	[ Setting.POST_UPDATE_NOTIFICATION ]: boolean;
@@ -25,7 +23,6 @@ interface SettingsState {
 }
 
 const DEFAULT_STATE: SettingsState = {
-	[ Setting.AWARENESS_AVATARS ]: true,
 	[ Setting.AWARENESS_CURSORS ]: true,
 	[ Setting.DEBUG_TOOLS ]: false,
 	[ Setting.POST_UPDATE_NOTIFICATION ]: true,

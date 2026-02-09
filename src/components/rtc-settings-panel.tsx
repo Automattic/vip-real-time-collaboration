@@ -1,13 +1,11 @@
 import { BlockCanvasCover } from '@wordpress/block-editor';
 import { ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
+import { PluginDocumentSettingPanel } from '@wordpress/editor';
 import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
 import { useRef } from '@wordpress/element';
-import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 import { type ObjectID, type ObjectType } from '@wordpress/sync';
 
-import { Avatars } from './avatars';
 import { DebugTools } from './debug-tools';
 import { RTCOverlay } from './rtc-overlay';
 import {
@@ -23,29 +21,20 @@ import { CursorRegistry } from '@/utilities/cursor-registry';
 import '@/components/rtc-settings-panel.scss';
 
 interface SelectResult {
-	isAvatarsEnabled: boolean;
 	isCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
 	objectId?: ObjectID;
 	objectType?: ObjectType;
 }
 
-const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
-	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
-	'@wordpress/editor'
-);
-
-const { EditorPresence } = unlock( editorPrivateApis );
-
 export function RTCSettingsPanel() {
-	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled } = useSelect<
+	const { isCursorsEnabled, isDebugToolsEnabled } = useSelect<
 		SettingsStoreSelectors,
 		SelectResult
 	>( select => {
 		const { getSetting } = select( rtcSettingsStore );
 
 		return {
-			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
 			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
 		};
@@ -68,16 +57,6 @@ export function RTCSettingsPanel() {
 
 	return (
 		<>
-			{ EditorPresence && (
-				<EditorPresence>
-					<Avatars
-						cursorRegistry={ cursorRegistry.current }
-						postId={ postId }
-						postType={ postType }
-						isAvatarsEnabled={ isAvatarsEnabled }
-					/>
-				</EditorPresence>
-			) }
 			{ BlockCanvasCover && BlockCanvasCover.Fill && (
 				<BlockCanvasCover.Fill>
 					{ ( {
@@ -105,12 +84,6 @@ export function RTCSettingsPanel() {
 				className="vip-real-time-collaboration-settings"
 			>
 				<div>
-					<ToggleControl
-						label="Enable avatars"
-						checked={ isAvatarsEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_AVATARS, enabled ) }
-					/>
-
 					<ToggleControl
 						label="Enable cursors"
 						checked={ isCursorsEnabled }
