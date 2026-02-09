@@ -1,4 +1,8 @@
-import { useActiveUsers, SelectionType, type SelectionWholeBlock } from '@wordpress/core-data';
+import {
+	useActiveCollaborators,
+	SelectionType,
+	type SelectionWholeBlock,
+} from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { useEffect, useRef } from '@wordpress/element';
 
@@ -18,7 +22,7 @@ export function useBlockHighlighting(
 	postType: string | null
 ) {
 	const highlightedBlockIds = useRef< Set< string > >( new Set() );
-	const userStates = useActiveUsers( postId ?? null, postType ?? null );
+	const userStates = useActiveCollaborators( postId ?? null, postType ?? null );
 
 	const { isAwarenessCursorsEnabled } = useSelect<
 		SettingsStoreSelectors,
@@ -61,7 +65,7 @@ export function useBlockHighlighting(
 
 					return {
 						blockId: selection.blockId,
-						color: userState.userInfo.color,
+						color: userState.collaboratorInfo.color,
 					};
 				}
 

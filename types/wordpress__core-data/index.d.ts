@@ -20,7 +20,7 @@ declare module '@wordpress/core-data' {
 	};
 
 	interface BaseState {
-		userInfo: UserInfo;
+		collaboratorInfo: UserInfo;
 	}
 
 	interface EditorState {
@@ -85,7 +85,7 @@ declare module '@wordpress/core-data' {
 		| SelectionWholeBlock;
 
 	// Hooks
-	function useActiveUsers(
+	function useActiveCollaborators(
 		postId: number | null,
 		postType: string | null
 	): EnhancedState< PostEditorState >[];

@@ -1,4 +1,4 @@
-import { useActiveUsers, useGetAbsolutePositionIndex } from '@wordpress/core-data';
+import { useActiveCollaborators, useGetAbsolutePositionIndex } from '@wordpress/core-data';
 import { useSelect } from '@wordpress/data';
 import { type RefObject, useEffect, useMemo } from 'react';
 
@@ -36,7 +36,7 @@ export function useRenderCursors(
 		return DrawType.None;
 	}, [] );
 
-	const sortedUsers = useActiveUsers( postId ?? null, postType ?? null );
+	const sortedUsers = useActiveCollaborators( postId ?? null, postType ?? null );
 	const getAbsolutePositionIndex = useGetAbsolutePositionIndex( postId ?? null, postType ?? null );
 
 	const renderCursors = useMemo< RenderCursorsFunction >(
@@ -46,11 +46,11 @@ export function useRenderCursors(
 			}
 
 			const userSelections = sortedUsers.map( user => ( {
-				userName: user.userInfo.name,
+				userName: user.collaboratorInfo.name,
 				clientId: user.clientId,
 				// Replace local user's selection with the current selection from the editor state.
 				selection: user.editorState?.selection ?? { type: SelectionType.None },
-				color: user.userInfo.color,
+				color: user.collaboratorInfo.color,
 				isMe: user.isMe,
 			} ) );
 
