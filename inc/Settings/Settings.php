@@ -31,7 +31,7 @@ final class Settings {
 	 * Filter the Gutenberg RTC option based on our plugin's setting.
 	 *
 	 * @return int Whether RTC should be enabled in Gutenberg.
-	 * @psalm-suppress PossiblyUnusedMethod Psalm does not detect usage via add_filter.
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public function filter_gutenberg_rtc_option(): int {
 		return self::is_vip_rtc_enabled() ? 1 : 0;
