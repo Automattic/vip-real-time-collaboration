@@ -45,14 +45,16 @@ export function useRenderCursors(
 				return;
 			}
 
-			const userSelections = sortedUsers.map( user => ( {
-				userName: user.collaboratorInfo.name,
-				clientId: user.clientId,
-				// Replace local user's selection with the current selection from the editor state.
-				selection: user.editorState?.selection ?? { type: SelectionType.None },
-				color: user.collaboratorInfo.color,
-				isMe: user.isMe,
-			} ) );
+			const userSelections = sortedUsers
+				.filter( user => user.collaboratorInfo )
+				.map( user => ( {
+					userName: user.collaboratorInfo.name,
+					clientId: user.clientId,
+					// Replace local user's selection with the current selection from the editor state.
+					selection: user.editorState?.selection ?? { type: SelectionType.None },
+					color: user.collaboratorInfo.color,
+					isMe: user.isMe,
+				} ) );
 
 			drawUserSelections(
 				overlayRef.current,
