@@ -1,4 +1,5 @@
 import { __ } from '@wordpress/i18n';
+import { ConnectionError } from '@wordpress/sync';
 
 export function getErrorMessage( error: unknown, defaultMessage?: string ): string {
 	if ( error instanceof Error ) {
@@ -28,4 +29,15 @@ export function getErrorMessage( error: unknown, defaultMessage?: string ): stri
 	}
 
 	return defaultMessage ?? __( 'Unknown error', 'vip-real-time-collaboration' );
+}
+
+export class WebSocketError extends Error implements ConnectionError {
+	public name = 'WebSocketError';
+
+	constructor(
+		public code: ConnectionError[ 'code' ],
+		message?: string
+	) {
+		super( message );
+	}
 }
