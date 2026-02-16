@@ -1,7 +1,5 @@
 import { addFilter } from '@wordpress/hooks';
-import { registerPlugin } from '@wordpress/plugins';
 
-import { RTCSettingsPanel } from '@/components/rtc-settings-panel';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
@@ -17,8 +15,4 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 	}
 
 	return [ createWebSocketConnection( WEBSOCKET_URL ) ];
-} );
-
-registerPlugin( 'vip-rtc-settings-panel', {
-	render: RTCSettingsPanel,
 } );

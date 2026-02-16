@@ -8,28 +8,30 @@ declare module '@wordpress/sync' {
 	type ObjectID = string;
 	type ObjectType = string;
 
-	const CRDT_RECORD_MAP_KEY: string;
-	const CRDT_RECORD_METADATA_MAP_KEY: string;
-	const CRDT_RECORD_METADATA_SAVED_AT_KEY: string;
-	const CRDT_RECORD_METADATA_SAVED_BY_KEY: string;
+	type ConnectionErrorCode =
+		| 'authentication-error'
+		| 'connection-expired'
+		| 'connection-limit-exceeded'
+		| 'unknown-error';
 
-	type AwarenessState = Awareness;
-
-	type SyncConnectionStatus = 'connected' | 'connecting' | 'disconnected';
-
-	interface SyncConnectionError {
-		code: string;
-		message?: string;
-		description?: string;
+	interface ConnectionError extends Error {
+		/**
+		 * Error code identifier for programmatic handling and default message lookup.
+		 */
+		code: ConnectionErrorCode;
 	}
 
-	interface SyncConnectionState {
-		status: SyncConnectionStatus;
-		error?: SyncConnectionError;
+	interface ConnectionStatus {
+		status: 'connected' | 'connecting' | 'disconnected';
+
+		/**
+		 * Optional error information when status is 'disconnected'.
+		 */
+		error?: ConnectionError;
 	}
 
 	interface ProviderEventMap {
-		'sync-connection-status': SyncConnectionState;
+		status: SyncConnectionState;
 	}
 
 	type ProviderOn = < K extends keyof ProviderEventMap >(
@@ -38,7 +40,7 @@ declare module '@wordpress/sync' {
 	) => void;
 
 	interface ProviderCreatorOptions {
-		awareness?: AwarenessState;
+		awareness?: Awareness;
 		objectType: ObjectType;
 		objectId: ObjectID | null;
 		ydoc: Y.Doc;
@@ -50,14 +52,4 @@ declare module '@wordpress/sync' {
 	}
 
 	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
-
-	/**
-	 * An enhanced state includes additional metadata about the user's connection
-	 * that is not appropriate to synchronize via Yjs awareness.
-	 */
-	type EnhancedState< State > = State & {
-		clientId: number;
-		isConnected: boolean;
-		isMe: boolean;
-	};
 }
