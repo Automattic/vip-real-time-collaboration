@@ -26,16 +26,6 @@ final class Settings {
 	}
 
 	/**
-	 * Filter the Gutenberg RTC option based on our plugin's setting.
-	 *
-	 * @return int Whether RTC should be enabled in Gutenberg.
-	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
-	 */
-	public function filter_gutenberg_rtc_option(): int {
-		return self::is_vip_rtc_enabled() ? 1 : 0;
-	}
-
-	/**
 	 * Add the settings page to the WordPress admin menu.
 	 */
 	public static function add_options_page(): void {
@@ -78,7 +68,7 @@ final class Settings {
 			<p>
 				<?php
 				/* translators: %s: Gutenberg commit hash */
-				echo esc_html( sprintf( __( 'Real-time collaboration can be disabled on the Writing settings page.', 'vip-real-time-collaboration' ) ) );
+				echo esc_html( __( 'Real-time collaboration can be disabled on the Writing settings page.', 'vip-real-time-collaboration' ) );
 				?>
 			</p>
 		</div>
