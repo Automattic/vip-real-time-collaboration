@@ -31,7 +31,7 @@ declare module '@wordpress/sync' {
 	}
 
 	interface ProviderEventMap {
-		status: SyncConnectionState;
+		status: ConnectionStatus;
 	}
 
 	type ProviderOn = < K extends keyof ProviderEventMap >(
