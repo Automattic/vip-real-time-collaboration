@@ -16,6 +16,7 @@ final class Settings {
 
 	public function __construct() {
 		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
+		add_filter( 'default_option_' . self::GUTENBERG_OPTION_NAME, '__return_true' );
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
