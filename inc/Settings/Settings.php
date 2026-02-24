@@ -74,8 +74,16 @@ final class Settings {
 			</p>
 			<p>
 				<?php
-				/* translators: %s: Gutenberg commit hash */
-				echo esc_html( __( 'Real-time collaboration can be disabled on the Writing settings page.', 'vip-real-time-collaboration' ) );
+				// Add a link to the Writing settings page where real-time collaboration can be enabled or disabled.
+				$writing_settings_url = admin_url( 'options-writing.php' );
+				echo wp_kses(
+					sprintf(
+						/* translators: %s: URL to the Writing settings page */
+						__( 'Real-time collaboration can be enabled or disabled on the <a href="%s">Writing settings page</a>.', 'vip-real-time-collaboration' ),
+						esc_url( $writing_settings_url )
+					),
+					[ 'a' => [ 'href' => [] ] ]
+				);
 				?>
 			</p>
 		</div>
