@@ -8,8 +8,6 @@ import type { UserInfo } from '@wordpress/core-data';
 const baseUserInfo: UserInfo = {
 	id: 123,
 	name: 'Alice',
-	color: '#000000',
-	browserType: 'chrome',
 	enteredAt: Date.now(),
 	slug: 'alice',
 	avatar_urls: {

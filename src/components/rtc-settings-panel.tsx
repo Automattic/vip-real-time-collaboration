@@ -1,122 +1,40 @@
-import { BlockCanvasCover } from '@wordpress/block-editor';
 import { ToggleControl } from '@wordpress/components';
 import { useSelect, useDispatch } from '@wordpress/data';
-import { PluginDocumentSettingPanel, privateApis as editorPrivateApis } from '@wordpress/editor';
-import { store as editorStore, type EditorStoreSelectors } from '@wordpress/editor';
-import { useRef } from '@wordpress/element';
-import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
-import { type ObjectID, type ObjectType } from '@wordpress/sync';
+import { PluginDocumentSettingPanel } from '@wordpress/editor';
 
-import { Avatars } from './avatars';
-import { DebugTools } from './debug-tools';
-import { RTCOverlay } from './rtc-overlay';
 import {
 	store as rtcSettingsStore,
 	Setting,
 	SettingsStoreActions,
 	type SettingsStoreSelectors,
 } from '../store/settings-store';
-import { useModifyCodeEditor } from '@/hooks/use-modify-code-editor';
 import { isDevelopment } from '@/utilities/config';
-import { CursorRegistry } from '@/utilities/cursor-registry';
 
 import '@/components/rtc-settings-panel.scss';
 
 interface SelectResult {
-	isAvatarsEnabled: boolean;
-	isCursorsEnabled: boolean;
 	isDebugToolsEnabled: boolean;
-	objectId?: ObjectID;
-	objectType?: ObjectType;
 }
 
-const { unlock } = __dangerousOptInToUnstableAPIsOnlyForCoreModules(
-	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.',
-	'@wordpress/editor'
-);
-
-const { EditorPresence } = unlock( editorPrivateApis );
-
 export function RTCSettingsPanel() {
-	const { isAvatarsEnabled, isCursorsEnabled, isDebugToolsEnabled } = useSelect<
-		SettingsStoreSelectors,
-		SelectResult
-	>( select => {
+	const { isDebugToolsEnabled } = useSelect< SettingsStoreSelectors, SelectResult >( select => {
 		const { getSetting } = select( rtcSettingsStore );
 
 		return {
-			isAvatarsEnabled: getSetting( Setting.AWARENESS_AVATARS ),
-			isCursorsEnabled: getSetting( Setting.AWARENESS_CURSORS ),
 			isDebugToolsEnabled: getSetting( Setting.DEBUG_TOOLS ),
 		};
 	}, [] );
 
 	const { setSetting } = useDispatch< SettingsStoreActions >( rtcSettingsStore );
 
-	// A single instance of the cursor registry is shared between Avatars and
-	// RTCOverlay. A ref is used to persist the instance across re-renders.
-	const cursorRegistry = useRef< CursorRegistry >( new CursorRegistry() );
-
-	const postId = useSelect< EditorStoreSelectors, number | null >( select =>
-		select( editorStore ).getCurrentPostId()
-	);
-	const postType = useSelect< EditorStoreSelectors, string | null >( select =>
-		select( editorStore ).getCurrentPostType()
-	);
-
-	useModifyCodeEditor();
-
 	return (
 		<>
-			{ EditorPresence && (
-				<EditorPresence>
-					<Avatars
-						cursorRegistry={ cursorRegistry.current }
-						postId={ postId }
-						postType={ postType }
-						isAvatarsEnabled={ isAvatarsEnabled }
-					/>
-				</EditorPresence>
-			) }
-			{ BlockCanvasCover && BlockCanvasCover.Fill && (
-				<BlockCanvasCover.Fill>
-					{ ( {
-						containerRef,
-					}: {
-						containerRef: React.MutableRefObject< HTMLElement | null >;
-					} ) => (
-						<>
-							<RTCOverlay
-								blockEditorDocument={ containerRef.current?.ownerDocument }
-								cursorRegistry={ cursorRegistry.current }
-								postId={ postId }
-								postType={ postType }
-							/>
-							{ isDebugToolsEnabled && containerRef.current?.ownerDocument && (
-								<DebugTools iframeDocument={ containerRef.current?.ownerDocument } />
-							) }
-						</>
-					) }
-				</BlockCanvasCover.Fill>
-			) }
 			<PluginDocumentSettingPanel
 				name="vip-real-time-collaboration"
 				title="Real-time collaboration"
 				className="vip-real-time-collaboration-settings"
 			>
 				<div>
-					<ToggleControl
-						label="Enable avatars"
-						checked={ isAvatarsEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_AVATARS, enabled ) }
-					/>
-
-					<ToggleControl
-						label="Enable cursors"
-						checked={ isCursorsEnabled }
-						onChange={ ( enabled: boolean ) => setSetting( Setting.AWARENESS_CURSORS, enabled ) }
-					/>
-
 					{ isDevelopment() && (
 						<>
 							<ToggleControl
