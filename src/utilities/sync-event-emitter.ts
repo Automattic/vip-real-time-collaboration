@@ -1,9 +1,9 @@
 /**
  * External dependencies
  */
-import type { SyncConnectionState } from '@wordpress/sync';
+import type { ConnectionStatus } from '@wordpress/sync';
 
-type SyncConnectionStatusCallback = ( state: SyncConnectionState ) => void;
+type ConnectionStatusCallback = ( state: ConnectionStatus ) => void;
 
 /**
  * A simple typed event emitter for sync connection status events.
@@ -12,17 +12,17 @@ type SyncConnectionStatusCallback = ( state: SyncConnectionState ) => void;
  * without relying on type assertions or extending the WebsocketProvider's event system.
  */
 export class SyncConnectionStatusEmitter {
-	private listeners: Set< SyncConnectionStatusCallback > = new Set();
+	private listeners: Set< ConnectionStatusCallback > = new Set();
 
-	public emit( state: SyncConnectionState ): void {
-		this.listeners.forEach( listener => listener( state ) );
+	public emit( status: ConnectionStatus ): void {
+		this.listeners.forEach( listener => listener( status ) );
 	}
 
-	public on( callback: SyncConnectionStatusCallback ): void {
+	public on( callback: ConnectionStatusCallback ): void {
 		this.listeners.add( callback );
 	}
 
-	public off( callback: SyncConnectionStatusCallback ): void {
+	public off( callback: ConnectionStatusCallback ): void {
 		this.listeners.delete( callback );
 	}
 
