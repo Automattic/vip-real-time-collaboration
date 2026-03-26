@@ -18,7 +18,6 @@ use VIPRealTimeCollaboration\Assets\Assets;
 use VIPRealTimeCollaboration\Auth\SyncPermissions;
 use VIPRealTimeCollaboration\Compatibility\Compatibility;
 use VIPRealTimeCollaboration\Settings\Settings;
-use VIPRealTimeCollaboration\Overrides\Overrides;
 
 defined( 'ABSPATH' ) || exit();
 
@@ -72,7 +71,6 @@ add_action( 'plugins_loaded', static function (): void {
 	SyncPermissions::init();
 
 	new Assets();
-	new Overrides();
 	new RestApi();
 
 	// Fire action to indicate that the plugin has loaded.
