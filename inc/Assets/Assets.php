@@ -14,11 +14,11 @@ use function wp_enqueue_script;
  * Enqueues the necessary JavaScript and CSS assets for the plugin.
  */
 final class Assets {
-	public function __construct() {
-		add_action( 'admin_init', [ $this, 'load_assets' ], 10, 0 );
+	public static function init(): void {
+		add_action( 'admin_init', [ __CLASS__, 'load_assets' ], 10, 0 );
 	}
 
-	public function load_assets(): void {
+	public static function load_assets(): void {
 		$vip_rtc_ws_url = null;
 
 		// Error checking for the WebSocket URL is already done in the main plugin file.

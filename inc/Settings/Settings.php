@@ -13,9 +13,9 @@ final class Settings {
 	 */
 	public const GUTENBERG_OPTION_NAME = 'wp_collaboration_enabled';
 
-	public function __construct() {
-		add_action( 'admin_menu', [ $this, 'add_options_page' ] );
-		add_filter( 'default_option_' . self::GUTENBERG_OPTION_NAME, [ $this, 'filter_gutenberg_rtc_option' ], 99 );
+	public static function init(): void {
+		add_action( 'admin_menu', [ __CLASS__, 'add_options_page' ] );
+		add_filter( 'default_option_' . self::GUTENBERG_OPTION_NAME, [ __CLASS__, 'filter_gutenberg_rtc_option' ], 99 );
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
@@ -28,7 +28,7 @@ final class Settings {
 	 * @return string Whether RTC should be enabled in Gutenberg.
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
-	public function filter_gutenberg_rtc_option(): string {
+	public static function filter_gutenberg_rtc_option(): string {
 		return '1';
 	}
 

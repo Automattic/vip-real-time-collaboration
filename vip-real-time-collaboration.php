@@ -51,27 +51,16 @@ add_action( 'plugins_loaded', static function (): void {
 		return;
 	}
 
-	// Initialize the core classes needed to manage the Gutenberg experiment.
-	new Settings();
-	// This is to account for the case where:
-	// - The plugin is activated
-	// - The RTC setting is disabled
-	// - The experiment is manually activated
-	// We want to ensure that we override the experimental features, to disable RTC functionality.
-	new Compatibility();
+	Settings::init();
 
 	// If RTC is disabled, return early.
 	if ( ! Settings::is_vip_rtc_enabled() ) {
 		return;
 	}
 
-	// Load the rest of the plugin, that actually provides RTC functionality.
-
-	// Initialize permission system
 	SyncPermissions::init();
-
-	new Assets();
-	new RestApi();
+	Assets::init();
+	RestApi::init();
 
 	// Fire action to indicate that the plugin has loaded.
 	do_action( 'vip_real_time_collaboration_loaded' );
