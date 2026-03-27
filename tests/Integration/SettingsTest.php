@@ -24,15 +24,24 @@ final class SettingsTest extends TestCase {
 	}
 
 	/**
-	 * Verifies that is_vip_rtc_enabled() works as expected.
+	 * Verifies that is_vip_rtc_enabled() returns true by default.
 	 *
 	 * @covers \VIPRealTimeCollaboration\Compatibility\Settings::is_vip_rtc_enabled
 	 */
-	public function test_is_vip_rtc_enabled(): void {
+	public function test_is_vip_rtc_enabled_returns_true_by_default(): void {
 		$is_rtc_enabled = self::get_method( 'is_vip_rtc_enabled', Settings::class );
 
 		// RTC should be enabled by default.
 		self::assertTrue( $is_rtc_enabled->invoke( null ), 'RTC should be enabled by default' );
+	}
+
+	/**
+	 * Verifies that is_vip_rtc_enabled() can be disabled with a default_option filter.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Settings::is_vip_rtc_enabled
+	 */
+	public function test_is_vip_rtc_enabled_can_be_disabled_with_default_option_filter(): void {
+		$is_rtc_enabled = self::get_method( 'is_vip_rtc_enabled', Settings::class );
 
 		// It should be possible to add a filter with higher priority to disable RTC.
 		$filter_name = 'default_option_' . Settings::GUTENBERG_OPTION_NAME;
@@ -42,6 +51,15 @@ final class SettingsTest extends TestCase {
 
 		// Removing the filter should re-enable RTC.
 		self::assertTrue( $is_rtc_enabled->invoke( null ), 'RTC can be re-enabled by removing the default_option filter' );
+	}
+
+	/**
+	 * Verifies that is_vip_rtc_enabled() can be disabled with a default_option filter.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Settings::is_vip_rtc_enabled
+	 */
+	public function test_is_vip_rtc_enabled_can_be_disabled_with_pre_option_filter(): void {
+		$is_rtc_enabled = self::get_method( 'is_vip_rtc_enabled', Settings::class );
 
 		// It should be possible to add a pre_option filter to disable RTC.
 		$filter_name = 'pre_option_' . Settings::GUTENBERG_OPTION_NAME;
@@ -51,5 +69,31 @@ final class SettingsTest extends TestCase {
 
 		// Removing the filter should re-enable RTC.
 		self::assertTrue( $is_rtc_enabled->invoke( null ), 'RTC can be re-enabled by removing the pre_option filter' );
+	}
+
+	/**
+	 * Verifies that is_vip_rtc_enabled() can be disabled with persisted option.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Settings::is_vip_rtc_enabled
+	 */
+	public function test_is_vip_rtc_enabled_can_be_disabled_with_option(): void {
+		$is_rtc_enabled = self::get_method( 'is_vip_rtc_enabled', Settings::class );
+
+		// It should be possible to set the option to disable RTC.
+		add_option( Settings::GUTENBERG_OPTION_NAME, false );
+		self::assertFalse( $is_rtc_enabled->invoke( null ), 'RTC can be disabled via option' );
+	}
+
+	/**
+	 * Verifies that is_vip_rtc_enabled() is not affected by an enabled option.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Compatibility\Settings::is_vip_rtc_enabled
+	 */
+	public function test_is_vip_rtc_enabled_is_not_affected_by_enabled_option(): void {
+		$is_rtc_enabled = self::get_method( 'is_vip_rtc_enabled', Settings::class );
+
+		// An enabled option should not affect RTC.
+		add_option( Settings::GUTENBERG_OPTION_NAME, true );
+		self::assertTrue( $is_rtc_enabled->invoke( null ), 'RTC is not affected by an enabled option' );
 	}
 }
