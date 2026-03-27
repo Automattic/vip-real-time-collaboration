@@ -25,7 +25,7 @@ final class Settings {
 	/**
 	 * Filter the Gutenberg RTC option to be enabled by defailt.
 	 *
-	 * @return int Whether RTC should be enabled in Gutenberg.
+	 * @return string Whether RTC should be enabled in Gutenberg.
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public function filter_gutenberg_rtc_option(): string {
