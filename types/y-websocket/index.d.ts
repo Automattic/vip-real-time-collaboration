@@ -1,6 +1,3 @@
-import type * as Y from 'yjs';
-import type { Awareness } from 'y-protocols/awareness';
-
 declare module 'y-websocket' {
 	interface WebsocketProviderOptions {
 		connect?: boolean;
@@ -10,11 +7,4 @@ declare module 'y-websocket' {
 		maxBackoffTime?: number;
 		disableBc?: boolean;
 	}
-
-	type WebsocketProviderEvents = {
-		'connection-close': ( event: CloseEvent | null, provider: WebsocketProvider ) => void;
-		status: ( event: { status: 'connected' | 'disconnected' | 'connecting' } ) => void;
-		'connection-error': ( event: Event, provider: WebsocketProvider ) => void;
-		sync: ( state: boolean ) => void;
-	};
 }

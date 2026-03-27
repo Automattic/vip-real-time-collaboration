@@ -3,7 +3,6 @@
     "allowJs": true,
     "baseUrl": "./",
     "esModuleInterop": true,
-    "jsx": "react-jsx",
     "module": "es6",
     "moduleResolution": "bundler",
     "noImplicitAny": true,

@@ -55,7 +55,7 @@ If you use a different development environment, ensure these variables are set a
 - **bin/**: Development scripts for starting/stopping the local environment
 - **build/**: Compiled JavaScript assets (generated)
 - **inc/**: PHP includes and server-side functionality
-- **src/**: TypeScript source files for the front-end components
+- **src/**: TypeScript source files for the websocket client
 - **tests/**: Tests for validating the plugin's functionalities
 - **websocket-server/**: A development Node.js WebSocket server
 - **yjs-inspector/**: Development tool for inspecting Yjs document state
