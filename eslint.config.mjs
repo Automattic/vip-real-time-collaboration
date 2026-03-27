@@ -52,5 +52,9 @@ export default defineConfig( [
 				},
 			},
 		},
+		rules: {
+			'import/no-unresolved': 'off', // The package.json in each example has the necessary dependencies, don't need them in the main package.json.
+			'no-unused-vars': 'off', // This is incorrectly detected in the examples.
+		},
 	},
 ] );
