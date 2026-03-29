@@ -63,7 +63,7 @@
     "@wordpress/i18n": "6.5.0",
     "@wordpress/scripts": "30.25.0",
     "@wordpress/sync": "1.32.0",
-    "eslint": "9.39.2",
+    "eslint": "10.1.0",
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "husky": "9.1.7",
     "lint-staged": "16.3.1",
