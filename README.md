@@ -25,7 +25,7 @@ Out of the box, the plugin works with all WordPress posts and pages, including C
 ## Requirements
 
 - **WordPress**: 6.7 or newer
-- **Gutenberg**: This plugin currently requires a custom Gutenberg build ([latest release](https://github.com/Automattic/vip-go-mu-plugins-ext/tree/trunk/vip-integrations/gutenberg))
+- **Gutenberg**: This plugin requires the [Gutenberg plugin](https://github.com/WordPress/gutenberg/releases) (v22.8.1 or newer)
 - **WebSocket server**: A WebSocket server facilitates real-time communication between peers. The [code is included in this repo](./websocket-server) but must be deployed separately.
 
 See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for development setup instructions.

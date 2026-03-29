@@ -11,9 +11,9 @@ Please see [SECURITY.md](SECURITY.md).
 ### Prerequisites
 
 - WordPress 6.7+
-- Custom Gutenberg build in sibling directory (`../gutenberg`)
-  - This plugin currently requires a custom Gutenberg build ([latest release](https://github.com/Automattic/vip-go-mu-plugins-ext/tree/trunk/vip-integrations/gutenberg)). If you use our `wp-env`-based development environment, it expects this custom build to be present in a sibling directory named `gutenberg`.
-  - If you use a different development environment, ensure the custom Gutenberg build is installed and active.
+- [Gutenberg plugin](https://github.com/WordPress/gutenberg/releases) (v22.8.1 or newer)
+  - The `wp-env`-based development environment automatically downloads Gutenberg from GitHub.
+  - If you use a different development environment, ensure the Gutenberg plugin is installed and active.
 - Node.js
 - Docker runtime and Docker Compose
 
@@ -55,7 +55,7 @@ If you use a different development environment, ensure these variables are set a
 - **bin/**: Development scripts for starting/stopping the local environment
 - **build/**: Compiled JavaScript assets (generated)
 - **inc/**: PHP includes and server-side functionality
-- **src/**: TypeScript source files for the front-end components
+- **src/**: TypeScript source files for the websocket client
 - **tests/**: Tests for validating the plugin's functionalities
 - **websocket-server/**: A development Node.js WebSocket server
 - **yjs-inspector/**: Development tool for inspecting Yjs document state
