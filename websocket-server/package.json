@@ -20,7 +20,7 @@
     "@types/jsonwebtoken": "9.0.10",
     "@types/node": "22.19.0",
     "@types/ws": "8.5.0",
-    "typescript": "5.9.2",
+    "typescript": "6.0.2",
     "yjs": "13.6.27"
   }
 }
