@@ -1,0 +1,16 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "example/testimonial",
+	"version": "0.1.0",
+	"title": "Testimonial",
+	"category": "text",
+	"icon": "format-quote",
+	"description": "A testimonial block that sync automatically via RTC",
+	"example": {},
+	"supports": {
+		"html": false
+	},
+	"textdomain": "example-testimonial",
+	"editorScript": "file:./index.js"
+}
