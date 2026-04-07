@@ -1,0 +1,27 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "example/checklist",
+	"version": "0.1.0",
+	"title": "Checklist",
+	"category": "text",
+	"icon": "yes-alt",
+	"description": "A checklist block that syncs automatically via RTC",
+	"example": {},
+	"attributes": {
+		"items": {
+			"type": "array",
+			"default": [
+				{ "text": "First item", "checked": false },
+				{ "text": "Second item", "checked": false },
+				{ "text": "Third item", "checked": false }
+			]
+		}
+	},
+	"supports": {
+		"html": false
+	},
+	"textdomain": "example-checklist",
+	"editorScript": "file:./index.js",
+	"editorStyle": "file:./index.css"
+}
