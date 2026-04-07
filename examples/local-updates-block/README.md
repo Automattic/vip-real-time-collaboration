@@ -1,5 +1,9 @@
 # Local updates block with syncing of external state
 
+![Wikipedia Edits block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/wikipedia-edits-block.gif)
+
+---
+
 This code example shows how external editor state can be synced between peers during collaborative editing. Normally, a block's state is stored in its own attributes, which are automatically synced. However, sometimes a block deals with external state outside of its attributes, for example, a list of posts or data from an external API.
 
 ## Wikipedia edits

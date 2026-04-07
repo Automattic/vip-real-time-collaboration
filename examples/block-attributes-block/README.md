@@ -1,5 +1,9 @@
 # Block attributes with automatic syncing
 
+![Checklist block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/checklist-block.gif)
+
+---
+
 This code example shows how block attributes, including complex types like arrays, sync automatically during collaborative editing. No special handling is needed.
 
 ## Checklist block

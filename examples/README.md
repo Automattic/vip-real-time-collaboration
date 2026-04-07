@@ -12,6 +12,8 @@ A two-column testimonial layout with a photo, name, and quote, built entirely fr
 
 **RTC concept:** Using inner blocks that follow standard RTC patterns does not require any additional setup. Inner blocks are part of the serialized post content and sync attributes automatically between peers.
 
+---
+
 ## [Checklist](block-attributes-block/) (Block Attributes)
 
 An checklist where users can add, remove, and check off items.
@@ -20,6 +22,8 @@ An checklist where users can add, remove, and check off items.
 
 **RTC concept:** Block attributes sync automatically via RTC, including complex types like arrays of objects.
 
+---
+
 ## [Subtitle](post-meta-block/) (Post Meta)
 
 A simple text input that stores a subtitle in custom post meta rather than block attributes.
@@ -27,6 +31,8 @@ A simple text input that stores a subtitle in custom post meta rather than block
 ![Subtitle block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/subtitle-block.gif)
 
 **RTC concept:** Post-level data stored in post meta syncs automatically between peers when the meta is registered with `show_in_rest: true`.
+
+---
 
 ## [Wikipedia Edits](local-updates-block/) (External State)
 
