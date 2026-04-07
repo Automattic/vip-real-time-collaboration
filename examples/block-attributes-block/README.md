@@ -10,7 +10,7 @@ This code example shows how block attributes, including complex types like array
 
 ---
 
-This code example registers a "Checklist" block. Users can add, remove, and check off items. The items are stored in an array attribute.
+This code example registers a "Checklist" block. Users can add, remove, and check off items. The items are stored in an array attribute. A complete implementation would provide a `Save` function or a dynamic render callback to render the checklist on the front end. This example focuses on the editor experience.
 
 ## Syncing
 

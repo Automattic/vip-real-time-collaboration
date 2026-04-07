@@ -2,6 +2,7 @@
  * External dependencies
  */
 import { useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
 
 /**
  * A testimonial block that uses inner blocks for its content. The inner blocks
@@ -27,14 +28,14 @@ const TEMPLATE = [
 						'core/heading',
 						{
 							level: 4,
-							placeholder: "Person's name",
+							placeholder: __( "Person's name", 'example-testimonial' ),
 						},
 					],
 					[
 						'core/quote',
 						{
 							placeholder:
-								'Write a testimonial quote',
+								__( 'Write a testimonial quote', 'example-testimonial' ),
 						},
 					],
 				],

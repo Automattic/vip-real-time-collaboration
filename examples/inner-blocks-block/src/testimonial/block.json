@@ -6,7 +6,7 @@
 	"title": "Testimonial",
 	"category": "text",
 	"icon": "format-quote",
-	"description": "A testimonial block that sync automatically via RTC",
+	"description": "A testimonial block that syncs automatically via RTC",
 	"example": {},
 	"supports": {
 		"html": false

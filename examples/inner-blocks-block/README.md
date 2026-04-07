@@ -1,6 +1,6 @@
 # Inner blocks with automatic syncing
 
-This code example shows the a case of real-time collaboration using inner blocks. Inner blocks sync automatically. No special handling is needed.
+This code example shows a case of real-time collaboration using inner blocks. Inner blocks sync automatically. No special handling is needed.
 
 ## Testimonial block
 
