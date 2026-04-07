@@ -1,12 +1,14 @@
 # Post meta block with syncing support
 
-![Subtitle block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/subtitle-block.gif)
-
----
-
 This code example shows how custom post meta can be synced between peers during collaborative editing. It follows [the example of a modern "metabox"](https://developer.wordpress.org/block-editor/how-to-guides/metabox/) within the block editor.
 
 ## Subtitle block
+
+---
+
+![Subtitle block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/subtitle-block.gif)
+
+---
 
 This code example registers a "Subtitle" block, which allows someone who places the block to provide a subtitle, which is stored in post meta.
 
