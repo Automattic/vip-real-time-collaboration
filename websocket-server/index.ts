@@ -2,7 +2,7 @@ import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { RawData, WebSocketServer, type WebSocket } from 'ws';
 
-import { getWpClientId, isRequestAuthenticated } from './auth';
+import { getWpClientId, isRequestAuthenticated, isSessionAuthenticated } from './auth';
 import {
 	DEFAULT_CONNECTION_TIMEOUT,
 	DEFAULT_HOST,
@@ -19,6 +19,7 @@ import {
 	startMetricsMaintenanceLoop,
 	recordConnectionOpen,
 } from './metrics';
+import { handleMultiplexedConnection } from './multiplexed-handler';
 import { NoopPersistenceProvider } from './noop-persistence-provider';
 import './types';
 import { getRequestPathname } from './utils';
@@ -31,6 +32,7 @@ import type { Duplex } from 'node:stream';
  * ------------------------------------------------------------
  */
 const wss = new WebSocketServer( { noServer: true } );
+const muxWss = new WebSocketServer( { noServer: true } );
 const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
 const connectionTimeout =
@@ -111,9 +113,74 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	} );
 } );
 
+/**
+ * ------------------------------------------------------------
+ * Multiplexed WebSocket connection handling
+ * ------------------------------------------------------------
+ */
+muxWss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
+	const connectionStartTime = Date.now();
+
+	// Session auth was already verified in the upgrade handler.
+	// Re-parse the token to extract wpClientId for metrics/tracking.
+	const sessionResult = isSessionAuthenticated( request, JWT_SECRET );
+	const wpClientId =
+		sessionResult.authenticated === true ? sessionResult.payload.wp_client_id : 'unknown';
+	ws.wpClientId = wpClientId;
+
+	handleMultiplexedConnection( ws, wpClientId, JWT_SECRET );
+
+	recordConnectionOpen( wpClientId, getActiveClientCount( wss ) + getActiveClientCount( muxWss ) );
+
+	ws.on( 'message', ( data: RawData, isBinary: boolean ): void => {
+		recordMessage( data, isBinary );
+	} );
+
+	const timeout = setTimeout( (): void => {
+		ws.close( 4001, WEBSOCKET_CLOSE_CODES.get( 4001 ) );
+	}, connectionTimeout );
+
+	ws.on( 'close', ( code: number ): void => {
+		clearTimeout( timeout );
+		recordConnectionClose(
+			code,
+			connectionStartTime,
+			wpClientId,
+			getActiveClientCount( wss ) + getActiveClientCount( muxWss )
+		);
+	} );
+} );
+
 server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer ): void => {
+	const pathname = getRequestPathname( request );
+
 	/**
-	 * Verify authentication before establishing WebSocket connection
+	 * Multiplexed WebSocket endpoint — authenticates with a session token,
+	 * individual rooms are authorized via room:join control messages.
+	 */
+	if ( pathname === '/_mux' ) {
+		const sessionResult = isSessionAuthenticated( request, JWT_SECRET );
+		if ( sessionResult.authenticated === false ) {
+			recordConnectionFailure( sessionResult.reason );
+			socket.write( 'HTTP/1.1 401 Unauthorized\r\n\r\n' );
+			socket.destroy();
+			return;
+		}
+
+		muxWss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
+			if ( ! shouldAllowConnection( muxWss, sessionResult.payload.wp_client_id ) ) {
+				recordConnectionFailure( 'connection_limit_exceeded' );
+				ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
+				return;
+			}
+
+			muxWss.emit( 'connection', ws, request );
+		} );
+		return;
+	}
+
+	/**
+	 * Legacy per-room WebSocket endpoint — authenticates with a room-scoped token.
 	 */
 	const authResult = isRequestAuthenticated( request, JWT_SECRET );
 	if ( authResult.authenticated === false ) {

@@ -3,14 +3,10 @@
  */
 import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
-import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import {
-	isDevelopment,
-	BLOG_ID,
-	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
-	WEBSOCKET_URL,
-} from '@/utilities/config';
+import { MultiplexedConnection } from '@/multiplexed-connection';
+import { MultiplexedRoomProvider } from '@/multiplexed-room-provider';
+import { isDevelopment, BLOG_ID } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
 import { WebSocketError, getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
@@ -25,11 +21,6 @@ import type {
 	ProviderCreatorResult,
 	ProviderEventMap,
 } from '@wordpress/sync';
-
-export interface WebSocketConnectionConfig {
-	options?: WebsocketProviderOptions;
-	serverUrl: string;
-}
 
 const defaultResult: ProviderCreatorResult = {
 	destroy: () => {},
@@ -65,22 +56,23 @@ async function fetchAuthToken( syncObjectType: string, syncObjectId: string ): P
 }
 
 /**
- * Log a link to inspect the Yjs provider using Yjs inspector.
+ * Fetch a session-level authentication token for the multiplexed connection.
+ * This proves user identity without binding to a specific room.
  */
-function logInspectUrl( provider: WebsocketProvider ): void {
-	const connectionConfig = {
-		createNewDoc: false,
-		room: `${ provider.roomname }?auth=${ provider.params?.auth }`,
-		provider: 'y-websocket',
-		url: WEBSOCKET_URL,
-	};
+async function fetchSessionToken(): Promise< string > {
+	const data = await apiFetch< { token: string } >( {
+		path: '/vip-rtc/v1/websocket/session-auth',
+		method: 'POST',
+		data: {
+			wpClientId: getWpClientId(),
+		},
+	} );
 
-	// The inspect URL always targets a local Yjs inspector.
-	const inspectUrl = `http://localhost:5173/#/connection=${ encodeURIComponent(
-		JSON.stringify( connectionConfig )
-	) }`;
+	if ( ! data.token ) {
+		throw new Error( __( 'No session auth token returned', 'vip-real-time-collaboration' ) );
+	}
 
-	logger.info( `Yjs inspector for ${ provider.roomname }: ${ inspectUrl }` );
+	return data.token;
 }
 
 /**
@@ -89,90 +81,80 @@ function logInspectUrl( provider: WebsocketProvider ): void {
  * @param {number} code - WebSocket close code
  * @return {ConnectionError} Error for known error codes
  */
-function getErrorFromCloseCode( code?: number ): ConnectionError {
+function getErrorFromCode( code?: number ): ConnectionError {
 	switch ( code ) {
 		case 4001:
-			// Connection timeout - server forces reconnect after configured duration
 			return new WebSocketError( 'connection-expired' );
 		case 4002:
-			// Server reached maximum connection limit
 			return new WebSocketError( 'connection-limit-exceeded' );
 		default:
-			// Generic disconnection, no specific error
 			return new WebSocketError( 'unknown-error' );
 	}
 }
 
 /**
- * Configure the websocket provider to use auth token for websocket connection.
- * Implement exponential backoff for reconnect attempts since we are opting out
- * of the built-in reconnect logic by disabling `provider.shouldConnect`.
- */
-function createConnect(
-	provider: WebsocketProvider,
-	syncObjectType: string,
-	syncObjectId: string
-): () => Promise< void > {
-	let reconnectAttempts = 0;
-
-	return async function (): Promise< void > {
-		if ( reconnectAttempts > 0 ) {
-			const backoffDelayInMs = Math.min(
-				1000 * 2 ** reconnectAttempts,
-				WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS
-			);
-
-			logger.warn(
-				`Attempting to reconnect to WebSocket in ${ Math.floor( backoffDelayInMs / 1000 ) }s...`
-			);
-
-			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs ) );
-		}
-
-		reconnectAttempts += 1;
-
-		try {
-			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
-
-			provider.params = {
-				auth: authToken,
-			};
-			provider.connect();
-
-			// Disable provider#shouldConnect to prevent websocket from attempting to
-			// reconnect before the new auth token is fetched (they are short-lived).
-			// When provider.connect() runs it updates provider#shouldConnect to true.
-			provider.shouldConnect = false;
-
-			logInspectUrl( provider );
-		} catch ( error: unknown ) {
-			logger.error(
-				`${ __(
-					'Failed to fetch auth token and connect to WebSocket',
-					'vip-real-time-collaboration'
-				) }: ${ getErrorMessage( error ) }`
-			);
-		}
-	};
-}
-
-/**
- * Function that creates a new WebSocket Connection.
+ * Function that creates a new multiplexed WebSocket connection.
+ *
+ * A single physical WebSocket is shared across all rooms (entities) in an
+ * editing session. Each room gets its own MultiplexedRoomProvider that
+ * handles the Y.js sync and awareness protocols.
  *
  * @param {string} serverUrl The WebSocket server URL.
- * @return {ProviderCreator} A function that connects a Y.Doc to a WebSocket server.
+ * @return {ProviderCreator} A function that connects a Y.Doc to the multiplexed WebSocket.
  */
 export function createWebSocketConnection( serverUrl: string ): ProviderCreator {
-	const config: WebSocketConnectionConfig = {
-		serverUrl,
-		options: {
-			/**
-			 * Disable automatic connection to prevent websocket from attempting to connect
-			 * before the auth token is fetched.
-			 */
-			connect: false,
-		},
-	};
+	// One shared connection for all rooms in this editing session.
+	let connection: MultiplexedConnection | null = null;
+	let connectionPromise: Promise< void > | null = null;
+
+	async function ensureConnection(): Promise< MultiplexedConnection > {
+		if ( connection && connection.isConnected() ) {
+			return connection;
+		}
+
+		if ( ! connection ) {
+			connection = new MultiplexedConnection( serverUrl, {
+				sessionAuthProvider: fetchSessionToken,
+				onStateChange: state => {
+					logger.info( `Multiplexed connection: ${ state }` );
+
+					// Reset the connection promise on disconnect so the next
+					// ensureConnection() call fetches a fresh session token.
+					if ( state === 'disconnected' ) {
+						connectionPromise = null;
+					}
+				},
+			} );
+		}
+
+		if ( ! connectionPromise ) {
+			connectionPromise = ( async () => {
+				try {
+					const sessionToken = await fetchSessionToken();
+					// connection may have been destroyed during the async fetch.
+					if ( connection ) {
+						connection.connect( sessionToken );
+					}
+				} catch ( error: unknown ) {
+					// Reset so the next call retries.
+					connectionPromise = null;
+					logger.error(
+						`Failed to establish multiplexed connection: ${ getErrorMessage( error ) }`
+					);
+					throw error;
+				}
+			} )();
+		}
+
+		await connectionPromise;
+
+		// connection may have been destroyed during the async token fetch.
+		if ( ! connection ) {
+			throw new Error( 'Connection was destroyed during initialization' );
+		}
+
+		return connection;
+	}
 
 	return async function ( {
 		awareness,
@@ -194,61 +176,48 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				return defaultResult;
 			}
 
-			/**
-			 * Some entities like posts aren't unique across all sites in a multisite setup.
-			 * To avoid conflicts, we add the blog ID to the room name.
-			 *
-			 * This might not be desired for entities like sites which are unique across the
-			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
-			 * adding the blog ID to the room name as that won't be needed.
-			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
-			const options = {
-				...config.options,
-				awareness,
-			};
-			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
-			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
+			const muxConnection = await ensureConnection();
 
-			// Create a typed event emitter for our custom sync-connection-status event.
+			// Create a typed event emitter for sync-connection-status events.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
 
-			const handleConnectionClose = ( event: CloseEvent | null ): void => {
-				// Emit custom sync-connection-status event
-				syncStatusEmitter.emit( {
-					status: 'disconnected',
-					error: getErrorFromCloseCode( event?.code ),
-				} );
+			// Auth provider for this room — used for initial join and reconnection.
+			const roomAuthProvider = (): Promise< string > =>
+				fetchAuthToken( objectType, objectId ?? 'collection' );
 
-				void connect();
-			};
+			// Create the per-room provider.
+			const roomProvider = new MultiplexedRoomProvider(
+				muxConnection,
+				roomName,
+				ydoc,
+				awareness,
+				() => {
+					logger.info( `Room synced: ${ roomName }` );
+				},
+				( status, error ) => {
+					const connectionStatus: ConnectionStatus = { status };
+					if ( error ) {
+						connectionStatus.error = getErrorFromCode( error.code );
+					}
+					syncStatusEmitter.emit( connectionStatus );
+				},
+				roomAuthProvider
+			);
 
-			provider.on( 'connection-close', handleConnectionClose );
-
-			// Listen to y-websocket's status event for connecting/connected states
-			provider.on( 'status', ( event: ConnectionStatus ) => {
-				/*
-				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
-				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).
-				 */
-				if ( event.status !== 'disconnected' ) {
-					syncStatusEmitter.emit( { status: event.status } );
-				}
-			} );
+			// Fetch a per-room auth token and join.
+			const authToken = await roomAuthProvider();
+			roomProvider.join( authToken );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
-				// Because there are multiple providers, disconnectWebSocket() and
-				// reconnectWebSocket() will be overridden by the last entity or collection
-				// provider created. Call the previous function if present.
-
 				const previousDisconnectFunction = window.VIP_RTC.debug.disconnectWebSocket;
 				window.VIP_RTC.debug.disconnectWebSocket = () => {
 					if ( previousDisconnectFunction ) {
 						previousDisconnectFunction();
 					}
 
-					provider.disconnect();
+					connection?.destroy();
 				};
 
 				const previousReconnectFunction = window.VIP_RTC.debug.reconnectWebSocket;
@@ -257,16 +226,31 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousReconnectFunction();
 					}
 
-					void connect();
+					// Destroy and re-establish the multiplexed connection.
+					// NOTE: Existing room providers hold references to the old
+					// connection and will not re-register with the new one.
+					// This is a debug-only tool for testing reconnection flows.
+					if ( connection ) {
+						connection.destroy();
+						connection = null;
+						connectionPromise = null;
+					}
+
+					void ensureConnection();
 				};
 			}
-
-			await connect();
 
 			return {
 				destroy: () => {
 					syncStatusEmitter.destroy();
-					provider.destroy();
+					roomProvider.destroy();
+
+					// If no more rooms, tear down the shared connection.
+					if ( connection && connection.getRoomCount() === 0 ) {
+						connection.destroy();
+						connection = null;
+						connectionPromise = null;
+					}
 				},
 				on: < K extends keyof ProviderEventMap >(
 					event: K,

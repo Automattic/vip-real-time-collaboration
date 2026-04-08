@@ -21,6 +21,14 @@ export interface SyncTokenPayload extends JwtPayload {
 	wp_client_id: string;
 }
 
+export interface SessionTokenPayload extends JwtPayload {
+	user_id: number;
+	username: string;
+	blog_id: number;
+	wp_client_id: string;
+	token_type: 'session';
+}
+
 function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 	return (
 		typeof payload === 'object' &&
@@ -29,6 +37,18 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 		'username' in payload &&
 		'room_name' in payload &&
 		( 'connection_id' in payload || 'wp_client_id' in payload )
+	);
+}
+
+function isSessionTokenPayload( payload: unknown ): payload is SessionTokenPayload {
+	return (
+		typeof payload === 'object' &&
+		payload !== null &&
+		'user_id' in payload &&
+		'username' in payload &&
+		'wp_client_id' in payload &&
+		'token_type' in payload &&
+		( payload as Record< string, unknown > ).token_type === 'session'
 	);
 }
 
@@ -80,6 +100,54 @@ export function getWpClientId( request: IncomingMessage, secret: string ): strin
 		return jwtPayload.wp_client_id ?? jwtPayload.connection_id;
 	} catch {
 		return null;
+	}
+}
+
+/**
+ * Verify a session-level JWT for multiplexed WebSocket connections.
+ * Session tokens prove user identity but do not bind to a specific room.
+ */
+export function isSessionAuthenticated(
+	request: IncomingMessage,
+	secret: string
+): { authenticated: true; payload: SessionTokenPayload } | AuthFailureResult {
+	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
+	const authToken = searchParams.get( 'auth' );
+
+	if ( ! authToken ) {
+		return { authenticated: false, reason: 'missing_token' };
+	}
+
+	try {
+		const jwtPayload = verifyJwtToken( authToken, secret, { algorithms: [ 'HS256' ] } );
+		if ( ! isSessionTokenPayload( jwtPayload ) ) {
+			return { authenticated: false, reason: 'invalid_token_payload' };
+		}
+		return { authenticated: true, payload: jwtPayload };
+	} catch {
+		return { authenticated: false, reason: 'invalid_token' };
+	}
+}
+
+/**
+ * Verify a per-room JWT token. Used during room:join on multiplexed connections.
+ * Validates the token signature and checks the room_name claim matches the requested room.
+ */
+export function verifyRoomToken(
+	token: string,
+	room: string,
+	secret: string
+): { valid: true; payload: SyncTokenPayload } | { valid: false; reason: string } {
+	try {
+		const jwtPayload = verifyToken( token, secret );
+
+		if ( jwtPayload.room_name !== room ) {
+			return { valid: false, reason: 'room_name_mismatch' };
+		}
+
+		return { valid: true, payload: jwtPayload };
+	} catch {
+		return { valid: false, reason: 'invalid_token' };
 	}
 }
 

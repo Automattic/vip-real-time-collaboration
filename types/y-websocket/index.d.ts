@@ -9,6 +9,7 @@ declare module 'y-websocket' {
 		resyncInterval?: number;
 		maxBackoffTime?: number;
 		disableBc?: boolean;
+		WebSocketPolyfill?: typeof WebSocket;
 	}
 
 	type WebsocketProviderEvents = {

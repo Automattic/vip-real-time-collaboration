@@ -72,6 +72,27 @@ final class AuthApiController extends WP_REST_Controller {
 				],
 			]
 		);
+
+		register_rest_route(
+			$this->namespace,
+			'/websocket/session-auth',
+			[
+				'methods' => 'POST',
+				'callback' => [ $this, 'get_session_token' ],
+				'permission_callback' => [ $this, 'get_auth_token_permissions_check' ],
+				'args' => [
+					'wpClientId' => [
+						'description' => __(
+							'The client ID to track reconnections',
+							'vip-real-time-collaboration'
+						),
+						'type' => 'string',
+						'required' => true,
+						'sanitize_callback' => 'sanitize_text_field',
+					],
+				],
+			]
+		);
 	}
 
 	/**
@@ -120,6 +141,60 @@ final class AuthApiController extends WP_REST_Controller {
 
 			$status = match ( $error_code ) {
 				'permission_denied' => 403,
+				default => 500,
+			};
+
+			return new WP_REST_Response(
+				[
+					'code' => $token->get_error_code(),
+					'message' => $token->get_error_message(),
+				],
+				$status
+			);
+		}
+
+		return rest_ensure_response(
+			[
+				'token' => $token,
+				'expires_in' => WebSocketAuth::get_token_expire_seconds(),
+			]
+		);
+	}
+
+	/**
+	 * Get a session-level WebSocket authentication token.
+	 *
+	 * This token proves user identity for multiplexed WebSocket connections.
+	 * Individual rooms are authorized via per-room tokens sent after connection.
+	 *
+	 * @param WP_REST_Request $request Full details about the request.
+	 * @return WP_REST_Response|WP_Error Response object on success, or WP_Error object on failure.
+	 *
+	 * @psalm-suppress PossiblyUnusedMethod
+	 */
+	public function get_session_token( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		/** @psalm-suppress MixedAssignment */
+		$wp_client_id = $request->get_param( 'wpClientId' );
+
+		if ( ! is_string( $wp_client_id ) ) {
+			return new WP_Error(
+				'invalid_parameters',
+				__( 'wpClientId must be a string.', 'vip-real-time-collaboration' ),
+				[ 'status' => 400 ]
+			);
+		}
+
+		$token = WebSocketAuth::generate_session_token( $wp_client_id );
+
+		if ( is_wp_error( $token ) ) {
+			/** @psalm-suppress TypeDoesNotContainType */
+			if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+				// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+				error_log( 'VIP RTC: Session token generation failed: ' . $token->get_error_message() );
+			}
+
+			$status = match ( $token->get_error_code() ) {
+				'not_logged_in' => 403,
 				default => 500,
 			};
 

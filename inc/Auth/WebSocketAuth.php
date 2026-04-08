@@ -86,6 +86,69 @@ final class WebSocketAuth {
 		}
 	}
 
+	/**
+	 * Generate a session-level JWT token for multiplexed WebSocket connections.
+	 *
+	 * This token proves user identity without binding to a specific room.
+	 * Individual rooms are authorized via per-room tokens sent as control
+	 * messages after the WebSocket connection is established.
+	 *
+	 * @param string $wp_client_id Client ID to track reconnections.
+	 *
+	 * @return string|WP_Error The JWT token or WP_Error if generation fails.
+	 */
+	public static function generate_session_token(
+		string $wp_client_id,
+	): string|WP_Error {
+		$current_user = wp_get_current_user();
+
+		if ( 0 === $current_user->ID ) {
+			return new WP_Error(
+				'not_logged_in',
+				__( 'User must be logged in to generate a session token.', 'vip-real-time-collaboration' )
+			);
+		}
+
+		$blog_id = get_current_blog_id();
+
+		// Get the JWT secret from constant
+		if ( defined( 'VIP_RTC_WS_AUTH_SECRET' ) ) {
+			/** @psalm-suppress RedundantCast */
+			$jwt_secret = (string) constant( 'VIP_RTC_WS_AUTH_SECRET' );
+		} else {
+			return new WP_Error(
+				'missing_jwt_secret',
+				__( 'VIP_RTC_WS_AUTH_SECRET is not defined.', 'vip-real-time-collaboration' )
+			);
+		}
+
+		$expires = time() + self::get_token_expire_seconds();
+
+		$payload = [
+			'user_id'      => $current_user->ID,
+			'username'     => $current_user->user_login,
+			'blog_id'      => $blog_id,
+			'wp_client_id' => $wp_client_id,
+			'token_type'   => 'session',
+			'iat'          => time(),
+			'exp'          => $expires,
+		];
+
+		try {
+			$jwt = new JWT( $jwt_secret, 'HS256' );
+			return $jwt->encode( $payload );
+		} catch ( \Exception $e ) {
+			return new WP_Error(
+				'jwt_generation_failed',
+				sprintf(
+					/* translators: %s: error message */
+					__( 'Failed to generate session JWT token: %s', 'vip-real-time-collaboration' ),
+					$e->getMessage()
+				)
+			);
+		}
+	}
+
 	public static function get_token_expire_seconds(): int {
 		$is_expiration_defined = defined( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) && intval( constant( 'VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS' ) ) > 0;
 		/**

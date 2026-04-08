@@ -1,6 +1,0 @@
-dist
-.next
-package.json
-pnpm-lock.yaml
-tests/snapshots/
-__snapshots__/
