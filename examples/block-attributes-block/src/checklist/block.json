@@ -11,6 +11,10 @@
 	"attributes": {
 		"items": {
 			"type": "array",
+			"query": {
+				"text": { "type": "text" },
+				"checked": { "type": "boolean" }
+			},
 			"default": [
 				{ "text": "First item", "checked": false },
 				{ "text": "Second item", "checked": false },
