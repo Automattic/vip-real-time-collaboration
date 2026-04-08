@@ -28,6 +28,7 @@
     "dev:destroy": "./bin/stop destroy",
     "dev:stop": "./bin/stop",
     "dev:websocket-server": "cd websocket-server && npm run dev",
+    "dev:yjs-inspector": "cd yjs-inspector && npm run dev",
     "format": "npm run cmd:format -- --write",
     "format:check": "npm run cmd:format -- --check",
     "lint": "npm run format:check && npm run lint:js && npm run lint:css && npm run lint:php",

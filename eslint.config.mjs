@@ -12,6 +12,7 @@ export default defineConfig( [
 			'**/node_modules/',
 			'**/vendor/**',
 			'tests/e2e/**',
+			'yjs-inspector/**',
 		],
 	},
 	{

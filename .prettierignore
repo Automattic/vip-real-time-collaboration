@@ -2,6 +2,7 @@
 /examples/
 /node_modules/
 /vendor/
+/yjs-inspector/
 *.php
 websocket-server/node_modules
 websocket-server/dist
