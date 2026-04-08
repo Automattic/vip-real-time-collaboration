@@ -118,6 +118,8 @@
 		<exclude-pattern>vip-real-time-collaboration.php</exclude-pattern>
 		<exclude-pattern>examples/local-updates-block/local-updates-block.php</exclude-pattern>
 		<exclude-pattern>examples/post-meta-block/post-meta-block.php</exclude-pattern>
+		<exclude-pattern>examples/block-attributes-block/block-attributes-block.php</exclude-pattern>
+		<exclude-pattern>examples/inner-blocks-block/inner-blocks-block.php</exclude-pattern>
 	</rule>
 
 	<!-- These functions are new via the Interactivity API and are auto-escaped -->

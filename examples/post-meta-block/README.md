@@ -4,6 +4,12 @@ This code example shows how custom post meta can be synced between peers during 
 
 ## Subtitle block
 
+---
+
+![Subtitle block](https://raw.githubusercontent.com/Automattic/vip-real-time-collaboration/assets/subtitle-block.gif)
+
+---
+
 This code example registers a "Subtitle" block, which allows someone who places the block to provide a subtitle, which is stored in post meta.
 
 ## Syncing

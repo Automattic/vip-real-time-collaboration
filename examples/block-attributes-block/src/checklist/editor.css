@@ -1,0 +1,44 @@
+.wp-block-example-checklist .checklist-progress {
+	margin-bottom: 16px;
+}
+
+.wp-block-example-checklist .checklist-progress__label {
+	color: #757575;
+	font-size: 13px;
+	margin-bottom: 4px;
+}
+
+.wp-block-example-checklist .checklist-progress__bar {
+	background: #e0e0e0;
+	border-radius: 4px;
+	height: 24px;
+	overflow: hidden;
+	position: relative;
+	width: 100%;
+}
+
+.wp-block-example-checklist .checklist-progress__fill {
+	background: #4caf50;
+	border-radius: 4px;
+	height: 100%;
+	transition: width 0.4s ease;
+}
+
+.wp-block-example-checklist .checklist-item {
+	align-items: center;
+	display: flex;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.wp-block-example-checklist .checklist-item__text {
+	border: 1px solid #ccc;
+	border-radius: 4px;
+	flex: 1;
+	font-size: 14px;
+	padding: 6px 8px;
+}
+
+.wp-block-example-checklist .checklist-add {
+	margin-top: 8px;
+}
