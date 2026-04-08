@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import { useBlockProps } from '@wordpress/block-editor';
+import { RichText, useBlockProps } from '@wordpress/block-editor';
 import { Button, CheckboxControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
@@ -14,6 +14,15 @@ import './editor.css';
  * A checklist block with an animated progress bar. The items are stored as a
  * block attribute (an array of objects), so they sync automatically between
  * peers during collaborative editing. No special RTC code is needed.
+ *
+ * Fine-grained merging: The `items` attribute in block.json includes a `query`
+ * property that describes the structure of each array element. This tells the
+ * CRDT layer to represent each item as an individually-mergeable Y.Map, so
+ * concurrent edits to different items (or different properties of the same
+ * item) are preserved without conflict.
+ *
+ * Without `query`, the entire array would be treated as a single blob, replaced
+ * atomically on every change, which can cause overwrites during concurrent edits.
  */
 export function Edit( { attributes, setAttributes } ) {
 	const { items } = attributes;
@@ -72,14 +81,11 @@ export function Edit( { attributes, setAttributes } ) {
 							updateItem( index, { checked } )
 						}
 					/>
-					<input
-						type="text"
+					<RichText
 						className="checklist-item__text"
 						value={ item.text }
-						onChange={ ( event ) =>
-							updateItem( index, {
-								text: event.target.value,
-							} )
+						onChange={ ( text ) =>
+							updateItem( index, { text } )
 						}
 						placeholder={ __(
 							'Checklist item',

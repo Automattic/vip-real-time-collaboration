@@ -68,7 +68,7 @@ export default function ExampleControlledInput() {
 }
 ```
 
-**Why this works:**  
+**Why this works:**
 The input's value is always set from WordPress data. If another user or process updates the meta, the field updates in all open editors, ensuring consistent collaboration.
 
 ## Copying the value to local component state
@@ -108,7 +108,7 @@ export default function ExampleUseStateInput() {
 }
 ```
 
-**What's wrong:**  
+**What's wrong:**
 This field's `value` is now local state. If another user edits the meta, `metaValue` will update in the store, but the input won't reflect that change because `useState` preserves its initial value across renders. This easily leads to data being overwritten or appearing out of sync.
 
 #### ✅ **Correct: Always Source From Store**
@@ -147,6 +147,56 @@ We have seen custom blocks that open a modal for user input when the block is ad
 ## Solution
 
 If it's not possible to provide defaults and forgo the initial modal entirely, one option is for the block to show a placeholder UI that requires the user to click a button before showing the modal.
+
+# Block attributes overwriting each other during concurrent edits
+
+If your block stores structured data as an array attribute (e.g. a list of items, rows, or entries), concurrent edits to different elements in that array can overwrite each other. This is because the CRDT layer treats attributes as a single opaque value unless the attribute schema includes a `query` property.
+
+## The problem
+
+Consider a checklist block that stores items as an array of objects:
+
+```json
+{
+	"attributes": {
+		"items": {
+			"type": "array",
+			"default": [
+				{ "text": "First item", "checked": false },
+				{ "text": "Second item", "checked": false }
+			]
+		}
+	}
+}
+```
+
+At present, the entire `items` array is replaced atomically whenever any item changes. If User A checks item 1 while User B edits item 2's text, one user's change will overwrite the other's.
+
+## The fix: add `query` to describe the array element structure
+
+Adding a `query` property tells the CRDT layer to represent each array element as an individually-mergeable object. Concurrent edits to different items (or different properties of the same item) are then preserved without conflict.
+
+```json
+{
+	"attributes": {
+		"items": {
+			"type": "array",
+			"query": {
+				"text": { "type": "string" },
+				"checked": { "type": "boolean" }
+			},
+			"default": [
+				{ "text": "First item", "checked": false },
+				{ "text": "Second item", "checked": false }
+			]
+		}
+	}
+}
+```
+
+The `query` object describes the shape of each element in the array. Each key is a property name and its value is a type definition. This is the same `query` format used by core blocks like `core/table` for structured array data.
+
+See the [checklist example](../examples/block-attributes-block/) for a working implementation.
 
 # Custom post meta values not present in the store
 
