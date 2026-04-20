@@ -2,7 +2,12 @@ import jwt, { type SignOptions } from 'jsonwebtoken';
 import assert from 'node:assert';
 import { afterEach, beforeEach, describe, it, Mock, mock } from 'node:test';
 
-import { getWpClientId, isRequestAuthenticated, type SyncTokenPayload } from './auth';
+import {
+	getTokenIdentity,
+	getWpClientId,
+	isRequestAuthenticated,
+	type SyncTokenPayload,
+} from './auth';
 
 import type { IncomingMessage } from 'node:http';
 
@@ -76,6 +81,42 @@ describe( 'getWpClientId', () => {
 	it( 'should handle request with no URL', () => {
 		const request = createRequest();
 		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), null );
+	} );
+} );
+
+describe( 'getTokenIdentity', () => {
+	it( 'should return wpClientId and userId from a valid token', () => {
+		const token = createValidToken( { wp_client_id: 'client-1', user_id: 99 } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
+			wpClientId: 'client-1',
+			userId: 99,
+		} );
+	} );
+
+	it( 'should fall back to connection_id when wp_client_id is missing', () => {
+		const token = createValidToken( { connection_id: 'legacy', wp_client_id: undefined } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
+			wpClientId: 'legacy',
+			userId: 42,
+		} );
+	} );
+
+	it( 'should return nulls for an invalid token', () => {
+		const request = createRequest( '/test-room?auth=invalid' );
+		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
+			wpClientId: null,
+			userId: null,
+		} );
+	} );
+
+	it( 'should return nulls when auth is missing', () => {
+		const request = createRequest( '/test-room' );
+		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
+			wpClientId: null,
+			userId: null,
+		} );
 	} );
 } );
 
@@ -207,6 +248,33 @@ describe( 'isRequestAuthenticated', () => {
 
 	it( 'should reject token with "none" algorithm', () => {
 		const token = createValidToken( {}, { algorithm: 'none' } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
+		assert.strictEqual( result.authenticated, false );
+		assert.strictEqual( result.reason, 'invalid_token' );
+	} );
+
+	it( 'should reject token where user_id is not a number', () => {
+		const token = createValidToken( { user_id: 'not-a-number' as unknown as number } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
+		assert.strictEqual( result.authenticated, false );
+		assert.strictEqual( result.reason, 'invalid_token' );
+	} );
+
+	it( 'should reject token where username is not a string', () => {
+		const token = createValidToken( { username: 42 as unknown as string } );
+		const request = createRequest( `/test-room?auth=${ token }` );
+		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
+		assert.strictEqual( result.authenticated, false );
+		assert.strictEqual( result.reason, 'invalid_token' );
+	} );
+
+	it( 'should reject token where wp_client_id is not a string and connection_id is missing', () => {
+		const token = createValidToken( {
+			wp_client_id: 99 as unknown as string,
+			connection_id: undefined,
+		} );
 		const request = createRequest( `/test-room?auth=${ token }` );
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, false );
