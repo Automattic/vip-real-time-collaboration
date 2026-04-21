@@ -30,18 +30,31 @@ interface BlockEditorStore {
 	getBlocks?: () => Block[];
 }
 
-function getBodyText( errorCode: ConnectionErrorCode | undefined ): string {
+interface ConnectionErrorMessage {
+	title: string;
+	body: string;
+}
+
+function getConnectionErrorMessage(
+	errorCode: ConnectionErrorCode | undefined
+): ConnectionErrorMessage {
 	if ( errorCode === 'collaborator-limit-exceeded' ) {
-		return __(
-			'This environment has reached its active collaborator limit. You will be reconnected automatically once another collaborator disconnects, or an administrator can raise the limit.',
-			'vip-real-time-collaboration'
-		);
+		return {
+			title: __( 'Collaborator limit reached', 'vip-real-time-collaboration' ),
+			body: __(
+				"This environment has reached its active collaborator limit. We'll keep trying to reconnect automatically. To raise the limit, contact your Relationship Manager.",
+				'vip-real-time-collaboration'
+			),
+		};
 	}
 
-	return __(
-		'This environment has reached its active connection limit. You will be reconnected automatically once capacity becomes available, or an administrator can raise the limit.',
-		'vip-real-time-collaboration'
-	);
+	return {
+		title: __( 'Connection limit reached', 'vip-real-time-collaboration' ),
+		body: __(
+			"The collaboration server for this environment is at capacity. We'll keep trying to reconnect automatically. To raise the limit, contact your Relationship Manager.",
+			'vip-real-time-collaboration'
+		),
+	};
 }
 
 export function CollaborationLimitModal() {
@@ -86,10 +99,11 @@ export function CollaborationLimitModal() {
 		__( 'Back to %s', 'vip-real-time-collaboration' ),
 		postType?.labels?.name ?? __( 'Posts', 'vip-real-time-collaboration' )
 	);
+	const { title, body } = getConnectionErrorMessage( connectionStatus?.error?.code );
 
 	return (
 		<Modal
-			title={ __( 'Collaboration limit reached', 'vip-real-time-collaboration' ) }
+			title={ title }
 			isDismissible={ false }
 			onRequestClose={ () => {} }
 			shouldCloseOnClickOutside={ false }
@@ -97,7 +111,7 @@ export function CollaborationLimitModal() {
 			size="medium"
 		>
 			<VStack spacing={ 6 }>
-				<p>{ getBodyText( connectionStatus?.error?.code ) }</p>
+				<p>{ body }</p>
 				<HStack justify="right">
 					<Button __next40pxDefaultSize href={ editPostHref } isDestructive variant="tertiary">
 						{ backButtonLabel }
