@@ -10,6 +10,7 @@ declare module '@wordpress/sync' {
 
 	type ConnectionErrorCode =
 		| 'authentication-error'
+		| 'collaborator-limit-exceeded'
 		| 'connection-expired'
 		| 'connection-limit-exceeded'
 		| 'unknown-error';

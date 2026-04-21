@@ -97,6 +97,9 @@ function getErrorFromCloseCode( code?: number ): ConnectionError {
 		case 4002:
 			// Server reached maximum connection limit
 			return new WebSocketError( 'connection-limit-exceeded' );
+		case 4003:
+			// Environment reached its collaborator limit
+			return new WebSocketError( 'collaborator-limit-exceeded' );
 		default:
 			// Generic disconnection, no specific error
 			return new WebSocketError( 'unknown-error' );
