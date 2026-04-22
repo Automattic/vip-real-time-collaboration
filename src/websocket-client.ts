@@ -5,6 +5,7 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
+import { CUSTOM_MODAL_CLOSE_CODES } from '@/constants/sync-errors';
 import {
 	isDevelopment,
 	BLOG_ID,
@@ -107,6 +108,21 @@ function getErrorFromCloseCode( code?: number ): ConnectionError {
 }
 
 /**
+ * Number of consecutive failed reconnect attempts after which the provider
+ * signals `backgroundRetriesFailed: true` so Gutenberg's default disconnection
+ * modal becomes visible.
+ */
+const BACKGROUND_RETRIES_FAILED_THRESHOLD = 3;
+
+interface RetryState {
+	attempts: number;
+}
+
+function getBackoffDelayInMs( attempts: number ): number {
+	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
+}
+
+/**
  * Configure the websocket provider to use auth token for websocket connection.
  * Implement exponential backoff for reconnect attempts since we are opting out
  * of the built-in reconnect logic by disabling `provider.shouldConnect`.
@@ -114,16 +130,14 @@ function getErrorFromCloseCode( code?: number ): ConnectionError {
 function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
-	syncObjectId: string
+	syncObjectId: string,
+	retryState: RetryState
 ): () => Promise< void > {
-	let reconnectAttempts = 0;
+	let hasAttemptedConnect = false;
 
 	return async function (): Promise< void > {
-		if ( reconnectAttempts > 0 ) {
-			const backoffDelayInMs = Math.min(
-				1000 * 2 ** reconnectAttempts,
-				WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS
-			);
+		if ( hasAttemptedConnect ) {
+			const backoffDelayInMs = getBackoffDelayInMs( retryState.attempts );
 
 			logger.warn(
 				`Attempting to reconnect to WebSocket in ${ Math.floor( backoffDelayInMs / 1000 ) }s...`
@@ -132,7 +146,8 @@ function createConnect(
 			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs ) );
 		}
 
-		reconnectAttempts += 1;
+		hasAttemptedConnect = true;
+		retryState.attempts += 1;
 
 		try {
 			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
@@ -211,16 +226,36 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				awareness,
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
-			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
+			const retryState: RetryState = { attempts: 0 };
+			const connect = createConnect( provider, objectType, objectId ?? 'collection', retryState );
 
 			// Create a typed event emitter for our custom sync-connection-status event.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
 
 			const handleConnectionClose = ( event: CloseEvent | null ): void => {
-				// Emit custom sync-connection-status event
+				const closeCode = event?.code;
+				const isCustomModalError =
+					closeCode !== undefined && CUSTOM_MODAL_CLOSE_CODES.has( closeCode );
+
+				// Retry-state fields drive Gutenberg's default modal (countdown
+				// and threshold-based reveal). Omit them for errors handled by
+				// our custom modal so the `editor.isSyncConnectionErrorHandled`
+				// filter keeps Gutenberg's modal fully suppressed; emitting
+				// `willAutoRetryInMs` would make `canRetry` truthy and bypass
+				// the takeover check. `canManuallyRetry` is never set: the
+				// default modal's Retry button calls `retrySyncConnection()`
+				// which only reaches the built-in HTTP polling provider.
+				const retryStateFields = isCustomModalError
+					? {}
+					: {
+							willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
+							backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
+					  };
+
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
-					error: getErrorFromCloseCode( event?.code ),
+					error: getErrorFromCloseCode( closeCode ),
+					...retryStateFields,
 				} );
 
 				void connect();
@@ -230,6 +265,10 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			// Listen to y-websocket's status event for connecting/connected states
 			provider.on( 'status', ( event: ConnectionStatus ) => {
+				if ( event.status === 'connected' ) {
+					retryState.attempts = 0;
+				}
+
 				/*
 				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
 				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).

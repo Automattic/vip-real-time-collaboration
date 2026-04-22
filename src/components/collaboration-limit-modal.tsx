@@ -10,12 +10,9 @@ import { select, useSelect } from '@wordpress/data';
 import { useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 
-import type { ConnectionErrorCode, ConnectionStatus } from '@wordpress/sync';
+import { CUSTOM_MODAL_ERROR_CODES } from '@/constants/sync-errors';
 
-const CUSTOM_MODAL_ERROR_CODES: ReadonlyArray< ConnectionErrorCode > = [
-	'collaborator-limit-exceeded',
-	'connection-limit-exceeded',
-];
+import type { ConnectionErrorCode, ConnectionStatus } from '@wordpress/sync';
 
 interface CoreStoreWithSync {
 	getSyncConnectionStatus?: () => ConnectionStatus | null | undefined;

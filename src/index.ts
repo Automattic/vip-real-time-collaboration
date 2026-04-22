@@ -2,6 +2,7 @@ import { addFilter } from '@wordpress/hooks';
 import { registerPlugin } from '@wordpress/plugins';
 
 import { CollaborationLimitModal } from '@/components/collaboration-limit-modal';
+import { CUSTOM_MODAL_ERROR_CODES } from '@/constants/sync-errors';
 import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
@@ -19,16 +20,15 @@ addFilter( 'sync.providers', 'vip-rtc', () => {
 	return [ createWebSocketConnection( WEBSOCKET_URL ) ];
 } );
 
-// Suppress Gutenberg's default sync-error modal for:
-// - `connection-limit-exceeded` (WebSocket connection limit)
-// - `collaborator-limit-exceeded` (Collaborator limit)
-// A custom modal with our own UI and copy is shown for these error codes.
-const CUSTOM_MODAL_ERROR_CODES = [ 'collaborator-limit-exceeded', 'connection-limit-exceeded' ];
+// Suppress Gutenberg's default sync-error modal for error codes the plugin's
+// own modal handles. See `@/utilities/sync-errors`.
 addFilter(
 	'editor.isSyncConnectionErrorHandled',
 	'vip-rtc/collaboration-limit',
 	( isHandled: boolean, errorCode: string | undefined ) =>
-		errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.includes( errorCode ) ? true : isHandled
+		errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.some( code => code === errorCode )
+			? true
+			: isHandled
 );
 
 registerPlugin( 'vip-rtc-collaboration-limit-modal', {
