@@ -5,6 +5,7 @@ namespace VIPRealTimeCollaboration\Assets;
 defined( 'ABSPATH' ) || exit();
 
 use function add_action;
+use function current_user_can;
 use function plugins_url;
 use function wp_add_inline_script;
 use function wp_die;
@@ -59,6 +60,9 @@ final class Assets {
 			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
 			'blogId' => get_current_blog_id(),
+			'capabilities' => [
+				'manage_options' => current_user_can( 'manage_options' ),
+			],
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.

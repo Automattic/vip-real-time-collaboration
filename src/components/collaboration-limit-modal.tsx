@@ -11,6 +11,7 @@ import { useEffect, useState } from '@wordpress/element';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { CUSTOM_MODAL_ERROR_CODES } from '@/constants/sync-errors';
+import { CAPABILITIES } from '@/utilities/config';
 
 import type { ConnectionErrorCode, ConnectionStatus } from '@wordpress/sync';
 
@@ -33,24 +34,35 @@ interface ConnectionErrorMessage {
 }
 
 function getConnectionErrorMessage(
-	errorCode: ConnectionErrorCode | undefined
+	errorCode: ConnectionErrorCode | undefined,
+	isAdmin: boolean
 ): ConnectionErrorMessage {
 	if ( errorCode === 'collaborator-limit-exceeded' ) {
 		return {
 			title: __( 'Collaborator limit reached', 'vip-real-time-collaboration' ),
-			body: __(
-				"This environment has reached its active collaborator limit. We'll keep trying to reconnect automatically. To raise the limit, contact your Relationship Manager.",
-				'vip-real-time-collaboration'
-			),
+			body: isAdmin
+				? __(
+						"This environment has reached its active collaborator limit. We'll keep trying to reconnect automatically. To change this limit, contact your WordPress VIP Relationship Manager.",
+						'vip-real-time-collaboration'
+				  )
+				: __(
+						"This environment has reached its active collaborator limit. We'll keep trying to reconnect automatically.",
+						'vip-real-time-collaboration'
+				  ),
 		};
 	}
 
 	return {
 		title: __( 'Connection limit reached', 'vip-real-time-collaboration' ),
-		body: __(
-			"The collaboration server for this environment is at capacity. We'll keep trying to reconnect automatically. To raise the limit, contact your Relationship Manager.",
-			'vip-real-time-collaboration'
-		),
+		body: isAdmin
+			? __(
+					"The collaboration server for this environment is at capacity. We'll keep trying to reconnect automatically. To change this limit, contact your WordPress VIP Relationship Manager.",
+					'vip-real-time-collaboration'
+			  )
+			: __(
+					"The collaboration server for this environment is at capacity. We'll keep trying to reconnect automatically.",
+					'vip-real-time-collaboration'
+			  ),
 	};
 }
 
@@ -65,6 +77,8 @@ export function CollaborationLimitModal() {
 			postType: currentPostTypeSlug ? coreStore.getPostType?.( currentPostTypeSlug ) : null,
 		};
 	}, [] );
+
+	const isAdmin = CAPABILITIES.manage_options === true;
 
 	const copyButtonRef = useCopyToClipboard< HTMLAnchorElement >( () => {
 		const blockEditorStore = select( 'core/block-editor' ) as BlockEditorStore;
@@ -96,7 +110,7 @@ export function CollaborationLimitModal() {
 		__( 'Back to %s', 'vip-real-time-collaboration' ),
 		postType?.labels?.name ?? __( 'Posts', 'vip-real-time-collaboration' )
 	);
-	const { title, body } = getConnectionErrorMessage( connectionStatus?.error?.code );
+	const { title, body } = getConnectionErrorMessage( connectionStatus?.error?.code, isAdmin );
 
 	return (
 		<Modal
