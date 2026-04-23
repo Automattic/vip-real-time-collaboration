@@ -2,6 +2,20 @@ import { __ } from '@wordpress/i18n';
 
 import type { ConnectionError } from '@wordpress/sync';
 
+/**
+ * True when the REST error is `permission_denied` from token generation (entity not syncable),
+ * matching "skip this room" handling in Gutenberg's sync providers.
+ *
+ * See: https://github.com/WordPress/gutenberg/pull/77242
+ */
+export function isForbiddenAuthError( error: unknown ): boolean {
+	if ( ! error || typeof error !== 'object' ) {
+		return false;
+	}
+
+	return ( error as { code?: unknown } ).code === 'permission_denied';
+}
+
 export function getErrorMessage( error: unknown, defaultMessage?: string ): string {
 	if ( error instanceof Error ) {
 		return error.message;
