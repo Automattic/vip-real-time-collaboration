@@ -114,6 +114,14 @@ function getErrorFromCloseCode( code?: number ): ConnectionError {
  */
 const BACKGROUND_RETRIES_FAILED_THRESHOLD = 3;
 
+/**
+ * y-websocket emits `status: 'connected'` on raw WebSocket open before the
+ * application-level handshake fully settles. Delay retry-state reset briefly
+ * so server-side rejections (for example 4002 / 4003) do not immediately drop
+ * the reconnect loop back to its shortest interval.
+ */
+const CONNECTION_STABLE_RESET_DELAY_MS = 2000;
+
 interface RetryState {
 	attempts: number;
 }
@@ -263,10 +271,21 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			provider.on( 'connection-close', handleConnectionClose );
 
+			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
+
 			// Listen to y-websocket's status event for connecting/connected states
 			provider.on( 'status', ( event: ConnectionStatus ) => {
 				if ( event.status === 'connected' ) {
-					retryState.attempts = 0;
+					if ( attemptsResetTimerId !== null ) {
+						clearTimeout( attemptsResetTimerId );
+					}
+					attemptsResetTimerId = setTimeout( () => {
+						retryState.attempts = 0;
+						attemptsResetTimerId = null;
+					}, CONNECTION_STABLE_RESET_DELAY_MS );
+				} else if ( attemptsResetTimerId !== null ) {
+					clearTimeout( attemptsResetTimerId );
+					attemptsResetTimerId = null;
 				}
 
 				/*
