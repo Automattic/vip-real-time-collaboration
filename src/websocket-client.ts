@@ -12,7 +12,7 @@ import {
 	WEBSOCKET_URL,
 } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
-import { WebSocketError, getErrorMessage } from '@/utilities/error';
+import { WebSocketError, getErrorMessage, isForbiddenAuthError } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
@@ -111,7 +111,8 @@ function getErrorFromCloseCode( code?: number ): ConnectionError {
 function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
-	syncObjectId: string
+	syncObjectId: string,
+	initialAuthToken: string
 ): () => Promise< void > {
 	let reconnectAttempts = 0;
 
@@ -132,7 +133,10 @@ function createConnect(
 		reconnectAttempts += 1;
 
 		try {
-			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
+			const authToken =
+				reconnectAttempts === 1
+					? initialAuthToken
+					: await fetchAuthToken( syncObjectType, syncObjectId );
 
 			provider.params = {
 				auth: authToken,
@@ -146,12 +150,19 @@ function createConnect(
 
 			logInspectUrl( provider );
 		} catch ( error: unknown ) {
-			logger.error(
-				`${ __(
-					'Failed to fetch auth token and connect to WebSocket',
-					'vip-real-time-collaboration'
-				) }: ${ getErrorMessage( error ) }`
-			);
+			if ( isForbiddenAuthError( error ) ) {
+				logger.debug( 'WebSocket reconnect skipped: no permission for this sync object', {
+					syncObjectType,
+					syncObjectId,
+				} );
+			} else {
+				logger.error(
+					`${ __(
+						'Failed to fetch auth token and connect to WebSocket',
+						'vip-real-time-collaboration'
+					) }: ${ getErrorMessage( error ) }`
+				);
+			}
 		}
 	};
 }
@@ -203,12 +214,39 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
 			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
+
+			let initialAuthToken: string;
+			try {
+				initialAuthToken = await fetchAuthToken( objectType, objectId ?? 'collection' );
+			} catch ( error: unknown ) {
+				if ( isForbiddenAuthError( error ) ) {
+					logger.debug( 'WebSocket connection skipped: user cannot sync this entity', {
+						objectType,
+						objectId,
+					} );
+					return defaultResult;
+				}
+
+				logger.error(
+					`${ __(
+						'Failed to fetch auth token and connect to WebSocket',
+						'vip-real-time-collaboration'
+					) }: ${ getErrorMessage( error ) }`
+				);
+				return defaultResult;
+			}
+
 			const options = {
 				...config.options,
 				awareness,
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
-			const connect = createConnect( provider, objectType, objectId ?? 'collection' );
+			const connect = createConnect(
+				provider,
+				objectType,
+				objectId ?? 'collection',
+				initialAuthToken
+			);
 
 			// Create a typed event emitter for our custom sync-connection-status event.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
