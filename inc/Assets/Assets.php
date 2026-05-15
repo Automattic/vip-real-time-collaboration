@@ -5,8 +5,13 @@ namespace VIPRealTimeCollaboration\Assets;
 defined( 'ABSPATH' ) || exit();
 
 use function add_action;
+use function admin_url;
+use function apply_filters;
+use function function_exists;
+use function get_current_blog_id;
 use function plugins_url;
 use function wp_add_inline_script;
+use function wp_create_nonce;
 use function wp_die;
 use function wp_enqueue_script;
 
@@ -59,6 +64,10 @@ final class Assets {
 			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
 			'blogId' => get_current_blog_id(),
+			'collaboratorLimit' => self::get_collaborator_limit(),
+			'collaboratorLimitTier' => self::get_collaborator_limit_tier(),
+			'contactAjax' => self::get_contact_ajax_config(),
+			'supportEmail' => 'support@wpvip.com',
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.
@@ -72,4 +81,42 @@ final class Assets {
 			'before'
 		);
 	}
+
+	/**
+	 * Number of real-time collaborators allowed on the site. Used in the
+	 * collaborator-limit dialog copy. Filterable so platform code can override.
+	 */
+	private static function get_collaborator_limit(): int {
+		/** @var mixed $value */
+		$value = apply_filters( 'vip_rtc_collaborator_limit', 10 );
+		return is_int( $value ) ? $value : 10;
+	}
+
+	/**
+	 * Marketing tier name surfaced in the collaborator-limit dialog copy.
+	 */
+	private static function get_collaborator_limit_tier(): string {
+		/** @var mixed $value */
+		$value = apply_filters( 'vip_rtc_collaborator_limit_tier', 'Standard' );
+		return is_string( $value ) && '' !== $value ? $value : 'Standard';
+	}
+
+	/**
+	 * Configuration for posting to the vip-dashboard contact form handler.
+	 * Returns null when the handler is unavailable so the editor can fall back
+	 * to a mailto: link.
+	 *
+	 * @return array{url:string,nonce:string}|null
+	 */
+	private static function get_contact_ajax_config(): ?array {
+		if ( ! function_exists( 'vip_contact_form_handler' ) ) {
+			return null;
+		}
+
+		return [
+			'url' => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'vip-dashboard' ),
+		];
+	}
+
 }
