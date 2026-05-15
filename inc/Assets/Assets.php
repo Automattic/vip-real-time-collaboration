@@ -118,5 +118,4 @@ final class Assets {
 			'nonce' => wp_create_nonce( 'vip-dashboard' ),
 		];
 	}
-
 }

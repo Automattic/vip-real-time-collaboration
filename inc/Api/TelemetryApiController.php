@@ -45,7 +45,7 @@ final class TelemetryApiController extends WP_REST_Controller {
 	 *
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
-	public function record_limit_dialog_shown( WP_REST_Request $request ): WP_REST_Response {
+	public function record_limit_dialog_shown( WP_REST_Request $_request ): WP_REST_Response {
 		do_action( 'vip_real_time_collaboration_track_event', 'collaborator_limit_dialog_shown', [] );
 
 		return rest_ensure_response( [ 'recorded' => true ] );
