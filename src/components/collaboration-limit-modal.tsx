@@ -12,13 +12,9 @@ import { __, sprintf } from '@wordpress/i18n';
 
 import { CUSTOM_MODAL_ERROR_CODES } from '@/constants/sync-errors';
 import { CAPABILITIES } from '@/utilities/config';
+import { getCoreDataSelectors } from '@/utilities/sync-connection-status';
 
-import type { ConnectionErrorCode, ConnectionStatus } from '@wordpress/sync';
-
-interface CoreStoreWithSync {
-	getSyncConnectionStatus?: () => ConnectionStatus | null | undefined;
-	getPostType?: ( slug: string ) => { slug: string; labels?: { name?: string } } | null;
-}
+import type { ConnectionErrorCode } from '@wordpress/sync';
 
 interface EditorStore {
 	getCurrentPostType?: () => string | null;
@@ -68,7 +64,7 @@ function getConnectionErrorMessage(
 
 export function CollaborationLimitModal() {
 	const { connectionStatus, postType } = useSelect( selectFn => {
-		const coreStore = selectFn( 'core' ) as CoreStoreWithSync;
+		const coreStore = getCoreDataSelectors( selectFn );
 		const editorStore = selectFn( 'core/editor' ) as EditorStore;
 		const currentPostTypeSlug = editorStore.getCurrentPostType?.() ?? null;
 
