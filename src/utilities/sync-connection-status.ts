@@ -18,5 +18,19 @@ export interface CoreDataSelectorsWithSync {
 export type SelectFunction = ( storeName: string ) => unknown;
 
 export function getCoreDataSelectors( selectFn: SelectFunction ): CoreDataSelectorsWithSync {
-	return unlock< CoreDataSelectorsWithSync >( selectFn( 'core' ) );
+	const coreSelectors = selectFn( 'core' );
+	const publicSelectors = ( coreSelectors ?? {} ) as CoreDataSelectorsWithSync;
+
+	// Gutenberg made RTC selectors private in WordPress/gutenberg#78097
+	// (a8cc6ce). Older supported versions still expose them publicly.
+	try {
+		const privateSelectors = unlock< Partial< CoreDataSelectorsWithSync > >( coreSelectors ) ?? {};
+		return {
+			getPostType: privateSelectors.getPostType ?? publicSelectors.getPostType,
+			getSyncConnectionStatus:
+				privateSelectors.getSyncConnectionStatus ?? publicSelectors.getSyncConnectionStatus,
+		};
+	} catch {
+		return publicSelectors;
+	}
 }
