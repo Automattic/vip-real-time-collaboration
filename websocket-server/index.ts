@@ -2,7 +2,7 @@ import { setPersistence, setupWSConnection } from '@y/websocket-server/utils';
 import http, { type IncomingMessage, type ServerResponse } from 'node:http';
 import { RawData, WebSocketServer, type WebSocket } from 'ws';
 
-import { getWpClientId, isRequestAuthenticated } from './auth';
+import { getTokenIdentity, isRequestAuthenticated } from './auth';
 import {
 	DEFAULT_CONNECTION_TIMEOUT,
 	DEFAULT_HOST,
@@ -10,7 +10,7 @@ import {
 	JWT_SECRET,
 	WEBSOCKET_CLOSE_CODES,
 } from './config';
-import { shouldAllowConnection, getActiveClientCount } from './connection-limits';
+import { shouldAllowCollaborator, shouldAllowConnection } from './connection-limits';
 import {
 	recordMessage,
 	recordConnectionClose,
@@ -30,6 +30,12 @@ import type { Duplex } from 'node:stream';
  * Constants with overrides from environment variables
  * ------------------------------------------------------------
  */
+if ( ! JWT_SECRET ) {
+	// eslint-disable-next-line no-console
+	console.error( 'VIP_RTC_WS_AUTH_SECRET environment variable is not set' );
+	process.exit( 1 );
+}
+
 const wss = new WebSocketServer( { noServer: true } );
 const host = process.env.HOST || DEFAULT_HOST;
 const port = parseInt( process.env.PORT || '', 10 ) || DEFAULT_PORT;
@@ -72,19 +78,20 @@ setPersistence( new NoopPersistenceProvider() );
  */
 wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	const connectionStartTime = Date.now();
-	const wpClientId = getWpClientId( request, JWT_SECRET );
+	const { wpClientId, userId } = getTokenIdentity( request, JWT_SECRET );
 
 	/**
-	 * Store client ID on WebSocket for tracking
+	 * Store identity on WebSocket for tracking and limit enforcement.
 	 */
 	ws.wpClientId = wpClientId ?? undefined;
+	ws.userId = userId ?? undefined;
 
 	/**
 	 * Set up the connection
 	 */
 	setupWSConnection( ws, request );
 
-	recordConnectionOpen( wpClientId, getActiveClientCount( wss ) );
+	recordConnectionOpen( wss, { wpClientId } );
 
 	/**
 	 * Track message metrics
@@ -107,7 +114,7 @@ wss.on( 'connection', ( ws: WebSocket, request: IncomingMessage ) => {
 	 */
 	ws.on( 'close', ( code: number ): void => {
 		clearTimeout( timeout );
-		recordConnectionClose( code, connectionStartTime, wpClientId, getActiveClientCount( wss ) );
+		recordConnectionClose( wss, { code, connectionStartTime, wpClientId } );
 	} );
 } );
 
@@ -123,11 +130,24 @@ server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer )
 		return;
 	}
 
+	const { wpClientId, userId } = getTokenIdentity( request, JWT_SECRET );
+
 	wss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
 		/**
-		 * Check connection limits
+		 * Check collaborator limit first. Collaborator-limit rejection is the
+		 * more specific product-level failure and drives a distinct UI path
+		 * in the editor. Already-active users are allowed through.
 		 */
-		if ( ! shouldAllowConnection( wss, getWpClientId( request, JWT_SECRET ) ) ) {
+		if ( ! shouldAllowCollaborator( wss, userId ) ) {
+			recordConnectionFailure( 'collaborator_limit_exceeded' );
+			ws.close( 4003, WEBSOCKET_CLOSE_CODES.get( 4003 ) );
+			return;
+		}
+
+		/**
+		 * Check connection capacity limit.
+		 */
+		if ( ! shouldAllowConnection( wss, wpClientId ) ) {
 			recordConnectionFailure( 'connection_limit_exceeded' );
 			ws.close( 4002, WEBSOCKET_CLOSE_CODES.get( 4002 ) );
 			return;

@@ -3,6 +3,9 @@ export const WEBSOCKET_URL = getVipConfigFromWindow( 'wsUrl' );
 
 export const BLOG_ID = getVipConfigFromWindow( 'blogId' );
 
+export const CAPABILITIES: VIPRTCConfig[ 'capabilities' ] =
+	getVipConfigFromWindow( 'capabilities' ) ?? {};
+
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {
 	return 'development' === process.env.NODE_ENV;
