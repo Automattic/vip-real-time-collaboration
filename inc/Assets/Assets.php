@@ -7,6 +7,7 @@ defined( 'ABSPATH' ) || exit();
 use function add_action;
 use function admin_url;
 use function apply_filters;
+use function current_user_can;
 use function function_exists;
 use function get_current_blog_id;
 use function plugins_url;
@@ -68,6 +69,9 @@ final class Assets {
 			'collaboratorLimitTier' => self::get_collaborator_limit_tier(),
 			'contactAjax' => self::get_contact_ajax_config(),
 			'supportEmail' => 'support@wpvip.com',
+			'capabilities' => [
+				'manage_options' => current_user_can( 'manage_options' ),
+			],
 		], JSON_HEX_TAG | JSON_UNESCAPED_SLASHES );
 
 		/** @psalm-suppress DocblockTypeContradiction */ // wp_json_encode() can return an empty string.

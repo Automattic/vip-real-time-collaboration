@@ -18,17 +18,21 @@ export interface SyncTokenPayload extends JwtPayload {
 	room_name: string;
 	user_id: number;
 	username: string;
-	wp_client_id: string;
+	wp_client_id?: string;
 }
 
 function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
+	if ( typeof payload !== 'object' || payload === null ) {
+		return false;
+	}
+
+	const obj = payload as Record< string, unknown >;
+
 	return (
-		typeof payload === 'object' &&
-		payload !== null &&
-		'user_id' in payload &&
-		'username' in payload &&
-		'room_name' in payload &&
-		( 'connection_id' in payload || 'wp_client_id' in payload )
+		typeof obj.user_id === 'number' &&
+		typeof obj.username === 'string' &&
+		typeof obj.room_name === 'string' &&
+		( typeof obj.wp_client_id === 'string' || typeof obj.connection_id === 'string' )
 	);
 }
 
@@ -77,9 +81,33 @@ export function getWpClientId( request: IncomingMessage, secret: string ): strin
 
 	try {
 		const jwtPayload = verifyToken( authToken, secret );
-		return jwtPayload.wp_client_id ?? jwtPayload.connection_id;
+		return jwtPayload.wp_client_id ?? jwtPayload.connection_id ?? null;
 	} catch {
 		return null;
+	}
+}
+
+export interface TokenIdentity {
+	wpClientId: string | null;
+	userId: number | null;
+}
+
+/**
+ * Extract both wp_client_id and user_id from the request's JWT in a single parse.
+ * Returns nulls for whichever fields are missing or for any verification failure.
+ */
+export function getTokenIdentity( request: IncomingMessage, secret: string ): TokenIdentity {
+	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
+	const authToken = searchParams.get( 'auth' );
+
+	try {
+		const jwtPayload = verifyToken( authToken, secret );
+		return {
+			wpClientId: jwtPayload.wp_client_id ?? jwtPayload.connection_id ?? null,
+			userId: jwtPayload.user_id,
+		};
+	} catch {
+		return { wpClientId: null, userId: null };
 	}
 }
 

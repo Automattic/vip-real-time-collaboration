@@ -1,7 +1,11 @@
 import http from 'http';
 import { register, Counter, Gauge, Histogram } from 'prom-client';
 
-import { getActiveClientCount, getActiveConnectionCount } from './connection-limits';
+import {
+	getActiveClientCount,
+	getActiveCollaboratorCount,
+	getActiveConnectionCount,
+} from './connection-limits';
 import { getRawDataSizeBytes, getRequestPathname } from './utils';
 
 import type { RawData, WebSocketServer } from 'ws';
@@ -43,6 +47,11 @@ const activeConnectionsGauge = new Gauge( {
 const activeClientsGauge = new Gauge( {
 	name: `${ METRICS_NAMESPACE }_active_clients`,
 	help: 'Number of active clients (unique connections by wp_client_id)',
+} );
+
+const activeCollaboratorsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_collaborators`,
+	help: 'Number of active collaborators (unique WordPress users by user_id)',
 } );
 
 const messagesCounter = new Counter( {
@@ -87,6 +96,7 @@ const reconnectionTimeHistogram = new Histogram( {
 function reconcileConnectedClients( wss: WebSocketServer ): void {
 	activeConnectionsGauge.set( getActiveConnectionCount( wss ) );
 	activeClientsGauge.set( getActiveClientCount( wss ) );
+	activeCollaboratorsGauge.set( getActiveCollaboratorCount( wss ) );
 }
 
 export function recordMessage( data: RawData, isBinary: boolean ): void {
@@ -101,20 +111,27 @@ export function recordConnectionFailure( reason: string ): void {
 	connectionFailuresCounter.inc( { reason } );
 }
 
-export function recordConnectionOpen( wpClientId: string | null, activeClientCount: number ): void {
+export function recordConnectionOpen(
+	wss: WebSocketServer,
+	{ wpClientId }: { wpClientId: string | null }
+): void {
 	activeConnectionsGauge.inc();
-	activeClientsGauge.set( activeClientCount );
+	activeClientsGauge.set( getActiveClientCount( wss ) );
+	activeCollaboratorsGauge.set( getActiveCollaboratorCount( wss ) );
 	checkReconnection( wpClientId );
 }
 
 export function recordConnectionClose(
-	code: number,
-	connectionStartTime: number,
-	wpClientId: string | null,
-	activeClientCount: number
+	wss: WebSocketServer,
+	{
+		code,
+		connectionStartTime,
+		wpClientId,
+	}: { code: number; connectionStartTime: number; wpClientId: string | null }
 ): void {
 	activeConnectionsGauge.dec();
-	activeClientsGauge.set( activeClientCount );
+	activeClientsGauge.set( getActiveClientCount( wss ) );
+	activeCollaboratorsGauge.set( getActiveCollaboratorCount( wss ) );
 	connectionCloseCounter.inc( { code: code.toString() } );
 
 	const now = Date.now();

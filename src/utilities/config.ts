@@ -7,6 +7,8 @@ export const COLLABORATOR_LIMIT = getVipConfigFromWindow( 'collaboratorLimit' );
 export const COLLABORATOR_LIMIT_TIER = getVipConfigFromWindow( 'collaboratorLimitTier' );
 export const CONTACT_AJAX = getVipConfigFromWindow( 'contactAjax' );
 export const SUPPORT_EMAIL = getVipConfigFromWindow( 'supportEmail' );
+export const CAPABILITIES: VIPRTCConfig[ 'capabilities' ] =
+	getVipConfigFromWindow( 'capabilities' ) ?? {};
 
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {

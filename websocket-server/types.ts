@@ -16,5 +16,11 @@ declare module 'ws' {
 		 * generated in-memory per page load and changes on refresh.
 		 */
 		wpClientId?: string;
+
+		/**
+		 * WordPress user ID from JWT token. Used to enforce collaborator limits
+		 * by unique user rather than by browser tab.
+		 */
+		userId?: number;
 	}
 }
