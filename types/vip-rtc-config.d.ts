@@ -1,12 +1,6 @@
 interface VIPRTCConfig {
 	blogId: number;
 
-	// Number of real-time collaborators allowed on the site.
-	collaboratorLimit: number;
-
-	// Marketing tier label used in the collaborator-limit dialog copy.
-	collaboratorLimitTier: string;
-
 	// Endpoint + nonce for the vip-dashboard contact form handler. `null` when
 	// the handler isn't available (e.g. mu-plugins not loaded) — JS falls back
 	// to a mailto: link in that case.

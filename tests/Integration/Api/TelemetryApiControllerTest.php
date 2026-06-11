@@ -51,6 +51,19 @@ final class TelemetryApiControllerTest extends WP_UnitTestCase {
 	/**
 	 * @covers \VIPRealTimeCollaboration\Api\TelemetryApiController::permissions_check
 	 */
+	public function test_permissions_check_rejects_users_without_edit_posts(): void {
+		$user_id = self::factory()->user->create( [ 'role' => 'subscriber' ] );
+		wp_set_current_user( $user_id );
+
+		$result = $this->controller->permissions_check( new WP_REST_Request( 'POST' ) );
+
+		self::assertInstanceOf( \WP_Error::class, $result );
+		self::assertSame( 'rest_forbidden', $result->get_error_code() );
+	}
+
+	/**
+	 * @covers \VIPRealTimeCollaboration\Api\TelemetryApiController::permissions_check
+	 */
 	public function test_permissions_check_rejects_unauthenticated_users(): void {
 		wp_set_current_user( 0 );
 
@@ -63,8 +76,8 @@ final class TelemetryApiControllerTest extends WP_UnitTestCase {
 	/**
 	 * @covers \VIPRealTimeCollaboration\Api\TelemetryApiController::permissions_check
 	 */
-	public function test_permissions_check_allows_logged_in_users(): void {
-		$user_id = self::factory()->user->create();
+	public function test_permissions_check_allows_users_who_can_edit_posts(): void {
+		$user_id = self::factory()->user->create( [ 'role' => 'editor' ] );
 		wp_set_current_user( $user_id );
 
 		$result = $this->controller->permissions_check( new WP_REST_Request( 'POST' ) );

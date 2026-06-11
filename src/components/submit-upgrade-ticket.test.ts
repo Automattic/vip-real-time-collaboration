@@ -8,8 +8,6 @@ const BASE_CONTEXT: Omit< UpgradeTicketContext, 'contactAjax' > = {
 	siteUrl: 'https://example.test',
 	userName: 'Alice',
 	userEmail: 'alice@example.test',
-	currentTier: 'Standard',
-	collaboratorLimit: 10,
 	supportEmail: 'support@wpvip.com',
 };
 

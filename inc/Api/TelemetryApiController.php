@@ -9,8 +9,8 @@ use WP_REST_Request;
 use WP_REST_Response;
 use WP_Error;
 
+use function current_user_can;
 use function do_action;
-use function is_user_logged_in;
 use function register_rest_route;
 use function rest_ensure_response;
 
@@ -52,16 +52,16 @@ final class TelemetryApiController extends WP_REST_Controller {
 	}
 
 	/**
-	 * Only logged-in users can record this event — they're the only ones who could
-	 * have triggered the dialog in the first place.
+	 * Only users who can edit posts can record this event — they're the only ones
+	 * who could have triggered the dialog in the editor in the first place.
 	 *
 	 * @psalm-suppress PossiblyUnusedMethod
 	 */
 	public function permissions_check( WP_REST_Request $_request ): bool|WP_Error {
-		if ( ! is_user_logged_in() ) {
+		if ( ! current_user_can( 'edit_posts' ) ) {
 			return new WP_Error(
 				'rest_forbidden',
-				__( 'You must be logged in to access this endpoint.', 'vip-real-time-collaboration' )
+				__( 'You are not allowed to access this endpoint.', 'vip-real-time-collaboration' )
 			);
 		}
 

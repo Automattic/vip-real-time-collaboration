@@ -7,8 +7,6 @@ import { WEBSOCKET_URL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { createWebSocketConnection } from '@/websocket-client';
 
-import '@/collaborator-limit/register';
-
 addFilter( 'sync.providers', 'vip-rtc', () => {
 	// We already error check for the WebSocket URL in the main plugin file,
 	// so this is here for safety.

@@ -16,8 +16,6 @@ export interface UpgradeTicketContext {
 	siteUrl: string;
 	userName: string;
 	userEmail: string;
-	currentTier: string;
-	collaboratorLimit: number;
 	contactAjax: ContactAjaxConfig | null;
 	supportEmail: string;
 }
@@ -28,13 +26,11 @@ function buildSubject( context: UpgradeTicketContext ): string {
 
 function buildBody( context: UpgradeTicketContext ): string {
 	return [
-		`A user on ${ context.siteUrl } has hit the ${ context.currentTier } real-time collaboration limit ` +
-			`(${ context.collaboratorLimit } collaborators) and would like to upgrade.`,
+		`A user on ${ context.siteUrl } has reached the real-time collaboration limit ` +
+			'and would like to upgrade.',
 		'',
 		`Site: ${ context.siteUrl }`,
 		`Requested by: ${ context.userName } <${ context.userEmail }>`,
-		`Current tier: ${ context.currentTier }`,
-		`Current limit: ${ context.collaboratorLimit }`,
 	].join( '\n' );
 }
 

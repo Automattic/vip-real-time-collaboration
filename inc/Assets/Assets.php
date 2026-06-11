@@ -65,10 +65,8 @@ final class Assets {
 			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
 			'blogId' => get_current_blog_id(),
-			'collaboratorLimit' => self::get_collaborator_limit(),
-			'collaboratorLimitTier' => self::get_collaborator_limit_tier(),
 			'contactAjax' => self::get_contact_ajax_config(),
-			'supportEmail' => 'support@wpvip.com',
+			'supportEmail' => self::get_support_email(),
 			'capabilities' => [
 				'manage_options' => current_user_can( 'manage_options' ),
 			],
@@ -87,22 +85,13 @@ final class Assets {
 	}
 
 	/**
-	 * Number of real-time collaborators allowed on the site. Used in the
-	 * collaborator-limit dialog copy. Filterable so platform code can override.
+	 * Email used by the mailto: fallback when the contact form handler is
+	 * unavailable. Filterable so platform code can override.
 	 */
-	private static function get_collaborator_limit(): int {
+	private static function get_support_email(): string {
 		/** @var mixed $value */
-		$value = apply_filters( 'vip_rtc_collaborator_limit', 10 );
-		return is_int( $value ) ? $value : 10;
-	}
-
-	/**
-	 * Marketing tier name surfaced in the collaborator-limit dialog copy.
-	 */
-	private static function get_collaborator_limit_tier(): string {
-		/** @var mixed $value */
-		$value = apply_filters( 'vip_rtc_collaborator_limit_tier', 'Standard' );
-		return is_string( $value ) && '' !== $value ? $value : 'Standard';
+		$value = apply_filters( 'vip_rtc_support_email', 'support@wpvip.com' );
+		return is_string( $value ) && '' !== $value ? $value : 'support@wpvip.com';
 	}
 
 	/**
