@@ -88,7 +88,10 @@ export function CollaborationLimitModal() {
 			connectionStatus: coreStore.getSyncConnectionStatus?.() ?? null,
 			postType: currentPostTypeSlug ? coreStore.getPostType?.( currentPostTypeSlug ) : null,
 			currentUser: rawCore.getCurrentUser?.() ?? null,
-			site: rawCore.getSite?.() ?? null,
+			// `getSite()` resolves `/wp/v2/settings`, which requires `manage_options`.
+			// Only request it for admins; everyone else 403s and falls back to the
+			// current origin below, so skip the doomed request entirely.
+			site: CAPABILITIES.manage_options === true ? rawCore.getSite?.() ?? null : null,
 		};
 	}, [] );
 
@@ -103,9 +106,13 @@ export function CollaborationLimitModal() {
 	// Track visibility as state so it stays stable across reconnect cycles
 	// (ignore `connecting`; only flip on `connected` or `disconnected`).
 	const [ showModal, setShowModal ] = useState( false );
+	const [ upgradeState, setUpgradeState ] = useState< UpgradeState >( 'idle' );
 	useEffect( () => {
 		if ( connectionStatus?.status === 'connected' ) {
 			setShowModal( false );
+			// Reset so a later limit in the same session starts from a clean
+			// dialog rather than reopening on the stale "Request sent" view.
+			setUpgradeState( 'idle' );
 			return;
 		}
 		if ( connectionStatus?.status === 'disconnected' ) {
@@ -117,7 +124,6 @@ export function CollaborationLimitModal() {
 	const errorCode = connectionStatus?.error?.code;
 	const isUpgradeLimit = errorCode === UPGRADE_ERROR_CODE;
 
-	const [ upgradeState, setUpgradeState ] = useState< UpgradeState >( 'idle' );
 	const telemetryFired = useRef( false );
 
 	// Record once that the collaborator-limit dialog was shown.
@@ -165,36 +171,14 @@ export function CollaborationLimitModal() {
 		setUpgradeState( outcome === 'submitted' ? 'success' : 'idle' );
 	};
 
-	if ( isUpgradeLimit && upgradeState === 'success' ) {
-		return (
-			<Modal
-				title={ __( 'Request sent', 'vip-real-time-collaboration' ) }
-				isDismissible={ false }
-				onRequestClose={ () => {} }
-				shouldCloseOnClickOutside={ false }
-				shouldCloseOnEsc={ false }
-				size="medium"
-			>
-				<VStack spacing={ 6 }>
-					<p>
-						{ __(
-							"Your request has been sent to our account team via ticket. If you don't have access to tickets, please contact your site administrator.",
-							'vip-real-time-collaboration'
-						) }
-					</p>
-					<HStack justify="right">
-						<Button __next40pxDefaultSize href={ editPostHref } variant="primary">
-							{ backButtonLabel }
-						</Button>
-					</HStack>
-				</VStack>
-			</Modal>
-		);
-	}
+	// The success state reuses the same modal, swapping only the copy and the
+	// upgrade CTA. The post is still disconnected here, so "Copy Post Content"
+	// stays available to rescue any unsaved work.
+	const isSuccess = isUpgradeLimit && upgradeState === 'success';
 
 	return (
 		<Modal
-			title={ title }
+			title={ isSuccess ? __( 'Request sent', 'vip-real-time-collaboration' ) : title }
 			isDismissible={ false }
 			onRequestClose={ () => {} }
 			shouldCloseOnClickOutside={ false }
@@ -202,9 +186,21 @@ export function CollaborationLimitModal() {
 			size="medium"
 		>
 			<VStack spacing={ 6 }>
-				<p>{ body }</p>
+				<p>
+					{ isSuccess
+						? __(
+								"Your request has been sent to our account team via ticket. If you don't have access to tickets, please contact your site administrator.",
+								'vip-real-time-collaboration'
+						  )
+						: body }
+				</p>
 				<HStack justify="right">
-					<Button __next40pxDefaultSize href={ editPostHref } isDestructive variant="tertiary">
+					<Button
+						__next40pxDefaultSize
+						href={ editPostHref }
+						isDestructive={ ! isSuccess }
+						variant={ isSuccess ? 'primary' : 'tertiary' }
+					>
 						{ backButtonLabel }
 					</Button>
 					<Button
@@ -214,7 +210,7 @@ export function CollaborationLimitModal() {
 					>
 						{ __( 'Copy Post Content', 'vip-real-time-collaboration' ) }
 					</Button>
-					{ isUpgradeLimit && (
+					{ isUpgradeLimit && ! isSuccess && (
 						<Button
 							__next40pxDefaultSize
 							variant="primary"

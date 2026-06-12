@@ -25,12 +25,19 @@ function buildSubject( context: UpgradeTicketContext ): string {
 }
 
 function buildBody( context: UpgradeTicketContext ): string {
+	// `userEmail` is usually empty (the REST `email` field is edit-context only).
+	// The mailto: client carries the sender's real address in the From header,
+	// and the ticket handler fills it server-side, so only render it when present.
+	const requestedBy = context.userEmail
+		? `${ context.userName } <${ context.userEmail }>`
+		: context.userName;
+
 	return [
 		`A user on ${ context.siteUrl } has reached the real-time collaboration limit ` +
 			'and would like to upgrade.',
 		'',
 		`Site: ${ context.siteUrl }`,
-		`Requested by: ${ context.userName } <${ context.userEmail }>`,
+		`Requested by: ${ requestedBy }`,
 	].join( '\n' );
 }
 

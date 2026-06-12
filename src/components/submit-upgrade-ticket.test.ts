@@ -52,6 +52,27 @@ describe( 'submitUpgradeTicket', () => {
 		assert.ok( locationHref.includes( 'Collaborator%20limit%20upgrade%20request' ) );
 	} );
 
+	it( 'omits the empty <email> from the mailto: body when userEmail is blank', async () => {
+		const outcome = await submitUpgradeTicket( {
+			...BASE_CONTEXT,
+			userEmail: '',
+			contactAjax: null,
+		} );
+
+		assert.strictEqual( outcome, 'mailto' );
+		const decoded = decodeURIComponent( locationHref );
+		assert.ok( decoded.includes( 'Requested by: Alice' ) );
+		assert.ok( ! decoded.includes( '<>' ) );
+	} );
+
+	it( 'includes the <email> in the mailto: body when userEmail is present', async () => {
+		const outcome = await submitUpgradeTicket( { ...BASE_CONTEXT, contactAjax: null } );
+
+		assert.strictEqual( outcome, 'mailto' );
+		const decoded = decodeURIComponent( locationHref );
+		assert.ok( decoded.includes( 'Requested by: Alice <alice@example.test>' ) );
+	} );
+
 	it( 'POSTs to vip_contact when contactAjax is present', async () => {
 		const fetchMock: Mock< typeof globalThis.fetch > = mock.fn( () =>
 			Promise.resolve(
