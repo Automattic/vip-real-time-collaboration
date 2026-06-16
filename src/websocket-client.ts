@@ -385,7 +385,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
 					error: roomLimitExceeded
-						? new WebSocketError( 'room-limit-exceeded' )
+						? new WebSocketError( 'room-connection-limit-exceeded' )
 						: getErrorFromCloseCode( closeCode ),
 					...retryStateFields,
 				} );

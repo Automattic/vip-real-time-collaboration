@@ -48,7 +48,7 @@ function getConnectionErrorMessage(
 	errorCode: ConnectionErrorCode | undefined,
 	isAdmin: boolean
 ): ConnectionErrorMessage {
-	if ( errorCode === 'room-limit-exceeded' ) {
+	if ( errorCode === 'room-connection-limit-exceeded' ) {
 		// Client-side per-room connection cap. This yield is terminal — the
 		// client does not auto-reconnect — so the copy must not promise a retry.
 		return {
