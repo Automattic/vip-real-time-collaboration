@@ -200,12 +200,13 @@ function createConnect(
  * Wire up cooperative, client-side enforcement of the per-room collaborator
  * limit (see {@link getMaxClientsPerRoom}).
  *
- * Every client reads Gutenberg's own `collaboratorInfo` awareness field (user
- * id + join time) and runs the same deterministic ranking over the shared
- * awareness state. Clients that sort past the configured limit disconnect
- * themselves; the existing reconnect loop keeps retrying, so a yielded client
- * rejoins automatically once a slot frees. We never write to awareness — doing
- * so would require registering a field equality check with Gutenberg.
+ * Every client reads Gutenberg's own `collaboratorInfo` awareness field for
+ * each connection's join time and runs the same deterministic ranking over the
+ * shared awareness state. Connections that sort past the configured limit
+ * disconnect themselves; the yield is terminal (the close handler does not
+ * reconnect), so a yielded user must reload to retry. We never write to
+ * awareness — doing so would require registering a field equality check with
+ * Gutenberg.
  *
  * This is best-effort only: simultaneous joins can briefly exceed the limit
  * before awareness settles, and a modified client can ignore the cap entirely.
@@ -268,13 +269,25 @@ function setupRoomClientLimit(
 		settleTimer = setTimeout( evaluate, ROOM_LIMIT_SETTLE_DELAY_MS );
 	};
 
+	// Re-evaluate whenever the socket (re)connects, not only on awareness change.
+	// Awareness state may already be present, or have arrived before the socket
+	// finished opening, in which case `evaluate` would otherwise have bailed on
+	// `! provider.wsconnected` with nothing left to re-trigger it.
+	const onStatus = ( event: { status?: string } ): void => {
+		if ( event?.status === 'connected' ) {
+			scheduleEvaluate();
+		}
+	};
+
 	awareness.on( 'change', scheduleEvaluate );
+	provider.on( 'status', onStatus );
 
 	return () => {
 		if ( settleTimer !== null ) {
 			clearTimeout( settleTimer );
 		}
 		awareness.off( 'change', scheduleEvaluate );
+		provider.off( 'status', onStatus );
 	};
 }
 
@@ -372,7 +385,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
 					error: roomLimitExceeded
-						? new WebSocketError( 'collaborator-limit-exceeded' )
+						? new WebSocketError( 'room-limit-exceeded' )
 						: getErrorFromCloseCode( closeCode ),
 					...retryStateFields,
 				} );

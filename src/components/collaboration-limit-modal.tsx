@@ -33,6 +33,18 @@ function getConnectionErrorMessage(
 	errorCode: ConnectionErrorCode | undefined,
 	isAdmin: boolean
 ): ConnectionErrorMessage {
+	if ( errorCode === 'room-limit-exceeded' ) {
+		// Client-side per-room connection cap. This yield is terminal — the
+		// client does not auto-reconnect — so the copy must not promise a retry.
+		return {
+			title: __( 'Too many open connections', 'vip-real-time-collaboration' ),
+			body: __(
+				'This page has reached its active collaborator limit.',
+				'vip-real-time-collaboration'
+			),
+		};
+	}
+
 	if ( errorCode === 'collaborator-limit-exceeded' ) {
 		return {
 			title: __( 'Collaborator limit reached', 'vip-real-time-collaboration' ),

@@ -13,6 +13,7 @@ declare module '@wordpress/sync' {
 		| 'collaborator-limit-exceeded'
 		| 'connection-expired'
 		| 'connection-limit-exceeded'
+		| 'room-limit-exceeded'
 		| 'unknown-error';
 
 	interface ConnectionError extends Error {
