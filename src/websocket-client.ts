@@ -16,6 +16,13 @@ import { generateUUID } from '@/utilities/crypto';
 import { WebSocketError, getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
+import {
+	getMaxClientsPerRoom,
+	isLimitEnforced,
+	isLocalClientWithinLimit,
+	readPresences,
+	type RoomLimitPresence,
+} from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 
 import type {
@@ -122,6 +129,13 @@ const BACKGROUND_RETRIES_FAILED_THRESHOLD = 3;
  */
 const CONNECTION_STABLE_RESET_DELAY_MS = 2000;
 
+/**
+ * How long to let awareness (presence) settle after a change before deciding
+ * whether the local client is over the room's connection limit. Coalesces
+ * the burst of awareness updates that arrives when peers connect.
+ */
+const ROOM_LIMIT_SETTLE_DELAY_MS = 1500;
+
 interface RetryState {
 	attempts: number;
 }
@@ -183,6 +197,88 @@ function createConnect(
 }
 
 /**
+ * Wire up cooperative, client-side enforcement of the per-room collaborator
+ * limit (see {@link getMaxClientsPerRoom}).
+ *
+ * Every client reads Gutenberg's own `collaboratorInfo` awareness field (user
+ * id + join time) and runs the same deterministic ranking over the shared
+ * awareness state. Clients that sort past the configured limit disconnect
+ * themselves; the existing reconnect loop keeps retrying, so a yielded client
+ * rejoins automatically once a slot frees. We never write to awareness — doing
+ * so would require registering a field equality check with Gutenberg.
+ *
+ * This is best-effort only: simultaneous joins can briefly exceed the limit
+ * before awareness settles, and a modified client can ignore the cap entirely.
+ * Authoritative enforcement must live on the server.
+ *
+ * @param {WebsocketProvider}        provider   The room's provider.
+ * @param {string}                   roomName   The sync room name.
+ * @param {(exceeded: boolean)=>void} onChange  Called with whether the local client is over the limit.
+ * @return {() => void} Cleanup function that detaches listeners.
+ */
+function setupRoomClientLimit(
+	provider: WebsocketProvider,
+	roomName: string,
+	onChange: ( exceeded: boolean ) => void
+): () => void {
+	const limit = getMaxClientsPerRoom( roomName );
+	if ( ! isLimitEnforced( limit ) ) {
+		return () => {};
+	}
+
+	const { awareness } = provider;
+
+	// Ranking uses Gutenberg's `collaboratorInfo.enteredAt`, which is each
+	// client's own wall clock, so first-come-first-served ordering is only as
+	// accurate as the clients' clocks agree. Skew can change who keeps the slot
+	// when two users join close together; the `clientId` tie-break keeps the
+	// ranking deterministic but not skew-proof. This is an accepted tradeoff for
+	// best-effort, client-side enforcement — authoritative ordering would require
+	// the server to stamp join order (see VIP-3150).
+	let settleTimer: ReturnType< typeof setTimeout > | null = null;
+
+	const evaluate = (): void => {
+		settleTimer = null;
+
+		// Only act while connected. On disconnect, awareness collapses to just our
+		// own state and would otherwise read as within the limit.
+		if ( ! provider.wsconnected ) {
+			return;
+		}
+
+		const presences: RoomLimitPresence[] = readPresences(
+			awareness.getStates() as Map< number, Record< string, unknown > >
+		);
+		const withinLimit = isLocalClientWithinLimit( presences, awareness.clientID, limit );
+
+		onChange( ! withinLimit );
+
+		if ( ! withinLimit ) {
+			logger.warn(
+				`Room ${ roomName } is at its connection limit (${ limit }); disconnecting this client.`
+			);
+			provider.disconnect();
+		}
+	};
+
+	const scheduleEvaluate = (): void => {
+		if ( settleTimer !== null ) {
+			clearTimeout( settleTimer );
+		}
+		settleTimer = setTimeout( evaluate, ROOM_LIMIT_SETTLE_DELAY_MS );
+	};
+
+	awareness.on( 'change', scheduleEvaluate );
+
+	return () => {
+		if ( settleTimer !== null ) {
+			clearTimeout( settleTimer );
+		}
+		awareness.off( 'change', scheduleEvaluate );
+	};
+}
+
+/**
  * Function that creates a new WebSocket Connection.
  *
  * @param {string} serverUrl The WebSocket server URL.
@@ -237,13 +333,26 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 			const retryState: RetryState = { attempts: 0 };
 			const connect = createConnect( provider, objectType, objectId ?? 'collection', retryState );
 
+			// Set when this connection voluntarily yields its slot because the room
+			// is over its configured connection limit (see `setupRoomClientLimit`).
+			// This yield is terminal: the close handler surfaces the limit modal and
+			// does NOT reconnect. Reconnecting would re-occupy the slot, re-trigger
+			// the eviction, and thrash the server (manifesting as a follow-on 4002
+			// connection-limit rejection).
+			let roomLimitExceeded = false;
+
 			// Create a typed event emitter for our custom sync-connection-status event.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
+
+			const cleanupRoomClientLimit = setupRoomClientLimit( provider, roomName, exceeded => {
+				roomLimitExceeded = exceeded;
+			} );
 
 			const handleConnectionClose = ( event: CloseEvent | null ): void => {
 				const closeCode = event?.code;
 				const isCustomModalError =
-					closeCode !== undefined && CUSTOM_MODAL_CLOSE_CODES.has( closeCode );
+					roomLimitExceeded ||
+					( closeCode !== undefined && CUSTOM_MODAL_CLOSE_CODES.has( closeCode ) );
 
 				// Retry-state fields drive Gutenberg's default modal (countdown
 				// and threshold-based reveal). Omit them for errors handled by
@@ -262,11 +371,16 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
-					error: getErrorFromCloseCode( closeCode ),
+					error: roomLimitExceeded
+						? new WebSocketError( 'collaborator-limit-exceeded' )
+						: getErrorFromCloseCode( closeCode ),
 					...retryStateFields,
 				} );
 
-				void connect();
+				// A room-limit yield is terminal — do not reconnect (see above).
+				if ( ! roomLimitExceeded ) {
+					void connect();
+				}
 			};
 
 			provider.on( 'connection-close', handleConnectionClose );
@@ -326,6 +440,7 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			return {
 				destroy: () => {
+					cleanupRoomClientLimit();
 					syncStatusEmitter.destroy();
 					provider.destroy();
 				},
