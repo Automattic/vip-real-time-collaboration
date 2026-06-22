@@ -39,7 +39,7 @@ jobs:
 
       - name: Cache dependency repo
         id: cache-deps
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: plugins/gutenberg
           key: gutenberg-${{ steps.get-dependency-sha.outputs.sha }}
@@ -48,7 +48,7 @@ jobs:
 
       - name: Checkout dependency repo
         if: steps.cache-deps.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
         with:
           repository: Automattic/gutenberg
           path: plugins/gutenberg
@@ -61,7 +61,7 @@ jobs:
           NO_CHECKS: 'true'
 
       - name: Upload dependency repo as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: gutenberg
           path: plugins/gutenberg/gutenberg.zip
@@ -81,12 +81,12 @@ jobs:
         run: mkdir -p plugins
 
       - name: Checkout main repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
         with:
           path: plugins/vip-real-time-collaboration
 
       - name: Download dependency repo
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: gutenberg
           path: plugins/gutenberg
@@ -101,7 +101,7 @@ jobs:
           php-version: '8.2'
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: plugins/vip-real-time-collaboration/.nvmrc
           cache: 'npm'
@@ -132,7 +132,7 @@ jobs:
           npm run dev:stop
 
       - name: Archive E2E results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: test-results
