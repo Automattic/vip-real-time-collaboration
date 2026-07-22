@@ -28,4 +28,6 @@ export const WEBSOCKET_CLOSE_CODES: Map< number, string > = new Map( [
 	[ 4001, 'Connection timed out. Reconnect.' ],
 	[ 4002, 'Server connection limit reached. Please try again later.' ],
 	[ 4003, 'Collaborator limit reached for this environment. Please try again later.' ],
+	[ 4004, 'Room subscription rejected.' ],
+	[ 4005, 'Room connection interrupted. Reconnect.' ],
 ] );

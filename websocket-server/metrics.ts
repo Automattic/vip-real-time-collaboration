@@ -54,6 +54,11 @@ const activeCollaboratorsGauge = new Gauge( {
 	help: 'Number of active collaborators (unique WordPress users by user_id)',
 } );
 
+const activeRoomsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_rooms`,
+	help: 'Number of active logical multiplex rooms',
+} );
+
 const messagesCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_messages_total`,
 	help: 'Total number of WebSocket messages exchanged',
@@ -105,6 +110,14 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 	if ( isBinary ) {
 		messageBytesCounter.inc( getRawDataSizeBytes( data ) );
 	}
+}
+
+export function recordRoomOpen(): void {
+	activeRoomsGauge.inc();
+}
+
+export function recordRoomClose(): void {
+	activeRoomsGauge.dec();
 }
 
 export function recordConnectionFailure( reason: string ): void {
