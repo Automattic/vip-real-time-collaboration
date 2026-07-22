@@ -398,6 +398,33 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 
 			provider.on( 'connection-close', handleConnectionClose );
 
+			// One-shot initial-sync signal for the sync manager. y-websocket's
+			// `sync` event fires once sync step 2 is done, even when it
+			// applied no document change (e.g. the local document already
+			// matched the server state).
+			const initialSyncCallbacks = new Set< () => void >();
+			let hasInitialSync = false;
+
+			const notifyInitialSync = (): void => {
+				if ( hasInitialSync ) {
+					return;
+				}
+
+				hasInitialSync = true;
+
+				for ( const callback of initialSyncCallbacks ) {
+					callback();
+				}
+
+				initialSyncCallbacks.clear();
+			};
+
+			provider.on( 'sync', ( isSynced: boolean ) => {
+				if ( isSynced ) {
+					notifyInitialSync();
+				}
+			} );
+
 			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
 
 			// Listen to y-websocket's status event for connecting/connected states
@@ -464,6 +491,14 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 					if ( 'status' === event ) {
 						syncStatusEmitter.on( callback );
 					}
+				},
+				onInitialSync: ( callback: () => void ) => {
+					if ( hasInitialSync ) {
+						callback();
+						return;
+					}
+
+					initialSyncCallbacks.add( callback );
 				},
 			};
 		} catch ( err ) {

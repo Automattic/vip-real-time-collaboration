@@ -66,6 +66,7 @@ declare module '@wordpress/sync' {
 	interface ProviderCreatorResult {
 		destroy: () => void;
 		on: ProviderOn;
+		onInitialSync?: ( callback: () => void ) => void;
 	}
 
 	type ProviderCreator = ( options: ProviderCreatorOptions ) => Promise< ProviderCreatorResult >;
