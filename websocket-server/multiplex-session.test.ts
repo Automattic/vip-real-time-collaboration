@@ -158,6 +158,17 @@ function createSession(
 	return { physical, session };
 }
 
+function subscribeBootstrapRoom(
+	physical: RecordingPhysicalSocket,
+	initialPayload: SyncTokenPayload = tokenPayload()
+): void {
+	physical.receive( {
+		type: 'subscribe',
+		room: initialPayload.room_name,
+		grant: grant( initialPayload ),
+	} );
+}
+
 afterEach( async () => {
 	for ( const physical of physicalSockets ) {
 		physical.delayCloseEvent = false;
@@ -204,6 +215,7 @@ describe( 'MultiplexSession', () => {
 		const scheduler = new ManualHeartbeatScheduler();
 		const { physical, session } = createSession( tokenPayload(), scheduler );
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
@@ -257,10 +269,20 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( physical.pingCalls, 0 );
 	} );
 
-	it( 'acknowledges the initial room before forwarding initial Yjs data', () => {
+	it( 'owns no room until the bootstrap grant is explicitly subscribed', async () => {
 		const { physical, session } = createSession();
+		const baseline = await activeRoomMetric();
 
 		session.start();
+		assert.deepStrictEqual( decoded( physical ), [] );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( await activeRoomMetric(), baseline );
+
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-1',
+			grant: grant(),
+		} );
 
 		const messages = decoded( physical );
 		assert.deepStrictEqual( messages[ 0 ], { type: 'subscribed', room: 'site-7/post-1' } );
@@ -269,13 +291,14 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
-	it( 'preserves initial wire ordering before a deferred subscribed callback error closes the session', () => {
+	it( 'preserves bootstrap wire ordering before a deferred subscribed callback error closes the session', () => {
 		const room = 'site-7/deferred-initial-control';
 		const { physical, session } = createSession( tokenPayload( { room_name: room } ) );
 		physical.deferSendCallbacks = true;
 		physical.nextCallbackError = new Error( 'deferred subscribed send failure' );
 
 		session.start();
+		subscribeBootstrapRoom( physical, tokenPayload( { room_name: room } ) );
 
 		const messagesBeforeFlush = decoded( physical );
 		assert.deepStrictEqual( messagesBeforeFlush[ 0 ], { type: 'subscribed', room } );
@@ -289,10 +312,10 @@ describe( 'MultiplexSession', () => {
 
 	for ( const failureMode of [ 'callback', 'throw' ] as const ) {
 		const failureDescription = failureMode === 'callback' ? 'callback error' : 'synchronous throw';
-		it( `closes shared transport with 1011 after an initial subscribed send ${ failureDescription }`, () => {
+		it( `closes shared transport with 1011 after a bootstrap subscribed send ${ failureDescription }`, () => {
 			const room = `site-7/initial-control-${ failureMode }`;
 			const { physical, session } = createSession( tokenPayload( { room_name: room } ) );
-			const sendError = new Error( `initial subscribed send ${ failureMode }` );
+			const sendError = new Error( `bootstrap subscribed send ${ failureMode }` );
 			if ( failureMode === 'callback' ) {
 				physical.nextCallbackError = sendError;
 			} else {
@@ -302,6 +325,7 @@ describe( 'MultiplexSession', () => {
 
 			try {
 				session.start();
+				subscribeBootstrapRoom( physical, tokenPayload( { room_name: room } ) );
 			} catch ( error ) {
 				thrown = error;
 			}
@@ -349,6 +373,7 @@ describe( 'MultiplexSession', () => {
 	it( 'routes authorized room data through the normal y-websocket message path', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		const initialSync = decoded( physical )[ 1 ];
 		assertDataMessage( initialSync );
 		const document = docs.get( 'site-7/post-1' );
@@ -374,6 +399,7 @@ describe( 'MultiplexSession', () => {
 		it( `rejects a subscription whose ${ name } differs without closing active rooms`, () => {
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.sent.splice( 0 );
 
 			physical.receive( {
@@ -398,6 +424,7 @@ describe( 'MultiplexSession', () => {
 		it( `rejects ${ description } later grant without closing existing rooms`, () => {
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.sent.splice( 0 );
 
 			physical.receive( {
@@ -415,38 +442,10 @@ describe( 'MultiplexSession', () => {
 		} );
 	}
 
-	for ( const [ description, laterGrant ] of [
-		[
-			'an expired',
-			grant( {
-				room_name: 'site-7/post-2',
-				exp: Math.floor( Date.now() / 1000 ) - 60,
-			} ),
-		],
-	] as const ) {
-		it( `rejects a later grant ${ description } with a retryable room close`, () => {
-			const { physical, session } = createSession();
-			session.start();
-			physical.sent.splice( 0 );
-
-			physical.receive( {
-				type: 'subscribe',
-				room: 'site-7/post-2',
-				grant: laterGrant,
-			} );
-
-			assert.deepStrictEqual( decoded( physical ), [
-				{ type: 'room_closed', room: 'site-7/post-2', code: 4005 },
-			] );
-			assert.strictEqual( physical.readyState, WebSocket.OPEN );
-			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
-			physical.close();
-		} );
-	}
-
 	it( 'rejects an expired later grant with an invalid payload as terminal', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
 
 		physical.receive( {
@@ -479,6 +478,7 @@ describe( 'MultiplexSession', () => {
 			const baseline = await activeRoomMetric();
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.sent.splice( 0 );
 			const expiredGrant = grant( {
 				exp: Math.floor( Date.now() / 1000 ) - 60,
@@ -520,6 +520,7 @@ describe( 'MultiplexSession', () => {
 	it( 'keeps the physical connection open after multiple expired room grants', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
 		const expiredAt = Math.floor( Date.now() / 1000 ) - 60;
 
@@ -543,6 +544,7 @@ describe( 'MultiplexSession', () => {
 	it( 'closes the physical connection after repeated valid-grant identity mismatches', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
 
 		for ( const room of [ 'site-7/post-2', 'site-7/post-3' ] ) {
@@ -559,6 +561,7 @@ describe( 'MultiplexSession', () => {
 	it( 'requires the requested room to exactly match the verified room_name', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
 
 		physical.receive( {
@@ -577,6 +580,7 @@ describe( 'MultiplexSession', () => {
 		const baseline = await activeRoomMetric();
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
@@ -616,6 +620,7 @@ describe( 'MultiplexSession', () => {
 	it( 'closes an unsubscribed room through the normal adapter cleanup path', async () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
@@ -633,6 +638,7 @@ describe( 'MultiplexSession', () => {
 	it( 'keeps unknown unsubscribe idempotent without creating a closed-room marker', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
 
 		physical.receive( { type: 'unsubscribe', room: 'site-7/post-99' } );
@@ -706,6 +712,7 @@ describe( 'MultiplexSession', () => {
 		const baseline = await activeRoomMetric();
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		const initialSync = decoded( physical )[ 1 ];
 		assertDataMessage( initialSync );
 		physical.sent.splice( 0 );
@@ -767,6 +774,7 @@ describe( 'MultiplexSession', () => {
 	it( 'reports an unexpected adapter close as retryable without harming another room', () => {
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
@@ -792,6 +800,7 @@ describe( 'MultiplexSession', () => {
 			const closingRoom = `site-7/control-close-${ failureMode }`;
 			const { physical, session } = createSession( tokenPayload( { room_name: initialRoom } ) );
 			session.start();
+			subscribeBootstrapRoom( physical, tokenPayload( { room_name: initialRoom } ) );
 			physical.receive( {
 				type: 'subscribe',
 				room: closingRoom,
@@ -836,11 +845,14 @@ describe( 'MultiplexSession', () => {
 		it( `closes shared transport with 1011 after a physical send ${ failureMode }`, () => {
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.receive( {
 				type: 'subscribe',
 				room: 'site-7/post-2',
 				grant: grant( { room_name: 'site-7/post-2' } ),
 			} );
+			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
 			physical.sent.splice( 0 );
 			const sendError = new Error( `physical send ${ failureMode }` );
 			if ( failureMode === 'callback' ) {
@@ -912,11 +924,15 @@ describe( 'MultiplexSession', () => {
 			const baseline = await activeRoomMetric();
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.receive( {
 				type: 'subscribe',
 				room: 'site-7/post-2',
 				grant: grant( { room_name: 'site-7/post-2' } ),
 			} );
+			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
+			assert.strictEqual( await activeRoomMetric(), baseline + 2 );
 			physical.sent.splice( 0 );
 			physical.delayCloseEvent = true;
 
@@ -943,11 +959,15 @@ describe( 'MultiplexSession', () => {
 		const baseline = await activeRoomMetric();
 		const { physical, session } = createSession();
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
 			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
+		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+		assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
+		assert.strictEqual( await activeRoomMetric(), baseline + 2 );
 		physical.delayCloseEvent = true;
 		physical.close( 1008 );
 		physical.nextCallbackError = new Error( 'send failure while closing' );
@@ -975,11 +995,14 @@ describe( 'MultiplexSession', () => {
 		it( `cleans every room after physical close ${ closeCode }`, async () => {
 			const { physical, session } = createSession();
 			session.start();
+			subscribeBootstrapRoom( physical );
 			physical.receive( {
 				type: 'subscribe',
 				room: 'site-7/post-2',
 				grant: grant( { room_name: 'site-7/post-2' } ),
 			} );
+			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
 
 			physical.close( closeCode );
 			await Promise.resolve();
@@ -994,6 +1017,7 @@ describe( 'MultiplexSession', () => {
 		const { physical, session } = createSession();
 
 		session.start();
+		subscribeBootstrapRoom( physical );
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',

@@ -61,7 +61,6 @@ export function createSharedWebSocketAdapter(
 ): typeof WebSocket {
 	const normalizedServerUrl = normalizeServerUrl( serverUrl );
 	let physicalSocket: WebSocket | null = null;
-	let initialRoom: string | null = null;
 	const virtualSockets = new Map< string, SharedWebSocket >();
 
 	class SharedWebSocket {
@@ -104,7 +103,7 @@ export function createSharedWebSocketAdapter(
 			const createsPhysicalSocket = physicalSocket === null;
 			try {
 				if ( createsPhysicalSocket ) {
-					openPhysicalSocket( room, grant );
+					openPhysicalSocket( grant );
 				} else if ( physicalSocket?.readyState === PhysicalWebSocket.OPEN ) {
 					sendPhysicalMessage( { type: 'subscribe', room, grant } );
 				}
@@ -115,7 +114,6 @@ export function createSharedWebSocketAdapter(
 				if ( createsPhysicalSocket ) {
 					const failedPhysicalSocket = physicalSocket;
 					physicalSocket = null;
-					initialRoom = null;
 					if (
 						failedPhysicalSocket !== null &&
 						failedPhysicalSocket.readyState !== PhysicalWebSocket.CLOSING &&
@@ -205,8 +203,7 @@ export function createSharedWebSocketAdapter(
 		}
 	}
 
-	function openPhysicalSocket( room: string, grant: string ): void {
-		initialRoom = room;
+	function openPhysicalSocket( grant: string ): void {
 		const socket = new PhysicalWebSocket(
 			`${ normalizedServerUrl }?auth=${ encodeURIComponent( grant ) }`,
 			MULTIPLEX_SUBPROTOCOL
@@ -218,18 +215,15 @@ export function createSharedWebSocketAdapter(
 			if ( physicalSocket !== socket ) {
 				return;
 			}
-			for ( const [ currentRoom, virtualSocket ] of virtualSockets ) {
+			for ( const [ room, virtualSocket ] of virtualSockets ) {
 				if ( socket.readyState !== PhysicalWebSocket.OPEN ) {
 					break;
 				}
-				if (
-					currentRoom !== initialRoom &&
-					virtualSocket.readyState === SharedWebSocket.CONNECTING
-				) {
+				if ( virtualSocket.readyState === SharedWebSocket.CONNECTING ) {
 					try {
 						sendPhysicalMessage( {
 							type: 'subscribe',
-							room: currentRoom,
+							room,
 							grant: virtualSocket.grant,
 						} );
 					} catch {
@@ -326,7 +320,6 @@ export function createSharedWebSocketAdapter(
 			}
 
 			physicalSocket = null;
-			initialRoom = null;
 			const sockets = [ ...virtualSockets.values() ];
 			virtualSockets.clear();
 			for ( const virtualSocket of sockets ) {

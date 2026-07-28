@@ -65,7 +65,6 @@ export class MultiplexSession {
 		this.physical.on( 'message', this.handlePhysicalMessage );
 		this.physical.on( 'close', this.handlePhysicalClose );
 		startPhysicalHeartbeat( this.physical, this.heartbeatScheduler );
-		this.addRoom( this.initialGrant.room_name );
 	}
 
 	private readonly handlePhysicalMessage = ( data: RawData, isBinary: boolean ): void => {

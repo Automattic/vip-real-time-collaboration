@@ -190,7 +190,7 @@ function lastStatus( statuses: ConnectionStatus[] ): ConnectionStatus {
 }
 
 describe( 'createWebSocketConnection multiplex lifecycle', () => {
-	it( 'shares one physical socket across providers from the same creator', async () => {
+	it( 'subscribes every provider over one physical socket regardless of bootstrap grant', async () => {
 		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
 			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
 			fetchToken: () => {
@@ -206,11 +206,18 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		assert.deepStrictEqual( decodeMessage( physical.sent[ 0 ] ?? new Uint8Array() ), {
-			type: 'subscribe',
-			room: 'site-1/postType/page-456',
-			grant: 'grant-2',
-		} );
+		assert.deepStrictEqual( physical.sent.map( decodeMessage ), [
+			{
+				type: 'subscribe',
+				room: 'site-1/postType/page-123',
+				grant: 'grant-1',
+			},
+			{
+				type: 'subscribe',
+				room: 'site-1/postType/page-456',
+				grant: 'grant-2',
+			},
+		] );
 	} );
 
 	it( 'gates real y-websocket open and initial sync send on subscribed', async () => {
@@ -219,11 +226,17 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		assert.ok( physical );
 
 		physical.emitOpen();
-		assert.deepStrictEqual( physical.sent, [] );
+		assert.deepStrictEqual( physical.sent.map( decodeMessage ), [
+			{
+				type: 'subscribe',
+				room: 'site-1/postType/page-123',
+				grant: 'grant-1',
+			},
+		] );
 
 		acknowledgeInitialRoom( physical );
 		assert.strictEqual( context.statuses[ 0 ]?.status, 'connected' );
-		const firstMessage = decodeMessage( physical.sent[ 0 ] ?? new Uint8Array() );
+		const firstMessage = decodeMessage( physical.sent[ 1 ] ?? new Uint8Array() );
 		assert.strictEqual( firstMessage.type, 'data' );
 		assert.strictEqual( firstMessage.room, 'site-1/postType/page-123' );
 		assert.ok( firstMessage.type === 'data' && firstMessage.payload.length > 0 );

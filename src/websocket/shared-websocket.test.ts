@@ -120,7 +120,13 @@ describe( 'createSharedWebSocketAdapter', () => {
 
 		physical.emitOpen();
 		assert.strictEqual( virtual.readyState, SharedWebSocket.CONNECTING );
-		assert.deepStrictEqual( physical.sent.map( decodeMessage ), [] );
+		assert.deepStrictEqual( physical.sent.map( decodeMessage ), [
+			{
+				type: 'subscribe',
+				room: 'site-7/postType/page-123',
+				grant: 'grant-1',
+			},
+		] );
 
 		assert.throws(
 			() => new SharedWebSocket( 'wss://example.test/_ws-other/room?auth=grant-1' ),
@@ -204,7 +210,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.CLOSED );
 	} );
 
-	it( 'rolls back an initial room when physical construction throws', () => {
+	it( 'rolls back a bootstrap room when physical construction throws', () => {
 		class FlakyPhysicalWebSocket extends FakePhysicalWebSocket {
 			public static failConstruction = true;
 
@@ -234,7 +240,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
 	} );
 
-	it( 'rolls back a later room when immediate subscribe send throws', () => {
+	it( 'rolls back a room when immediate subscribe send throws', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -258,7 +264,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 			'wss://example.test/_ws/site-7/postType/post-456?auth=grant-3'
 		);
 		assert.strictEqual( retried.readyState, SharedWebSocket.CONNECTING );
-		assert.deepStrictEqual( decodeMessage( physical.sent[ 0 ] ?? new Uint8Array() ), {
+		assert.deepStrictEqual( decodeMessage( physical.sent[ 1 ] ?? new Uint8Array() ), {
 			type: 'subscribe',
 			room: 'site-7/postType/post-456',
 			grant: 'grant-3',
@@ -316,6 +322,11 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.deepStrictEqual( physical.sent.map( decodeMessage ), [
 			{
 				type: 'subscribe',
+				room: 'site-7/postType/page-123',
+				grant: 'grant-1',
+			},
+			{
+				type: 'subscribe',
 				room: 'site-7/postType/post-456',
 				grant: 'grant-2',
 			},
@@ -328,7 +339,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( initialOpenCount, 1 );
 		assert.strictEqual( later.readyState, SharedWebSocket.CONNECTING );
 		assert.strictEqual( laterOpenCount, 0 );
-		assert.deepStrictEqual( decodeMessage( physical.sent[ 1 ] ?? new Uint8Array() ), {
+		assert.deepStrictEqual( decodeMessage( physical.sent[ 2 ] ?? new Uint8Array() ), {
 			type: 'data',
 			room: 'site-7/postType/page-123',
 			payload: initialPayload,
@@ -339,7 +350,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		);
 		assert.strictEqual( later.readyState, SharedWebSocket.OPEN );
 		assert.strictEqual( laterOpenCount, 1 );
-		assert.deepStrictEqual( decodeMessage( physical.sent[ 2 ] ?? new Uint8Array() ), {
+		assert.deepStrictEqual( decodeMessage( physical.sent[ 3 ] ?? new Uint8Array() ), {
 			type: 'data',
 			room: 'site-7/postType/post-456',
 			payload: laterPayload,
@@ -596,7 +607,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.OPEN );
 	} );
 
-	it( 'cleans up an orphan initial-room acknowledgement after that room closes while connecting', () => {
+	it( 'skips a bootstrap provider removed before open and cleans up its raced acknowledgement', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -710,7 +721,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		}
 	} );
 
-	it( 'fans out a physical close and coalesces retries with a new implicit room', () => {
+	it( 'coalesces retries and subscribes every room regardless of the transport-opening grant', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -752,6 +763,11 @@ describe( 'createSharedWebSocketAdapter', () => {
 		newPhysical.emitOpen();
 
 		assert.deepStrictEqual( newPhysical.sent.map( decodeMessage ), [
+			{
+				type: 'subscribe',
+				room: 'site-7/postType/post-456',
+				grant: 'fresh-2',
+			},
 			{
 				type: 'subscribe',
 				room: 'site-7/postType/page-123',
