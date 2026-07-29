@@ -2,30 +2,14 @@ import type { WebSocket } from 'ws';
 
 const PHYSICAL_HEARTBEAT_INTERVAL_MS = 30_000;
 
-export interface HeartbeatScheduler {
-	setInterval(
-		callback: () => void,
-		intervalMs: number
-	): ReturnType< typeof globalThis.setInterval >;
-	clearInterval( handle: ReturnType< typeof globalThis.setInterval > ): void;
-}
-
-export const defaultHeartbeatScheduler: HeartbeatScheduler = {
-	setInterval: ( callback, intervalMs ) => globalThis.setInterval( callback, intervalMs ),
-	clearInterval: handle => globalThis.clearInterval( handle ),
-};
-
 /** Start the single transport-level liveness check for a multiplex connection. */
-export function startPhysicalHeartbeat(
-	physical: WebSocket,
-	scheduler: HeartbeatScheduler = defaultHeartbeatScheduler
-): () => void {
+export function startPhysicalHeartbeat( physical: WebSocket ): () => void {
 	let pongReceived = true;
 	let stopped = false;
 	const handlePong = (): void => {
 		pongReceived = true;
 	};
-	const interval = scheduler.setInterval( () => {
+	const interval = setInterval( () => {
 		if ( ! pongReceived ) {
 			stop();
 			physical.terminate();
@@ -44,7 +28,7 @@ export function startPhysicalHeartbeat(
 			return;
 		}
 		stopped = true;
-		scheduler.clearInterval( interval );
+		clearInterval( interval );
 		physical.off( 'pong', handlePong );
 		physical.off( 'close', stop );
 	};

@@ -6,19 +6,18 @@ import { afterEach, describe, it } from 'node:test';
 import { register } from 'prom-client';
 import { WebSocket } from 'ws';
 
-import { WEBSOCKET_CLOSE_CODES } from './config';
 import { MultiplexSession } from './multiplex-session';
 import { NoopPersistenceProvider } from './noop-persistence-provider';
-import { decodeMessage, encodeMessage, type DataMessage, type ProtocolMessage } from './protocol';
+import { decodeMessage, encodeMessage, type ProtocolMessage } from './protocol';
 import { RoomWebSocket } from './room-websocket';
 
 import type { SyncTokenPayload } from './auth';
-import type { HeartbeatScheduler } from './physical-heartbeat';
 import type { IncomingMessage } from 'node:http';
 import type { Data } from 'ws';
 
 const JWT_SECRET = 'multiplex-test-secret';
 const physicalSockets = new Set< RecordingPhysicalSocket >();
+type DataMessage = Extract< ProtocolMessage, { type: 'data' } >;
 
 function grant( payload: Partial< SyncTokenPayload > = {}, secret = JWT_SECRET ): string {
 	return jwt.sign(
@@ -53,8 +52,10 @@ class RecordingPhysicalSocket extends EventEmitter {
 	public pingCalls = 0;
 	public terminateCalls = 0;
 	public nextCallbackError: Error | undefined;
+	public nextPingThrow: Error | undefined;
 	public nextSendThrow: Error | undefined;
 	public deferSendCallbacks = false;
+	public onSend: ( () => void ) | undefined;
 	private readonly pendingSendCallbacks: Array< () => void > = [];
 
 	public send(
@@ -62,6 +63,7 @@ class RecordingPhysicalSocket extends EventEmitter {
 		_options?: { binary?: boolean },
 		callback?: ( error?: Error ) => void
 	): void {
+		this.onSend?.();
 		if ( this.nextSendThrow ) {
 			const error = this.nextSendThrow;
 			this.nextSendThrow = undefined;
@@ -95,6 +97,9 @@ class RecordingPhysicalSocket extends EventEmitter {
 
 	public ping(): void {
 		this.pingCalls += 1;
+		if ( this.nextPingThrow ) {
+			throw this.nextPingThrow;
+		}
 	}
 
 	public terminate(): void {
@@ -113,34 +118,7 @@ class RecordingPhysicalSocket extends EventEmitter {
 	}
 }
 
-class ManualHeartbeatScheduler implements HeartbeatScheduler {
-	public readonly callbacks = new Set< () => void >();
-	public clearCalls = 0;
-
-	public setInterval(
-		callback: () => void,
-		_intervalMs: number
-	): ReturnType< typeof setInterval > {
-		this.callbacks.add( callback );
-		return callback as unknown as ReturnType< typeof setInterval >;
-	}
-
-	public clearInterval( handle: ReturnType< typeof setInterval > ): void {
-		this.clearCalls += 1;
-		this.callbacks.delete( handle as unknown as () => void );
-	}
-
-	public tick(): void {
-		for ( const callback of Array.from( this.callbacks ) ) {
-			callback();
-		}
-	}
-}
-
-function createSession(
-	initialPayload: SyncTokenPayload = tokenPayload(),
-	heartbeatScheduler?: HeartbeatScheduler
-): {
+function createSession( initialPayload: SyncTokenPayload = tokenPayload() ): {
 	physical: RecordingPhysicalSocket;
 	session: MultiplexSession;
 } {
@@ -152,8 +130,7 @@ function createSession(
 		physical as unknown as WebSocket,
 		request,
 		initialPayload,
-		JWT_SECRET,
-		heartbeatScheduler
+		JWT_SECRET
 	);
 	return { physical, session };
 }
@@ -203,70 +180,80 @@ async function activeRoomMetric(): Promise< number > {
 }
 
 describe( 'MultiplexSession', () => {
-	it( 'defines the retryable room-interruption close code', () => {
-		assert.match( WEBSOCKET_CLOSE_CODES.get( 4005 ) ?? '', /reconnect/i );
+	it( 'uses one responsive physical heartbeat before and after rooms subscribe', t => {
+		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
+		const { physical, session } = createSession();
+		try {
+			session.start();
+			t.mock.timers.tick( 30_000 );
+			physical.emit( 'pong', Buffer.alloc( 0 ) );
+			subscribeBootstrapRoom( physical );
+			physical.receive( {
+				type: 'subscribe',
+				room: 'site-7/post-2',
+				grant: grant( { room_name: 'site-7/post-2' } ),
+			} );
+
+			t.mock.timers.tick( 30_000 );
+			physical.emit( 'pong', Buffer.alloc( 0 ) );
+
+			assert.strictEqual( physical.pingCalls, 2 );
+			assert.strictEqual( physical.readyState, WebSocket.OPEN );
+		} finally {
+			physical.close();
+			t.mock.timers.reset();
+		}
 	} );
 
-	it( 'describes a 4004 close as a room subscription rejection', () => {
-		assert.match( WEBSOCKET_CLOSE_CODES.get( 4004 ) ?? '', /subscription/i );
+	it( 'terminates the physical socket when a pong is missed', t => {
+		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
+		const { physical, session } = createSession();
+		try {
+			session.start();
+
+			t.mock.timers.tick( 60_000 );
+
+			assert.strictEqual( physical.terminateCalls, 1 );
+			assert.strictEqual( physical.readyState, WebSocket.CLOSED );
+		} finally {
+			physical.close();
+			t.mock.timers.reset();
+		}
 	} );
 
-	it( 'uses one responsive physical heartbeat for multiple rooms', () => {
-		const scheduler = new ManualHeartbeatScheduler();
-		const { physical, session } = createSession( tokenPayload(), scheduler );
-		session.start();
-		subscribeBootstrapRoom( physical );
-		physical.receive( {
-			type: 'subscribe',
-			room: 'site-7/post-2',
-			grant: grant( { room_name: 'site-7/post-2' } ),
-		} );
+	it( 'stops the physical heartbeat when the socket closes', t => {
+		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
+		const { physical, session } = createSession();
+		try {
+			session.start();
+			assert.strictEqual( physical.listenerCount( 'pong' ), 1 );
+			physical.close();
 
-		scheduler.tick();
-		physical.emit( 'pong', Buffer.alloc( 0 ) );
-		scheduler.tick();
-		const actual = {
-			pingCalls: physical.pingCalls,
-			readyState: physical.readyState,
-			scheduledHeartbeats: scheduler.callbacks.size,
-		};
-		physical.close();
+			t.mock.timers.tick( 30_000 );
 
-		assert.strictEqual( actual.scheduledHeartbeats, 1 );
-		assert.strictEqual( actual.pingCalls, 2 );
-		assert.strictEqual( actual.readyState, WebSocket.OPEN );
+			assert.strictEqual( physical.pingCalls, 0 );
+			assert.strictEqual( physical.listenerCount( 'pong' ), 0 );
+		} finally {
+			t.mock.timers.reset();
+		}
 	} );
 
-	it( 'terminates the physical socket when a pong is missed', () => {
-		const scheduler = new ManualHeartbeatScheduler();
-		const { physical, session } = createSession( tokenPayload(), scheduler );
-		session.start();
+	it( 'terminates the physical socket when ping throws', t => {
+		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
+		const { physical, session } = createSession();
+		try {
+			physical.nextPingThrow = new Error( 'ping failed' );
+			session.start();
 
-		scheduler.tick();
-		scheduler.tick();
-		const actual = {
-			callbacks: scheduler.callbacks.size,
-			readyState: physical.readyState,
-			terminateCalls: physical.terminateCalls,
-		};
-		physical.close();
+			t.mock.timers.tick( 30_000 );
 
-		assert.strictEqual( actual.terminateCalls, 1 );
-		assert.strictEqual( actual.readyState, WebSocket.CLOSED );
-		assert.strictEqual( actual.callbacks, 0 );
-	} );
-
-	it( 'stops the physical heartbeat when the socket closes', () => {
-		const scheduler = new ManualHeartbeatScheduler();
-		const { physical, session } = createSession( tokenPayload(), scheduler );
-		session.start();
-
-		physical.close();
-		scheduler.tick();
-
-		assert.strictEqual( scheduler.clearCalls, 1 );
-		assert.strictEqual( scheduler.callbacks.size, 0 );
-		assert.strictEqual( physical.pingCalls, 0 );
+			assert.strictEqual( physical.pingCalls, 1 );
+			assert.strictEqual( physical.terminateCalls, 1 );
+			assert.strictEqual( physical.readyState, WebSocket.CLOSED );
+		} finally {
+			physical.close();
+			t.mock.timers.reset();
+		}
 	} );
 
 	it( 'owns no room until the bootstrap grant is explicitly subscribed', async () => {
@@ -310,47 +297,22 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( docs.has( room ), false );
 	} );
 
-	for ( const failureMode of [ 'callback', 'throw' ] as const ) {
-		const failureDescription = failureMode === 'callback' ? 'callback error' : 'synchronous throw';
-		it( `closes shared transport with 1011 after a bootstrap subscribed send ${ failureDescription }`, () => {
-			const room = `site-7/initial-control-${ failureMode }`;
-			const { physical, session } = createSession( tokenPayload( { room_name: room } ) );
-			const sendError = new Error( `bootstrap subscribed send ${ failureMode }` );
-			if ( failureMode === 'callback' ) {
-				physical.nextCallbackError = sendError;
-			} else {
-				physical.nextSendThrow = sendError;
-			}
-			let thrown: unknown;
+	it( 'does not set up Yjs when the subscribed acknowledgement throws synchronously', () => {
+		const room = 'site-7/synchronous-ack-failure';
+		const { physical, session } = createSession( tokenPayload( { room_name: room } ) );
+		let roomActiveWhenAcknowledged: boolean | undefined;
+		physical.onSend = () => {
+			roomActiveWhenAcknowledged = docs.has( room );
+		};
+		physical.nextSendThrow = new Error( 'subscribed send failed' );
 
-			try {
-				session.start();
-				subscribeBootstrapRoom( physical, tokenPayload( { room_name: room } ) );
-			} catch ( error ) {
-				thrown = error;
-			}
+		session.start();
+		subscribeBootstrapRoom( physical, tokenPayload( { room_name: room } ) );
 
-			const actual = {
-				closeCode: physical.closeCode,
-				messages: decoded( physical ),
-				roomActive: docs.has( room ),
-				thrown,
-			};
-			physical.close();
-
-			assert.strictEqual( actual.thrown, undefined );
-			assert.strictEqual( actual.closeCode, 1011 );
-			assert.strictEqual( actual.roomActive, false );
-			assert.deepStrictEqual(
-				actual.messages.filter( message => message.type === 'data' ),
-				[]
-			);
-			assert.deepStrictEqual(
-				actual.messages.filter( message => message.type === 'room_closed' ),
-				[]
-			);
-		} );
-	}
+		assert.strictEqual( roomActiveWhenAcknowledged, false );
+		assert.strictEqual( docs.has( room ), false );
+		assert.strictEqual( physical.closeCode, 1011 );
+	} );
 
 	it( 'acknowledges a later authorized room before forwarding its initial Yjs data', () => {
 		const { physical, session } = createSession();
@@ -793,85 +755,85 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
-	for ( const failureMode of [ 'callback', 'throw' ] as const ) {
-		const failureDescription = failureMode === 'callback' ? 'callback error' : 'synchronous throw';
-		it( `closes shared transport with 1011 after a room_closed send ${ failureDescription }`, () => {
-			const initialRoom = `site-7/control-peer-${ failureMode }`;
-			const closingRoom = `site-7/control-close-${ failureMode }`;
-			const { physical, session } = createSession( tokenPayload( { room_name: initialRoom } ) );
-			session.start();
-			subscribeBootstrapRoom( physical, tokenPayload( { room_name: initialRoom } ) );
-			physical.receive( {
-				type: 'subscribe',
-				room: closingRoom,
-				grant: grant( { room_name: closingRoom } ),
-			} );
-			physical.sent.splice( 0 );
-			const sendError = new Error( `room_closed send ${ failureMode }` );
-			if ( failureMode === 'callback' ) {
-				physical.nextCallbackError = sendError;
-			} else {
-				physical.nextSendThrow = sendError;
-			}
-			let thrown: unknown;
-
-			try {
-				activeRoomSocket( closingRoom ).close();
-			} catch ( error ) {
-				thrown = error;
-			}
-
-			const actual = {
-				closeCode: physical.closeCode,
-				messages: decoded( physical ),
-				peerRoomActive: docs.has( initialRoom ),
-				closedRoomActive: docs.has( closingRoom ),
-				thrown,
-			};
-			physical.close();
-
-			assert.strictEqual( actual.thrown, undefined );
-			assert.strictEqual( actual.closeCode, 1011 );
-			assert.strictEqual( actual.peerRoomActive, false );
-			assert.strictEqual( actual.closedRoomActive, false );
-			assert.deepStrictEqual(
-				actual.messages.filter( message => message.type === 'room_closed' ),
-				failureMode === 'callback' ? [ { type: 'room_closed', room: closingRoom, code: 4005 } ] : []
-			);
+	it( 'cleans every room immediately after a synchronous physical send failure', () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
-	}
+		physical.delayCloseEvent = true;
+		physical.nextSendThrow = new Error( 'physical send failed' );
 
-	for ( const failureMode of [ 'callback', 'throw' ] as const ) {
-		it( `closes shared transport with 1011 after a physical send ${ failureMode }`, () => {
-			const { physical, session } = createSession();
-			session.start();
-			subscribeBootstrapRoom( physical );
-			physical.receive( {
-				type: 'subscribe',
-				room: 'site-7/post-2',
-				grant: grant( { room_name: 'site-7/post-2' } ),
-			} );
-			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
-			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
-			physical.sent.splice( 0 );
-			const sendError = new Error( `physical send ${ failureMode }` );
-			if ( failureMode === 'callback' ) {
-				physical.nextCallbackError = sendError;
-			} else {
-				physical.nextSendThrow = sendError;
-			}
+		assert.doesNotThrow( () =>
+			activeRoomSocket( 'site-7/post-2' ).send( Uint8Array.from( [ 0 ] ) )
+		);
 
-			activeRoomSocket( 'site-7/post-2' ).send( Uint8Array.from( [ 0 ] ) );
+		assert.strictEqual( physical.closeCode, 1011 );
+		assert.strictEqual( physical.readyState, WebSocket.CLOSING );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	} );
 
-			assert.strictEqual( physical.closeCode, 1011 );
-			assert.strictEqual( docs.has( 'site-7/post-1' ), false );
-			assert.strictEqual( docs.has( 'site-7/post-2' ), false );
-			assert.deepStrictEqual(
-				decoded( physical ).filter( message => message.type === 'room_closed' ),
-				[]
-			);
+	it( 'rethrows a synchronous send-callback exception after cleaning every room', () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
-	}
+		physical.delayCloseEvent = true;
+		const sendFailure = new Error( 'physical send failed' );
+		const callbackFailure = new Error( 'send callback failed' );
+		physical.nextCallbackError = sendFailure;
+		let roomsActiveInCallback: boolean | undefined;
+
+		assert.throws(
+			() =>
+				activeRoomSocket( 'site-7/post-2' ).send( Uint8Array.from( [ 0 ] ), error => {
+					assert.strictEqual( error, sendFailure );
+					roomsActiveInCallback = docs.has( 'site-7/post-1' ) || docs.has( 'site-7/post-2' );
+					throw callbackFailure;
+				} ),
+			error => error === callbackFailure
+		);
+
+		assert.strictEqual( roomsActiveInCallback, false );
+		assert.strictEqual( physical.closeCode, 1011 );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	} );
+
+	it( 'cleans every room before a deferred y-websocket send callback observes failure', () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
+		} );
+		physical.flushSendCallbacks();
+		physical.deferSendCallbacks = true;
+		physical.nextCallbackError = new Error( 'physical send failed' );
+		physical.delayCloseEvent = true;
+		let roomsActiveInCallback: boolean | undefined;
+
+		activeRoomSocket( 'site-7/post-2' ).send( Uint8Array.from( [ 0 ] ), () => {
+			roomsActiveInCallback = docs.has( 'site-7/post-1' ) || docs.has( 'site-7/post-2' );
+		} );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), true );
+		physical.flushSendCallbacks();
+
+		assert.strictEqual( roomsActiveInCallback, false );
+		assert.strictEqual( physical.closeCode, 1011 );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	} );
 
 	it( 'closes malformed physical framing', () => {
 		const { physical, session } = createSession();
@@ -882,78 +844,23 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( physical.closeCode, 1002 );
 	} );
 
-	for ( const [ description, expectedCode, failSession ] of [
-		[
-			'non-binary framing',
-			1002,
-			( physical: RecordingPhysicalSocket ) => {
-				physical.emit( 'message', Buffer.from( [ 0xff ] ), false );
-			},
-		],
-		[
-			'repeated authorization bypass',
-			1008,
-			( physical: RecordingPhysicalSocket ) => {
-				const unauthorizedData = {
-					type: 'data' as const,
-					room: 'site-7/post-never-authorized',
-					payload: Uint8Array.from( [ 0 ] ),
-				};
-				physical.receive( unauthorizedData );
-				physical.receive( unauthorizedData );
-			},
-		],
-		[
-			'physical send failure',
-			1011,
-			( physical: RecordingPhysicalSocket ) => {
-				physical.nextCallbackError = new Error( 'physical send failure' );
-				activeRoomSocket( 'site-7/post-2' ).send( Uint8Array.from( [ 0 ] ) );
-			},
-		],
-		[
-			'control send failure',
-			1011,
-			( physical: RecordingPhysicalSocket ) => {
-				physical.nextCallbackError = new Error( 'control send failure' );
-				activeRoomSocket( 'site-7/post-2' ).close();
-			},
-		],
-	] as const ) {
-		it( `cleans every logical room after ${ description } without waiting for a physical close event`, async () => {
-			const baseline = await activeRoomMetric();
-			const { physical, session } = createSession();
-			session.start();
-			subscribeBootstrapRoom( physical );
-			physical.receive( {
-				type: 'subscribe',
-				room: 'site-7/post-2',
-				grant: grant( { room_name: 'site-7/post-2' } ),
-			} );
-			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
-			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
-			assert.strictEqual( await activeRoomMetric(), baseline + 2 );
-			physical.sent.splice( 0 );
-			physical.delayCloseEvent = true;
-
-			failSession( physical );
-			const actual = {
-				closeCode: physical.closeCode,
-				postOneActive: docs.has( 'site-7/post-1' ),
-				postTwoActive: docs.has( 'site-7/post-2' ),
-				readyState: physical.readyState,
-				roomMetric: await activeRoomMetric(),
-			};
-			physical.delayCloseEvent = false;
-			physical.close( expectedCode );
-
-			assert.strictEqual( actual.closeCode, expectedCode );
-			assert.strictEqual( actual.readyState, WebSocket.CLOSING );
-			assert.strictEqual( actual.postOneActive, false );
-			assert.strictEqual( actual.postTwoActive, false );
-			assert.strictEqual( actual.roomMetric, baseline );
+	it( 'cleans every room after non-binary framing without waiting for close', () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
-	}
+		physical.delayCloseEvent = true;
+
+		physical.emit( 'message', Buffer.from( [ 0xff ] ), false );
+
+		assert.strictEqual( physical.closeCode, 1002 );
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	} );
 
 	it( 'cleans rooms after a send failure while the physical socket is closing', async () => {
 		const baseline = await activeRoomMetric();
@@ -991,26 +898,22 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( actual.roomMetric, baseline );
 	} );
 
-	for ( const closeCode of [ 1000, 1006 ] ) {
-		it( `cleans every room after physical close ${ closeCode }`, async () => {
-			const { physical, session } = createSession();
-			session.start();
-			subscribeBootstrapRoom( physical );
-			physical.receive( {
-				type: 'subscribe',
-				room: 'site-7/post-2',
-				grant: grant( { room_name: 'site-7/post-2' } ),
-			} );
-			assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
-			assert.strictEqual( docs.get( 'site-7/post-2' )?.conns.size, 1 );
-
-			physical.close( closeCode );
-			await Promise.resolve();
-
-			assert.strictEqual( docs.has( 'site-7/post-1' ), false );
-			assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	it( 'cleans every room after the physical socket closes', async () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
-	}
+
+		physical.close( 1006 );
+		await Promise.resolve();
+
+		assert.strictEqual( docs.has( 'site-7/post-1' ), false );
+		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
+	} );
 
 	it( 'updates and cleans the unlabeled logical active-room metric', async () => {
 		const baseline = await activeRoomMetric();

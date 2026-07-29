@@ -25,7 +25,6 @@ import {
 } from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-close-policy';
-import { createRetriableConnect, type RetryEligibility } from '@/websocket-retry';
 
 import type {
 	ConnectionStatus,
@@ -133,51 +132,72 @@ function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
 	syncObjectId: string,
-	retryState: RetryEligibility,
+	retryState: { attempts: number; eligible: boolean },
 	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >,
 	waitBeforeRetry: ( delayInMs: number ) => Promise< void >,
 	onFatalConnectError: ( error: unknown ) => void
 ): () => Promise< void > {
-	return createRetriableConnect( retryState, {
-		fetchGrant: async () => {
-			try {
-				return await fetchToken( syncObjectType, syncObjectId );
-			} catch ( error: unknown ) {
-				logger.error(
-					`${ __(
-						'Failed to fetch auth token and connect to WebSocket',
-						'vip-real-time-collaboration'
-					) }: ${ getErrorMessage( error ) }`
-				);
-				throw error;
-			}
-		},
-		connectWithGrant: authToken => {
-			try {
-				provider.params = {
-					auth: authToken,
-				};
-				provider.connect();
+	let hasAttemptedConnect = false;
 
-				// Disable provider#shouldConnect to prevent websocket from attempting to
-				// reconnect before the new auth token is fetched (they are short-lived).
-				// When provider.connect() runs it updates provider#shouldConnect to true.
-				provider.shouldConnect = false;
+	const connect = async (): Promise< void > => {
+		if ( ! retryState.eligible ) {
+			return;
+		}
 
-				logInspectUrl( provider );
-			} catch ( error: unknown ) {
-				onFatalConnectError( error );
-				throw error;
-			}
-		},
-		getBackoffDelay: getBackoffDelayInMs,
-		wait: backoffDelayInMs => {
+		if ( hasAttemptedConnect ) {
+			const backoffDelayInMs = getBackoffDelayInMs( retryState.attempts );
 			logger.warn(
 				`Attempting to reconnect to WebSocket in ${ Math.floor( backoffDelayInMs / 1000 ) }s...`
 			);
-			return waitBeforeRetry( backoffDelayInMs );
-		},
-	} );
+			await waitBeforeRetry( backoffDelayInMs );
+			if ( ! retryState.eligible ) {
+				return;
+			}
+		}
+
+		hasAttemptedConnect = true;
+		retryState.attempts += 1;
+
+		let authToken: string;
+		try {
+			authToken = await fetchToken( syncObjectType, syncObjectId );
+		} catch ( error: unknown ) {
+			logger.error(
+				`${ __(
+					'Failed to fetch auth token and connect to WebSocket',
+					'vip-real-time-collaboration'
+				) }: ${ getErrorMessage( error ) }`
+			);
+			if ( retryState.eligible ) {
+				// Keep the initial provider creation detached from a REST outage.
+				void connect().catch( () => {} );
+			}
+			return;
+		}
+
+		if ( ! retryState.eligible ) {
+			return;
+		}
+
+		try {
+			provider.params = {
+				auth: authToken,
+			};
+			provider.connect();
+
+			// Disable provider#shouldConnect to prevent websocket from attempting to
+			// reconnect before the new auth token is fetched (they are short-lived).
+			// When provider.connect() runs it updates provider#shouldConnect to true.
+			provider.shouldConnect = false;
+
+			logInspectUrl( provider );
+		} catch ( error: unknown ) {
+			onFatalConnectError( error );
+			throw error;
+		}
+	};
+
+	return connect;
 }
 
 /**
@@ -336,7 +356,7 @@ export function createWebSocketConnection(
 				awareness,
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
-			const retryState: RetryEligibility = { attempts: 0, eligible: true };
+			const retryState = { attempts: 0, eligible: true };
 			let connect: () => Promise< void > = async () => {};
 
 			// Set when this connection voluntarily yields its slot because the room

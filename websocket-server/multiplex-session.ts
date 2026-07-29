@@ -8,17 +8,8 @@ import {
 	type SyncTokenPayload,
 } from './auth';
 import { recordRoomClose, recordRoomOpen } from './metrics';
-import {
-	defaultHeartbeatScheduler,
-	startPhysicalHeartbeat,
-	type HeartbeatScheduler,
-} from './physical-heartbeat';
-import {
-	decodeMessage,
-	encodeMessage,
-	type RoomClosedMessage,
-	type SubscribedMessage,
-} from './protocol';
+import { startPhysicalHeartbeat } from './physical-heartbeat';
+import { decodeMessage, encodeMessage, type ProtocolMessage } from './protocol';
 import { RoomWebSocket } from './room-websocket';
 
 import type { IncomingMessage } from 'node:http';
@@ -53,8 +44,7 @@ export class MultiplexSession {
 		private readonly physical: WebSocket,
 		private readonly request: IncomingMessage,
 		private readonly initialGrant: SyncTokenPayload,
-		private readonly jwtSecret: string,
-		private readonly heartbeatScheduler: HeartbeatScheduler = defaultHeartbeatScheduler
+		private readonly jwtSecret: string
 	) {}
 
 	public start(): void {
@@ -64,7 +54,7 @@ export class MultiplexSession {
 		this.started = true;
 		this.physical.on( 'message', this.handlePhysicalMessage );
 		this.physical.on( 'close', this.handlePhysicalClose );
-		startPhysicalHeartbeat( this.physical, this.heartbeatScheduler );
+		startPhysicalHeartbeat( this.physical );
 	}
 
 	private readonly handlePhysicalMessage = ( data: RawData, isBinary: boolean ): void => {
@@ -137,7 +127,10 @@ export class MultiplexSession {
 		}
 	};
 
-	private sendControlMessage( message: SubscribedMessage | RoomClosedMessage ): boolean {
+	private sendPhysicalMessage(
+		message: Extract< ProtocolMessage, { type: 'subscribed' | 'room_closed' | 'data' } >,
+		callback?: ( error?: Error ) => void
+	): boolean {
 		let completed = false;
 		let failed = false;
 		const complete = ( error?: Error ): void => {
@@ -149,11 +142,15 @@ export class MultiplexSession {
 				failed = true;
 				this.handlePhysicalSendError();
 			}
+			callback?.( error );
 		};
 
 		try {
 			this.physical.send( encodeMessage( message ), { binary: true }, complete );
 		} catch ( error ) {
+			if ( completed ) {
+				throw error;
+			}
 			complete( error instanceof Error ? error : new Error( String( error ) ) );
 		}
 
@@ -202,10 +199,11 @@ export class MultiplexSession {
 	}
 
 	private addRoom( room: string ): void {
-		const roomSocket = new RoomWebSocket( room, this.physical );
+		const roomSocket = new RoomWebSocket( ( payload, callback ) => {
+			this.sendPhysicalMessage( { type: 'data', room, payload }, callback );
+		} );
 		this.rooms.set( room, roomSocket );
 		this.closedRooms.delete( room );
-		roomSocket.on( 'physical-send-error', this.handlePhysicalSendError );
 		roomSocket.once( 'close', () => {
 			const expectedClose = this.expectedRoomCloses.delete( roomSocket );
 			if ( this.rooms.get( room ) === roomSocket ) {
@@ -218,11 +216,11 @@ export class MultiplexSession {
 			}
 		} );
 
-		setupWSConnection( roomSocket as unknown as WebSocket, this.request, { docName: room } );
 		recordRoomOpen();
-		if ( this.sendControlMessage( { type: 'subscribed', room } ) ) {
-			roomSocket.activate();
+		if ( ! this.sendPhysicalMessage( { type: 'subscribed', room } ) ) {
+			return;
 		}
+		setupWSConnection( roomSocket as unknown as WebSocket, this.request, { docName: room } );
 	}
 
 	private unsubscribe( room: string ): void {
@@ -253,6 +251,6 @@ export class MultiplexSession {
 	}
 
 	private sendRoomClosed( room: string, code: number ): void {
-		this.sendControlMessage( { type: 'room_closed', room, code } );
+		this.sendPhysicalMessage( { type: 'room_closed', room, code } );
 	}
 }

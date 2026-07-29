@@ -92,42 +92,21 @@ export function createSharedWebSocketAdapter(
 			const { grant, room } = parseRoomUrl( roomUrl, normalizedServerUrl );
 			this.grant = grant;
 			this.room = room;
-			// Validate the deferred subscribe frame before registration so a
-			// later physical-open callback cannot discover local codec errors.
-			encodeMessage( { type: 'subscribe', room, grant } );
+			const subscription = { type: 'subscribe', room, grant } as const;
+			// Validate a deferred subscribe before any physical or virtual state
+			// is created.
+			encodeMessage( subscription );
 			if ( virtualSockets.has( room ) ) {
 				throw new Error( `Room is already registered: ${ room }` );
 			}
-			virtualSockets.set( room, this );
 
-			const createsPhysicalSocket = physicalSocket === null;
-			try {
-				if ( createsPhysicalSocket ) {
-					openPhysicalSocket( grant );
-				} else if ( physicalSocket?.readyState === PhysicalWebSocket.OPEN ) {
-					sendPhysicalMessage( { type: 'subscribe', room, grant } );
-				}
-			} catch ( error: unknown ) {
-				if ( virtualSockets.get( room ) === this ) {
-					virtualSockets.delete( room );
-				}
-				if ( createsPhysicalSocket ) {
-					const failedPhysicalSocket = physicalSocket;
-					physicalSocket = null;
-					if (
-						failedPhysicalSocket !== null &&
-						failedPhysicalSocket.readyState !== PhysicalWebSocket.CLOSING &&
-						failedPhysicalSocket.readyState !== PhysicalWebSocket.CLOSED
-					) {
-						try {
-							failedPhysicalSocket.close();
-						} catch {
-							// Preserve the original construction/configuration error.
-						}
-					}
-				}
-				throw error;
+			if ( physicalSocket === null ) {
+				openPhysicalSocket( grant );
+			} else if ( physicalSocket.readyState === PhysicalWebSocket.OPEN ) {
+				sendPhysicalMessage( subscription );
 			}
+
+			virtualSockets.set( room, this );
 		}
 
 		public close( code = 1000, _reason?: string ): void {
@@ -251,11 +230,6 @@ export function createSharedWebSocketAdapter(
 				case 'subscribed': {
 					const virtualSocket = virtualSockets.get( message.room );
 					if ( virtualSocket === undefined ) {
-						try {
-							sendPhysicalMessage( { type: 'unsubscribe', room: message.room } );
-						} catch {
-							closePhysicalSocketNormally();
-						}
 						return;
 					}
 					if ( virtualSocket.readyState === SharedWebSocket.CONNECTING ) {

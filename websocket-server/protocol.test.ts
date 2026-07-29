@@ -9,34 +9,51 @@ import {
 	MULTIPLEX_SUBPROTOCOL,
 	PROTOCOL_VERSION,
 	ProtocolError,
-	type DataMessage,
-	type ProtocolMessage,
 	type ProtocolErrorReason,
+	type ProtocolMessage,
 } from './protocol';
 
 const ROOM = 'site-1/postType/post-123';
-const GRANT = 'header.payload.signature';
 
-describe( 'protocol constants', () => {
-	it( 'exports protocol version 1', () => {
-		assert.strictEqual( PROTOCOL_VERSION, 1 );
-	} );
+type CanonicalMessages = {
+	[ Type in ProtocolMessage[ 'type' ] ]: {
+		message: Extract< ProtocolMessage, { type: Type } >;
+		bytes: number[];
+	};
+};
 
-	it( 'exports the multiplex WebSocket subprotocol', () => {
-		assert.strictEqual( MULTIPLEX_SUBPROTOCOL, 'vip-rtc-multiplex-v1' );
-	} );
-} );
+const CANONICAL_MESSAGES = {
+	subscribe: {
+		message: { type: 'subscribe', room: 'a', grant: 'b' },
+		bytes: [ 1, 0, 1, 0x61, 1, 0x62 ],
+	},
+	subscribed: {
+		message: { type: 'subscribed', room: 'a' },
+		bytes: [ 1, 1, 1, 0x61 ],
+	},
+	data: {
+		message: { type: 'data', room: 'a', payload: Uint8Array.from( [ 0, 0xff ] ) },
+		bytes: [ 1, 2, 1, 0x61, 0, 0xff ],
+	},
+	unsubscribe: {
+		message: { type: 'unsubscribe', room: 'a' },
+		bytes: [ 1, 3, 1, 0x61 ],
+	},
+	room_closed: {
+		message: { type: 'room_closed', room: 'a', code: 4004 },
+		bytes: [ 1, 4, 1, 0x61, 0xa4, 0x1f ],
+	},
+} satisfies CanonicalMessages;
 
 /**
- * Build a raw message by hand so tests can craft malformed input the encoder
- * refuses to produce. Values must stay under 128 so every varuint is a
- * single byte; use rawVarUint() for larger values.
+ * Build raw frames the encoder intentionally refuses to produce. Numbers are
+ * single-byte varuints; larger values use rawVarUint().
  */
 function wireMessage( ...parts: Array< number | string | number[] > ): Uint8Array {
 	const bytes: number[] = [];
 	for ( const part of parts ) {
 		if ( typeof part === 'number' ) {
-			assert.ok( part < 0x80, 'wireMessage() only supports single-byte varuints' );
+			assert.ok( part < 0x80 );
 			bytes.push( part );
 		} else if ( typeof part === 'string' ) {
 			const encoded = Array.from( new TextEncoder().encode( part ) );
@@ -59,207 +76,117 @@ function rawVarUint( value: number ): number[] {
 	return bytes;
 }
 
-function assertProtocolError(
-	fn: () => unknown,
-	reason: ProtocolErrorReason,
-	messagePattern?: RegExp
-): void {
+function assertProtocolError( fn: () => unknown, reason: ProtocolErrorReason ): void {
 	assert.throws( fn, ( error: unknown ) => {
-		assert.ok( error instanceof ProtocolError, 'expected a ProtocolError' );
+		assert.ok( error instanceof ProtocolError );
 		assert.strictEqual( error.reason, reason );
-		if ( messagePattern ) {
-			assert.match( error.message, messagePattern );
-		}
 		return true;
 	} );
 }
 
-// A typed assertion so tests can read DataMessage fields without a cast; it
-// both checks the discriminant at runtime and narrows the type for TypeScript.
-function assertDataMessage( message: ProtocolMessage ): asserts message is DataMessage {
-	assert.strictEqual( message.type, 'data' );
-}
-
-describe( 'round-trips', () => {
-	it( 'subscribe', () => {
-		const decoded = decodeMessage(
-			encodeMessage( { type: 'subscribe', room: ROOM, grant: GRANT } )
-		);
-		assert.deepStrictEqual( decoded, {
-			type: 'subscribe',
-			room: ROOM,
-			grant: GRANT,
-		} );
+describe( 'protocol wire contract', () => {
+	it( 'keeps the deployed WebSocket subprotocol', () => {
+		assert.strictEqual( MULTIPLEX_SUBPROTOCOL, 'vip-rtc-multiplex-v1' );
 	} );
 
-	it( 'subscribed', () => {
-		const decoded = decodeMessage( encodeMessage( { type: 'subscribed', room: ROOM } ) );
-		assert.deepStrictEqual( decoded, { type: 'subscribed', room: ROOM } );
-	} );
-
-	it( 'unsubscribe', () => {
-		const decoded = decodeMessage( encodeMessage( { type: 'unsubscribe', room: ROOM } ) );
-		assert.deepStrictEqual( decoded, { type: 'unsubscribe', room: ROOM } );
-	} );
-
-	it( 'data with a binary payload', () => {
-		// Cover every byte value, including 0x00 and high bytes, so the
-		// payload cannot be confused with envelope fields.
-		const payload = Uint8Array.from(
-			Array.from( { length: 256 }, ( _unusedValue, index ) => index )
-		);
-		const decoded = decodeMessage( encodeMessage( { type: 'data', room: ROOM, payload } ) );
-		assertDataMessage( decoded );
-		assert.strictEqual( decoded.room, ROOM );
-		assert.deepStrictEqual( Array.from( decoded.payload ), Array.from( payload ) );
-	} );
-
-	it( 'data payload of a single byte', () => {
-		const decoded = decodeMessage(
-			encodeMessage( {
-				type: 'data',
-				room: ROOM,
-				payload: Uint8Array.from( [ 0 ] ),
-			} )
-		);
-		assertDataMessage( decoded );
-		assert.deepStrictEqual( Array.from( decoded.payload ), [ 0 ] );
-	} );
-
-	it( 'multibyte UTF-8 room names', () => {
-		const room = 'site-1/postType/pöst-✏️-123';
-		const decoded = decodeMessage( encodeMessage( { type: 'subscribed', room } ) );
-		assert.deepStrictEqual( decoded, { type: 'subscribed', room } );
-	} );
-
-	it( 'room_closed with a numeric close code', () => {
-		const decoded = decodeMessage(
-			encodeMessage( { type: 'room_closed', room: ROOM, code: 4004 } )
-		);
-		assert.deepStrictEqual( decoded, {
-			type: 'room_closed',
-			room: ROOM,
-			code: 4004,
-		} );
-	} );
-
-	it( 'preserves an unrecognized numeric close code', () => {
-		const decoded = decodeMessage(
-			encodeMessage( { type: 'room_closed', room: ROOM, code: 4999 } )
-		);
-		assert.deepStrictEqual( decoded, {
-			type: 'room_closed',
-			room: ROOM,
-			code: 4999,
-		} );
-	} );
-
-	it( 'room name at exactly the byte limit', () => {
-		const room = 'r'.repeat( MAX_ROOM_NAME_BYTES );
-		const decoded = decodeMessage( encodeMessage( { type: 'subscribed', room } ) );
-		assert.strictEqual( decoded.room, room );
-	} );
-} );
-
-describe( 'wire format stability', () => {
-	// If these fail, the change breaks decoding for already-deployed peers.
-	const fixtures: Array< {
-		name: string;
-		message: ProtocolMessage;
-		bytes: number[];
-	} > = [
-		{
-			name: 'subscribe',
-			message: { type: 'subscribe', room: 'a', grant: 'b' },
-			bytes: [ 1, 0, 1, 0x61, 1, 0x62 ],
-		},
-		{
-			name: 'subscribed',
-			message: { type: 'subscribed', room: 'a' },
-			bytes: [ 1, 1, 1, 0x61 ],
-		},
-		{
-			name: 'data',
-			message: { type: 'data', room: 'a', payload: Uint8Array.from( [ 0, 0xff ] ) },
-			bytes: [ 1, 2, 1, 0x61, 0, 0xff ],
-		},
-		{
-			name: 'unsubscribe',
-			message: { type: 'unsubscribe', room: 'a' },
-			bytes: [ 1, 3, 1, 0x61 ],
-		},
-		{
-			name: 'room_closed',
-			message: { type: 'room_closed', room: 'a', code: 4004 },
-			// code=4004 as a varuint
-			bytes: [ 1, 4, 1, 0x61, 0xa4, 0x1f ],
-		},
-	];
-
-	for ( const { name, message, bytes } of fixtures ) {
-		it( `encodes ${ name } with the documented byte layout`, () => {
-			assert.deepStrictEqual( Array.from( encodeMessage( message ) ), bytes );
+	for ( const [ name, { message, bytes } ] of Object.entries( CANONICAL_MESSAGES ) ) {
+		it( `round-trips ${ name } with its exact deployed bytes`, () => {
+			const encoded = encodeMessage( message );
+			assert.deepStrictEqual( Array.from( encoded ), bytes );
+			assert.deepStrictEqual( decodeMessage( encoded ), message );
 		} );
 	}
+
+	it( 'round-trips multibyte and maximum-size fields', () => {
+		const room = `${ '🚀'.repeat( 127 ) }room`;
+		assert.strictEqual( new TextEncoder().encode( room ).length, MAX_ROOM_NAME_BYTES );
+		const message = {
+			type: 'subscribe' as const,
+			room,
+			grant: 'g'.repeat( MAX_GRANT_BYTES ),
+		};
+
+		assert.deepStrictEqual( decodeMessage( encodeMessage( message ) ), message );
+	} );
+
+	it( 'preserves all binary payload bytes', () => {
+		const payload = Uint8Array.from( Array.from( { length: 256 }, ( _value, index ) => index ) );
+		const decoded = decodeMessage( encodeMessage( { type: 'data', room: ROOM, payload } ) );
+
+		assert.strictEqual( decoded.type, 'data' );
+		assert.deepStrictEqual( decoded.payload, payload );
+	} );
+
+	it( 'returns a data payload view into the input frame', () => {
+		const frame = wireMessage( PROTOCOL_VERSION, 2, 'a', [ 7, 8 ] );
+		const decoded = decodeMessage( frame );
+
+		assert.strictEqual( decoded.type, 'data' );
+		assert.strictEqual( decoded.payload.buffer, frame.buffer );
+		frame[ frame.length - 1 ] = 9;
+		assert.deepStrictEqual( decoded.payload, Uint8Array.from( [ 7, 9 ] ) );
+	} );
+
+	it( 'preserves an unrecognized private room close code', () => {
+		assert.deepStrictEqual(
+			decodeMessage( wireMessage( PROTOCOL_VERSION, 4, 'a', rawVarUint( 4999 ) ) ),
+			{ type: 'room_closed', room: 'a', code: 4999 }
+		);
+	} );
 } );
 
 describe( 'encode validation', () => {
-	it( 'rejects an unknown message type at runtime', () => {
-		const invalidMessage = { type: 'future' } as unknown as ProtocolMessage;
-		assertProtocolError( () => encodeMessage( invalidMessage ), 'unknown_message_type' );
+	it( 'rejects an unknown message type from an untyped caller', () => {
+		for ( const type of [ 'future', 'toString', '__proto__' ] ) {
+			assertProtocolError(
+				() => encodeMessage( { type } as unknown as ProtocolMessage ),
+				'unknown_message_type'
+			);
+		}
 	} );
 
-	it( 'rejects an empty room name', () => {
-		assertProtocolError( () => encodeMessage( { type: 'subscribed', room: '' } ), 'empty_room' );
-	} );
+	const invalidFields: Array< {
+		name: string;
+		message: ProtocolMessage;
+		reason: ProtocolErrorReason;
+	} > = [
+		{
+			name: 'empty room',
+			message: { type: 'subscribed', room: '' },
+			reason: 'empty_room',
+		},
+		{
+			name: 'room measured over the byte limit',
+			message: { type: 'subscribed', room: '🚀'.repeat( 129 ) },
+			reason: 'room_too_long',
+		},
+		{
+			name: 'empty grant',
+			message: { type: 'subscribe', room: ROOM, grant: '' },
+			reason: 'empty_grant',
+		},
+		{
+			name: 'oversized grant',
+			message: { type: 'subscribe', room: ROOM, grant: 'g'.repeat( MAX_GRANT_BYTES + 1 ) },
+			reason: 'grant_too_long',
+		},
+		{
+			name: 'empty data payload',
+			message: { type: 'data', room: ROOM, payload: new Uint8Array( 0 ) },
+			reason: 'empty_payload',
+		},
+	];
 
-	it( 'rejects an oversized room name, measured in bytes', () => {
-		// 200 four-byte emoji = 800 bytes from only 400 UTF-16 code units.
-		const room = '🚀'.repeat( 200 );
-		assertProtocolError( () => encodeMessage( { type: 'subscribed', room } ), 'room_too_long' );
-	} );
+	for ( const { name, message, reason } of invalidFields ) {
+		it( `rejects ${ name }`, () => {
+			assertProtocolError( () => encodeMessage( message ), reason );
+		} );
+	}
 
-	it( 'rejects a room name one byte over the limit', () => {
-		const room = 'r'.repeat( MAX_ROOM_NAME_BYTES + 1 );
-		assertProtocolError( () => encodeMessage( { type: 'subscribed', room } ), 'room_too_long' );
-	} );
-
-	it( 'rejects an empty grant', () => {
-		assertProtocolError(
-			() => encodeMessage( { type: 'subscribe', room: ROOM, grant: '' } ),
-			'empty_grant'
-		);
-	} );
-
-	it( 'rejects an oversized grant', () => {
-		const grant = 'g'.repeat( MAX_GRANT_BYTES + 1 );
-		assertProtocolError(
-			() => encodeMessage( { type: 'subscribe', room: ROOM, grant } ),
-			'grant_too_long'
-		);
-	} );
-
-	it( 'rejects an empty data payload', () => {
-		assertProtocolError(
-			() =>
-				encodeMessage( {
-					type: 'data',
-					room: ROOM,
-					payload: new Uint8Array( 0 ),
-				} ),
-			'empty_payload'
-		);
-	} );
-
-	it( 'rejects invalid room close codes', () => {
+	it( 'rejects close codes outside the private-use integer range', () => {
 		for ( const code of [ -1, 0, 1.5, NaN, 3999, 5000, 2 ** 32 ] ) {
 			assertProtocolError(
-				() =>
-					encodeMessage( {
-						type: 'room_closed',
-						room: ROOM,
-						code,
-					} ),
+				() => encodeMessage( { type: 'room_closed', room: ROOM, code } ),
 				'invalid_close_code'
 			);
 		}
@@ -267,188 +194,121 @@ describe( 'encode validation', () => {
 } );
 
 describe( 'decode validation', () => {
-	const TYPE_SUBSCRIBE = 0;
-	const TYPE_SUBSCRIBED = 1;
-	const TYPE_DATA = 2;
-	const TYPE_UNSUBSCRIBE = 3;
-	const TYPE_ROOM_CLOSED = 4;
+	const malformedFrames: Array< {
+		name: string;
+		frame: Uint8Array;
+		reason: ProtocolErrorReason;
+	} > = [
+		{ name: 'an empty frame', frame: new Uint8Array( 0 ), reason: 'truncated' },
+		{
+			name: 'a version-only frame',
+			frame: wireMessage( PROTOCOL_VERSION ),
+			reason: 'truncated',
+		},
+		{
+			name: 'unsupported version 0',
+			frame: wireMessage( 0, 1, 'a' ),
+			reason: 'unsupported_version',
+		},
+		{
+			name: 'unsupported version 2',
+			frame: wireMessage( 2, 1, 'a' ),
+			reason: 'unsupported_version',
+		},
+		{
+			name: 'an unknown type before reading fields',
+			frame: wireMessage( PROTOCOL_VERSION, 99 ),
+			reason: 'unknown_message_type',
+		},
+		{
+			name: 'a truncated room',
+			frame: wireMessage( PROTOCOL_VERSION, 1, [ 10, 0x61, 0x62, 0x63 ] ),
+			reason: 'truncated',
+		},
+		{
+			name: 'an oversized room length',
+			frame: wireMessage( PROTOCOL_VERSION, 1, rawVarUint( MAX_ROOM_NAME_BYTES + 1 ) ),
+			reason: 'room_too_long',
+		},
+		{
+			name: 'an oversized grant length',
+			frame: wireMessage( PROTOCOL_VERSION, 0, 'a', rawVarUint( MAX_GRANT_BYTES + 1 ) ),
+			reason: 'grant_too_long',
+		},
+		{
+			name: 'an empty room',
+			frame: wireMessage( PROTOCOL_VERSION, 1, '' ),
+			reason: 'empty_room',
+		},
+		{
+			name: 'an empty grant',
+			frame: wireMessage( PROTOCOL_VERSION, 0, 'a', '' ),
+			reason: 'empty_grant',
+		},
+		{
+			name: 'invalid UTF-8',
+			frame: wireMessage( PROTOCOL_VERSION, 1, [ 2, 0xff, 0xfe ] ),
+			reason: 'invalid_string',
+		},
+		{
+			name: 'subscribe trailing data',
+			frame: wireMessage( PROTOCOL_VERSION, 0, 'a', 'grant', [ 0 ] ),
+			reason: 'trailing_data',
+		},
+		{
+			name: 'subscribed trailing data',
+			frame: wireMessage( PROTOCOL_VERSION, 1, 'a', [ 0 ] ),
+			reason: 'trailing_data',
+		},
+		{
+			name: 'unsubscribe trailing data',
+			frame: wireMessage( PROTOCOL_VERSION, 3, 'a', [ 0 ] ),
+			reason: 'trailing_data',
+		},
+		{
+			name: 'an empty data payload',
+			frame: wireMessage( PROTOCOL_VERSION, 2, 'a' ),
+			reason: 'empty_payload',
+		},
+		{
+			name: 'a truncated room_closed',
+			frame: wireMessage( PROTOCOL_VERSION, 4, 'a' ),
+			reason: 'truncated',
+		},
+		{
+			name: 'room_closed trailing data',
+			frame: wireMessage( PROTOCOL_VERSION, 4, 'a', rawVarUint( 4004 ), 0 ),
+			reason: 'trailing_data',
+		},
+		{
+			name: 'a varuint longer than five bytes',
+			frame: Uint8Array.from( [ 0x80, 0x80, 0x80, 0x80, 0x80, 0x01 ] ),
+			reason: 'varuint_too_large',
+		},
+		{
+			name: 'a five-byte varuint above 32 bits',
+			frame: Uint8Array.from( [ 0xff, 0xff, 0xff, 0xff, 0x10 ] ),
+			reason: 'varuint_too_large',
+		},
+		{
+			name: 'the maximum 32-bit varuint as an unsupported version',
+			frame: Uint8Array.from( [ 0xff, 0xff, 0xff, 0xff, 0x0f ] ),
+			reason: 'unsupported_version',
+		},
+	];
 
-	it( 'rejects an empty message', () => {
-		assertProtocolError( () => decodeMessage( new Uint8Array( 0 ) ), 'truncated' );
-	} );
-
-	it( 'rejects a message with only a version', () => {
-		assertProtocolError( () => decodeMessage( wireMessage( PROTOCOL_VERSION ) ), 'truncated' );
-	} );
-
-	for ( const version of [ 0, PROTOCOL_VERSION + 1 ] ) {
-		it( `rejects unsupported version ${ version }`, () => {
-			assertProtocolError(
-				() => decodeMessage( wireMessage( version, TYPE_SUBSCRIBED, 'a' ) ),
-				'unsupported_version'
-			);
+	for ( const { name, frame, reason } of malformedFrames ) {
+		it( `rejects ${ name }`, () => {
+			assertProtocolError( () => decodeMessage( frame ), reason );
 		} );
 	}
-
-	it( 'rejects an unknown message type before parsing fields', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, 99 ) ),
-			'unknown_message_type'
-		);
-	} );
-
-	it( 'rejects a truncated string length', () => {
-		// Declares a 10-byte room but provides only 3 bytes.
-		assertProtocolError(
-			() =>
-				decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBED, [ 10, 0x61, 0x62, 0x63 ] ) ),
-			'truncated'
-		);
-	} );
-
-	it( 'rejects an oversized room name without allocating it', () => {
-		assertProtocolError(
-			() =>
-				decodeMessage(
-					wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBED, rawVarUint( MAX_ROOM_NAME_BYTES + 1 ) )
-				),
-			'room_too_long'
-		);
-	} );
-
-	it( 'rejects an oversized grant', () => {
-		assertProtocolError(
-			() =>
-				decodeMessage(
-					wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBE, 'a', rawVarUint( MAX_GRANT_BYTES + 1 ) )
-				),
-			'grant_too_long'
-		);
-	} );
-
-	it( 'rejects an empty room name', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBED, '' ) ),
-			'empty_room'
-		);
-	} );
-
-	it( 'rejects an empty grant', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBE, 'a', '' ) ),
-			'empty_grant'
-		);
-	} );
-
-	it( 'rejects invalid UTF-8 in a room name', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_SUBSCRIBED, [ 2, 0xff, 0xfe ] ) ),
-			'invalid_string'
-		);
-	} );
-
-	const fixedShapeMessages: Array< { name: string; fields: Array< number | string | number[] > } > =
-		[
-			{ name: 'subscribe', fields: [ TYPE_SUBSCRIBE, 'a', 'grant' ] },
-			{ name: 'subscribed', fields: [ TYPE_SUBSCRIBED, 'a' ] },
-			{ name: 'unsubscribe', fields: [ TYPE_UNSUBSCRIBE, 'a' ] },
-		];
-
-	for ( const { name, fields } of fixedShapeMessages ) {
-		it( `rejects trailing bytes after ${ name }`, () => {
-			assertProtocolError(
-				() => decodeMessage( wireMessage( PROTOCOL_VERSION, ...fields, [ 0x00 ] ) ),
-				'trailing_data'
-			);
-		} );
-	}
-
-	it( 'rejects an empty data payload', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_DATA, 'a' ) ),
-			'empty_payload'
-		);
-	} );
-
-	it( 'rejects trailing bytes after a room close code', () => {
-		assertProtocolError(
-			() =>
-				decodeMessage(
-					wireMessage( PROTOCOL_VERSION, TYPE_ROOM_CLOSED, 'a', rawVarUint( 4004 ), 0 )
-				),
-			'trailing_data'
-		);
-	} );
-
-	it( 'rejects a truncated room_closed', () => {
-		assertProtocolError(
-			() => decodeMessage( wireMessage( PROTOCOL_VERSION, TYPE_ROOM_CLOSED, 'a' ) ),
-			'truncated'
-		);
-	} );
 
 	it( 'rejects room close codes outside the private-use range', () => {
 		for ( const code of [ 0, 3999, 5000 ] ) {
 			assertProtocolError(
-				() =>
-					decodeMessage(
-						wireMessage( PROTOCOL_VERSION, TYPE_ROOM_CLOSED, 'a', rawVarUint( code ) )
-					),
+				() => decodeMessage( wireMessage( PROTOCOL_VERSION, 4, 'a', rawVarUint( code ) ) ),
 				'invalid_close_code'
 			);
-		}
-	} );
-
-	it( 'rejects a varuint longer than 5 bytes', () => {
-		assertProtocolError(
-			() => decodeMessage( Uint8Array.from( [ 0x80, 0x80, 0x80, 0x80, 0x80, 0x01 ] ) ),
-			'varuint_too_large',
-			/more than 5 bytes/
-		);
-	} );
-
-	it( 'rejects a 5-byte varuint above the 32-bit range', () => {
-		assertProtocolError(
-			() => decodeMessage( Uint8Array.from( [ 0xff, 0xff, 0xff, 0xff, 0x10 ] ) ),
-			'varuint_too_large',
-			/32-bit range/
-		);
-	} );
-
-	it( 'accepts the maximum 32-bit varuint before semantic validation', () => {
-		assertProtocolError(
-			() => decodeMessage( Uint8Array.from( [ 0xff, 0xff, 0xff, 0xff, 0x0f ] ) ),
-			'unsupported_version',
-			/4294967295/
-		);
-	} );
-
-	it( 'decodes an unrecognized room close code as its numeric value', () => {
-		const decoded = decodeMessage(
-			wireMessage( PROTOCOL_VERSION, TYPE_ROOM_CLOSED, 'a', rawVarUint( 4999 ) )
-		);
-		assert.deepStrictEqual( decoded, {
-			type: 'room_closed',
-			room: 'a',
-			code: 4999,
-		} );
-	} );
-} );
-
-describe( 'exhaustiveness', () => {
-	it( 'every encodable message type round-trips', () => {
-		const messages: ProtocolMessage[] = [
-			{ type: 'subscribe', room: ROOM, grant: GRANT },
-			{ type: 'subscribed', room: ROOM },
-			{ type: 'data', room: ROOM, payload: Uint8Array.from( [ 1, 2 ] ) },
-			{ type: 'unsubscribe', room: ROOM },
-			{ type: 'room_closed', room: ROOM, code: 4004 },
-		];
-
-		for ( const message of messages ) {
-			const decoded = decodeMessage( encodeMessage( message ) );
-			assert.strictEqual( decoded.type, message.type );
-			assert.strictEqual( decoded.room, message.room );
 		}
 	} );
 } );

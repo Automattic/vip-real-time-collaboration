@@ -13,55 +13,57 @@ function closeEvent( code: number ): CloseEvent {
 }
 
 describe( 'websocket close policy', () => {
-	it( 'owns retry, error, modal, and status metadata for physical closes', () => {
-		assert.deepStrictEqual( getWebSocketClosePolicy( 'physical', 4001 ), {
-			shouldRetry: true,
-			errorCode: 'connection-expired',
-			includeRetryMetadata: true,
-		} );
-		assert.deepStrictEqual( getWebSocketClosePolicy( 'physical', 4002 ), {
-			shouldRetry: true,
-			errorCode: 'connection-limit-exceeded',
-			includeRetryMetadata: false,
-		} );
-		assert.deepStrictEqual( getWebSocketClosePolicy( 'physical', 4003 ), {
-			shouldRetry: true,
-			errorCode: 'collaborator-limit-exceeded',
-			includeRetryMetadata: false,
-		} );
-		for ( const code of [ 1011, 4999, undefined ] ) {
-			assert.deepStrictEqual( getWebSocketClosePolicy( 'physical', code ), {
-				shouldRetry: true,
-				errorCode: 'unknown-error',
-				includeRetryMetadata: true,
-			} );
-		}
-		for ( const code of [ 1002, 1008, MULTIPLEX_PROTOCOL_FAILURE_CLOSE_CODE ] ) {
-			assert.deepStrictEqual( getWebSocketClosePolicy( 'physical', code ), {
-				shouldRetry: false,
-				errorCode: 'unknown-error',
-				includeRetryMetadata: false,
-			} );
-		}
-	} );
+	it( 'maps physical and room close codes to their owned retry policy', () => {
+		const cases = [
+			[
+				'physical',
+				[ 4001 ],
+				{ shouldRetry: true, errorCode: 'connection-expired', includeRetryMetadata: true },
+			],
+			[
+				'physical',
+				[ 4002 ],
+				{
+					shouldRetry: true,
+					errorCode: 'connection-limit-exceeded',
+					includeRetryMetadata: false,
+				},
+			],
+			[
+				'physical',
+				[ 4003 ],
+				{
+					shouldRetry: true,
+					errorCode: 'collaborator-limit-exceeded',
+					includeRetryMetadata: false,
+				},
+			],
+			[
+				'physical',
+				[ 1011, 4999, undefined ],
+				{ shouldRetry: true, errorCode: 'unknown-error', includeRetryMetadata: true },
+			],
+			[
+				'physical',
+				[ 1002, 1008, MULTIPLEX_PROTOCOL_FAILURE_CLOSE_CODE ],
+				{ shouldRetry: false, errorCode: 'unknown-error', includeRetryMetadata: false },
+			],
+			[
+				'room',
+				[ 4005 ],
+				{ shouldRetry: true, errorCode: 'unknown-error', includeRetryMetadata: true },
+			],
+			[
+				'room',
+				[ 4002, 4004, 4999 ],
+				{ shouldRetry: false, errorCode: 'unknown-error', includeRetryMetadata: false },
+			],
+		] as const;
 
-	it( 'owns scope-distinct room close behavior and never borrows physical modal mapping', () => {
-		assert.deepStrictEqual( getWebSocketClosePolicy( 'room', 4004 ), {
-			shouldRetry: false,
-			errorCode: 'unknown-error',
-			includeRetryMetadata: false,
-		} );
-		assert.deepStrictEqual( getWebSocketClosePolicy( 'room', 4005 ), {
-			shouldRetry: true,
-			errorCode: 'unknown-error',
-			includeRetryMetadata: true,
-		} );
-		for ( const code of [ 4002, 4999 ] ) {
-			assert.deepStrictEqual( getWebSocketClosePolicy( 'room', code ), {
-				shouldRetry: false,
-				errorCode: 'unknown-error',
-				includeRetryMetadata: false,
-			} );
+		for ( const [ scope, codes, expected ] of cases ) {
+			for ( const code of codes ) {
+				assert.deepStrictEqual( getWebSocketClosePolicy( scope, code ), expected );
+			}
 		}
 	} );
 

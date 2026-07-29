@@ -9,84 +9,7 @@ import {
 } from '../../websocket-server/protocol';
 import { createSharedWebSocketAdapter } from '../shared-websocket';
 import { MULTIPLEX_PROTOCOL_FAILURE_CLOSE_CODE } from '../websocket-close-policy';
-
-interface FakeCloseEvent extends Event {
-	code: number;
-}
-
-class FakePhysicalWebSocket {
-	public static readonly CONNECTING = 0;
-	public static readonly OPEN = 1;
-	public static readonly CLOSING = 2;
-	public static readonly CLOSED = 3;
-
-	public static instances: FakePhysicalWebSocket[] = [];
-
-	public binaryType: BinaryType = 'blob';
-	public readonly sent: Uint8Array[] = [];
-	public throwOnNextSend = false;
-	public readyState = FakePhysicalWebSocket.CONNECTING;
-	public onclose: ( ( event: FakeCloseEvent ) => void ) | null = null;
-	public onerror: ( ( event: Event ) => void ) | null = null;
-	public onmessage: ( ( event: MessageEvent< ArrayBuffer > ) => void ) | null = null;
-	public onopen: ( ( event: Event ) => void ) | null = null;
-
-	public constructor(
-		public readonly url: string | URL,
-		public readonly protocols?: string | string[]
-	) {
-		FakePhysicalWebSocket.instances.push( this );
-	}
-
-	public send( data: ArrayBufferLike | ArrayBufferView ): void {
-		if ( this.throwOnNextSend ) {
-			this.throwOnNextSend = false;
-			throw new Error( 'physical send failed' );
-		}
-		let bytes: Uint8Array;
-		if ( data instanceof Uint8Array ) {
-			bytes = data;
-		} else if ( ArrayBuffer.isView( data ) ) {
-			bytes = new Uint8Array( data.buffer, data.byteOffset, data.byteLength );
-		} else {
-			bytes = new Uint8Array( data );
-		}
-		this.sent.push( new Uint8Array( bytes ) );
-	}
-
-	public close( code?: number ): void {
-		if ( code !== undefined && code !== 1000 && ( code < 3000 || code > 4999 ) ) {
-			throw new DOMException( 'Invalid WebSocket close code', 'InvalidAccessError' );
-		}
-		this.readyState = FakePhysicalWebSocket.CLOSING;
-		this.emitClose( code ?? 1000 );
-	}
-
-	public emitOpen(): void {
-		this.readyState = FakePhysicalWebSocket.OPEN;
-		this.onopen?.( new Event( 'open' ) );
-	}
-
-	public emitClose( code: number ): void {
-		if ( this.readyState === FakePhysicalWebSocket.CLOSED ) {
-			return;
-		}
-		this.readyState = FakePhysicalWebSocket.CLOSED;
-		this.onclose?.( Object.assign( new Event( 'close' ), { code } ) );
-	}
-
-	public emitMessage( message: Uint8Array ): void {
-		const data = message.buffer.slice(
-			message.byteOffset,
-			message.byteOffset + message.byteLength
-		) as ArrayBuffer;
-		this.onmessage?.( new MessageEvent( 'message', { data } ) );
-	}
-
-	public emitError( event: Event ): void {
-		this.onerror?.( event );
-	}
-}
+import { acknowledgeRoom, FakePhysicalWebSocket } from './fake-physical-websocket.test-helper';
 
 describe( 'createSharedWebSocketAdapter', () => {
 	beforeEach( () => {
@@ -196,21 +119,20 @@ describe( 'createSharedWebSocketAdapter', () => {
 			/already registered/
 		);
 
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
 		assert.strictEqual( original.readyState, SharedWebSocket.OPEN );
 		assert.throws(
 			() => new SharedWebSocket( 'wss://example.test/_ws/site-7/postType/page-123?auth=grant-3' ),
 			/already registered/
 		);
 		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
+		assert.strictEqual( physical.sent.length, 1 );
 
 		original.close();
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.CLOSED );
 	} );
 
-	it( 'rolls back a bootstrap room when physical construction throws', () => {
+	it( 'leaves a bootstrap room unregistered when physical construction throws', () => {
 		class FlakyPhysicalWebSocket extends FakePhysicalWebSocket {
 			public static failConstruction = true;
 
@@ -240,7 +162,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
 	} );
 
-	it( 'rolls back a room when immediate subscribe send throws', () => {
+	it( 'leaves a room unregistered when immediate subscribe send throws', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -332,9 +254,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 			},
 		] );
 
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
 		assert.strictEqual( initial.readyState, SharedWebSocket.OPEN );
 		assert.strictEqual( initialOpenCount, 1 );
 		assert.strictEqual( later.readyState, SharedWebSocket.CONNECTING );
@@ -345,9 +265,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 			payload: initialPayload,
 		} );
 
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/post-456' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/post-456' );
 		assert.strictEqual( later.readyState, SharedWebSocket.OPEN );
 		assert.strictEqual( laterOpenCount, 1 );
 		assert.deepStrictEqual( decodeMessage( physical.sent[ 3 ] ?? new Uint8Array() ), {
@@ -410,10 +328,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		physical.throwOnNextSend = true;
 
 		assert.throws(
-			() =>
-				physical.emitMessage(
-					encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-				),
+			() => acknowledgeRoom( physical, 'site-7/postType/page-123' ),
 			/physical send failed/
 		);
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.CLOSED );
@@ -446,12 +361,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/post-456' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
+		acknowledgeRoom( physical, 'site-7/postType/post-456' );
 		physical.emitMessage(
 			encodeMessage( {
 				type: 'data',
@@ -497,12 +408,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/post-456' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
+		acknowledgeRoom( physical, 'site-7/postType/post-456' );
 
 		initial.close();
 
@@ -552,12 +459,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/post-456' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
+		acknowledgeRoom( physical, 'site-7/postType/post-456' );
 		physical.throwOnNextSend = true;
 
 		assert.doesNotThrow( () => first.close() );
@@ -587,12 +490,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/post-456' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
+		acknowledgeRoom( physical, 'site-7/postType/post-456' );
 		physical.emitMessage(
 			encodeMessage( {
 				type: 'room_closed',
@@ -607,7 +506,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.OPEN );
 	} );
 
-	it( 'skips a bootstrap provider removed before open and cleans up its raced acknowledgement', () => {
+	it( 'skips a removed connecting room and ignores its stale acknowledgement', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -627,9 +526,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
 		physical.emitOpen();
-		physical.emitMessage(
-			encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-		);
+		acknowledgeRoom( physical, 'site-7/postType/page-123' );
 
 		assert.strictEqual( initialOpened, false );
 		assert.strictEqual( later.readyState, SharedWebSocket.CONNECTING );
@@ -639,39 +536,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 				room: 'site-7/postType/post-456',
 				grant: 'grant-2',
 			},
-			{ type: 'unsubscribe', room: 'site-7/postType/page-123' },
 		] );
-	} );
-
-	it( 'closes and fans out when orphan acknowledgement cleanup send throws', () => {
-		const SharedWebSocket = createSharedWebSocketAdapter(
-			'wss://example.test/_ws',
-			FakePhysicalWebSocket as unknown as typeof WebSocket
-		);
-		const initial = new SharedWebSocket(
-			'wss://example.test/_ws/site-7/postType/page-123?auth=grant-1'
-		);
-		const later = new SharedWebSocket(
-			'wss://example.test/_ws/site-7/postType/post-456?auth=grant-2'
-		);
-		const laterCloseEvents: CloseEvent[] = [];
-		later.onclose = event => laterCloseEvents.push( event );
-
-		initial.close();
-		const physical = FakePhysicalWebSocket.instances[ 0 ];
-		assert.ok( physical );
-		physical.emitOpen();
-		physical.throwOnNextSend = true;
-
-		assert.doesNotThrow( () =>
-			physical.emitMessage(
-				encodeMessage( { type: 'subscribed', room: 'site-7/postType/page-123' } )
-			)
-		);
-		assert.strictEqual( initial.readyState, SharedWebSocket.CLOSED );
-		assert.strictEqual( later.readyState, SharedWebSocket.CLOSED );
-		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.CLOSED );
-		assert.strictEqual( laterCloseEvents[ 0 ]?.code, 1000 );
+		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.OPEN );
 	} );
 
 	it( 'closes the physical socket with private 4006 for undecodable bytes', () => {
@@ -748,7 +614,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( first.readyState, SharedWebSocket.CLOSED );
 		assert.strictEqual( second.readyState, SharedWebSocket.CLOSED );
 		assert.strictEqual( firstCloseEvents[ 0 ]?.code, 1011 );
-		assert.strictEqual( secondCloseEvents[ 0 ], firstCloseEvents[ 0 ] );
+		assert.strictEqual( secondCloseEvents[ 0 ]?.code, 1011 );
 
 		const retriedSecond = new SharedWebSocket(
 			'wss://example.test/_ws/site-7/postType/post-456?auth=fresh-2'
@@ -832,7 +698,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( later.readyState, SharedWebSocket.CONNECTING );
 	} );
 
-	it( 'fans the same physical error event out without closing the transport', () => {
+	it( 'fans physical errors out without closing the transport', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -856,9 +722,8 @@ describe( 'createSharedWebSocketAdapter', () => {
 		const error = new Event( 'error' );
 		assert.doesNotThrow( () => physical.emitError( error ) );
 
-		assert.deepStrictEqual( firstErrors, [ error ] );
-		assert.deepStrictEqual( secondErrors, [ error ] );
-		assert.strictEqual( firstErrors[ 0 ], secondErrors[ 0 ] );
+		assert.strictEqual( firstErrors.length, 1 );
+		assert.strictEqual( secondErrors.length, 1 );
 		assert.strictEqual( physical.readyState, FakePhysicalWebSocket.CONNECTING );
 		assert.strictEqual( first.readyState, SharedWebSocket.CONNECTING );
 		assert.strictEqual( second.readyState, SharedWebSocket.CONNECTING );

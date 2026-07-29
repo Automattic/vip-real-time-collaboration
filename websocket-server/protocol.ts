@@ -53,53 +53,31 @@ export const MAX_ROOM_NAME_BYTES = 512;
  */
 export const MAX_GRANT_BYTES = 8192;
 
-const MAX_VARUINT = 0xffffffff;
 const MIN_PRIVATE_ROOM_CLOSE_CODE = 4000;
 const MAX_PRIVATE_ROOM_CLOSE_CODE = 4999;
 
+export type ProtocolMessage =
+	| { type: 'subscribe'; room: string; grant: string }
+	| { type: 'subscribed'; room: string }
+	| {
+			type: 'data';
+			room: string;
+			/** Decoded payloads view the input buffer; copy before mutation or when independent ownership is required. */
+			payload: Uint8Array;
+	  }
+	| { type: 'unsubscribe'; room: string }
+	| { type: 'room_closed'; room: string; code: number };
+
 // Stable wire identifiers. Do not renumber or reuse existing values; doing so
 // would break compatibility with already-deployed peers.
-const WIRE_TYPE_SUBSCRIBE = 0;
-const WIRE_TYPE_SUBSCRIBED = 1;
-const WIRE_TYPE_DATA = 2;
-const WIRE_TYPE_UNSUBSCRIBE = 3;
-const WIRE_TYPE_ROOM_CLOSED = 4;
-
-export interface SubscribeMessage {
-	type: 'subscribe';
-	room: string;
-	grant: string;
-}
-
-export interface SubscribedMessage {
-	type: 'subscribed';
-	room: string;
-}
-
-export interface DataMessage {
-	type: 'data';
-	room: string;
-	/** Decoded payloads view the input buffer; copy before mutation or when independent ownership is required. */
-	payload: Uint8Array;
-}
-
-export interface UnsubscribeMessage {
-	type: 'unsubscribe';
-	room: string;
-}
-
-export interface RoomClosedMessage {
-	type: 'room_closed';
-	room: string;
-	code: number;
-}
-
-export type ProtocolMessage =
-	| SubscribeMessage
-	| SubscribedMessage
-	| DataMessage
-	| UnsubscribeMessage
-	| RoomClosedMessage;
+const MESSAGE_TYPE_TO_WIRE_ID = {
+	subscribe: 0,
+	subscribed: 1,
+	data: 2,
+	unsubscribe: 3,
+	room_closed: 4,
+} as const satisfies Record< ProtocolMessage[ 'type' ], number >;
+const KNOWN_WIRE_IDS = new Set< number >( Object.values( MESSAGE_TYPE_TO_WIRE_ID ) );
 
 export type ProtocolErrorReason =
 	| 'truncated'
@@ -125,15 +103,6 @@ export class ProtocolError extends Error {
 	}
 }
 
-function writeVarUint( encoder: encoding.Encoder, value: number ): void {
-	// Callers validate range; this guards internal misuse.
-	if ( ! Number.isInteger( value ) || value < 0 || value > MAX_VARUINT ) {
-		throw new ProtocolError( 'varuint_too_large', `Cannot encode varuint: ${ value }` );
-	}
-
-	encoding.writeVarUint( encoder, value );
-}
-
 function writeString(
 	encoder: encoding.Encoder,
 	value: string,
@@ -147,7 +116,7 @@ function writeString(
 			`String of ${ encoded.length } bytes exceeds limit of ${ maxBytes }`
 		);
 	}
-	writeVarUint( encoder, encoded.length );
+	encoding.writeVarUint( encoder, encoded.length );
 	encoding.writeUint8Array( encoder, encoded );
 }
 
@@ -182,10 +151,9 @@ class Reader {
 	}
 
 	public readVarUint(): number {
-		const start = this.decoder.pos;
-		let byteIndex = 0;
-		while ( true ) {
-			const byte = this.decoder.arr[ start + byteIndex ];
+		let value = 0;
+		for ( let byteIndex = 0; byteIndex < 5; byteIndex += 1 ) {
+			const byte = this.decoder.arr[ this.decoder.pos ];
 			if ( byte === undefined ) {
 				throw new ProtocolError( 'truncated', 'Message ended inside a varuint' );
 			}
@@ -201,12 +169,14 @@ class Reader {
 				}
 			}
 
+			this.decoder.pos += 1;
+			value += ( byte % 0x80 ) * 2 ** ( byteIndex * 7 );
 			if ( byte < 0x80 ) {
-				return decoding.readVarUint( this.decoder );
+				return value;
 			}
-
-			byteIndex += 1;
 		}
+
+		throw new ProtocolError( 'varuint_too_large', 'Varuint uses more than 5 bytes' );
 	}
 
 	public readString( maxBytes: number, tooLongReason: ProtocolErrorReason ): string {
@@ -250,10 +220,10 @@ class Reader {
  * (JS) caller can reach this; the `never` parameter turns an unhandled new
  * message type into a compile-time error at the call site.
  */
-function unknownMessageType( messageType: never ): ProtocolError {
+function unknownMessageType( message: never ): ProtocolError {
 	return new ProtocolError(
 		'unknown_message_type',
-		`Unknown message type: ${ String( messageType ) }`
+		`Unknown message type: ${ String( ( message as { type?: unknown } ).type ) }`
 	);
 }
 
@@ -264,58 +234,49 @@ function unknownMessageType( messageType: never ): ProtocolError {
  */
 export function encodeMessage( message: ProtocolMessage ): Uint8Array {
 	const messageType = message.type;
+	if ( ! Object.prototype.hasOwnProperty.call( MESSAGE_TYPE_TO_WIRE_ID, messageType ) ) {
+		throw unknownMessageType( message as never );
+	}
+	const wireType = MESSAGE_TYPE_TO_WIRE_ID[ messageType ];
+
+	validateRoom( message.room );
 	const encoder = encoding.createEncoder();
-	writeVarUint( encoder, PROTOCOL_VERSION );
+	encoding.writeVarUint( encoder, PROTOCOL_VERSION );
+	encoding.writeVarUint( encoder, wireType );
+	writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
 
 	switch ( messageType ) {
 		case 'subscribe': {
-			validateRoom( message.room );
 			if ( message.grant.length === 0 ) {
 				throw new ProtocolError( 'empty_grant', 'Grant must not be empty' );
 			}
-			writeVarUint( encoder, WIRE_TYPE_SUBSCRIBE );
-			writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
 			writeString( encoder, message.grant, MAX_GRANT_BYTES, 'grant_too_long' );
-			return encoding.toUint8Array( encoder );
+			break;
 		}
 
-		case 'subscribed': {
-			validateRoom( message.room );
-			writeVarUint( encoder, WIRE_TYPE_SUBSCRIBED );
-			writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
-			return encoding.toUint8Array( encoder );
-		}
+		case 'subscribed':
+		case 'unsubscribe':
+			break;
 
 		case 'data': {
-			validateRoom( message.room );
 			if ( message.payload.length === 0 ) {
 				throw new ProtocolError( 'empty_payload', 'Data payload must not be empty' );
 			}
-			writeVarUint( encoder, WIRE_TYPE_DATA );
-			writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
 			encoding.writeUint8Array( encoder, message.payload );
-			return encoding.toUint8Array( encoder );
-		}
-
-		case 'unsubscribe': {
-			validateRoom( message.room );
-			writeVarUint( encoder, WIRE_TYPE_UNSUBSCRIBE );
-			writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
-			return encoding.toUint8Array( encoder );
+			break;
 		}
 
 		case 'room_closed': {
-			validateRoom( message.room );
 			validateRoomCloseCode( message.code );
-			writeVarUint( encoder, WIRE_TYPE_ROOM_CLOSED );
-			writeString( encoder, message.room, MAX_ROOM_NAME_BYTES, 'room_too_long' );
-			writeVarUint( encoder, message.code );
-			return encoding.toUint8Array( encoder );
+			encoding.writeVarUint( encoder, message.code );
+			break;
 		}
 
 		default:
-			throw unknownMessageType( messageType );
+			throw unknownMessageType( message );
 	}
+
+	return encoding.toUint8Array( encoder );
 }
 
 /**
@@ -336,7 +297,7 @@ export function decodeMessage( data: Uint8Array ): ProtocolMessage {
 	// protocol revisions fail with a clear reason instead of a misleading
 	// parse error from assuming today's field layout.
 	const wireType = reader.readVarUint();
-	if ( wireType < WIRE_TYPE_SUBSCRIBE || wireType > WIRE_TYPE_ROOM_CLOSED ) {
+	if ( ! KNOWN_WIRE_IDS.has( wireType ) ) {
 		throw new ProtocolError( 'unknown_message_type', `Unknown message type: ${ wireType }` );
 	}
 
@@ -344,7 +305,7 @@ export function decodeMessage( data: Uint8Array ): ProtocolMessage {
 	validateRoom( room );
 
 	switch ( wireType ) {
-		case WIRE_TYPE_SUBSCRIBE: {
+		case MESSAGE_TYPE_TO_WIRE_ID.subscribe: {
 			const grant = reader.readString( MAX_GRANT_BYTES, 'grant_too_long' );
 			if ( grant.length === 0 ) {
 				throw new ProtocolError( 'empty_grant', 'Grant must not be empty' );
@@ -353,12 +314,12 @@ export function decodeMessage( data: Uint8Array ): ProtocolMessage {
 			return { type: 'subscribe', room, grant };
 		}
 
-		case WIRE_TYPE_SUBSCRIBED: {
+		case MESSAGE_TYPE_TO_WIRE_ID.subscribed: {
 			reader.assertDone();
 			return { type: 'subscribed', room };
 		}
 
-		case WIRE_TYPE_DATA: {
+		case MESSAGE_TYPE_TO_WIRE_ID.data: {
 			const payload = reader.readTail();
 			if ( payload.length === 0 ) {
 				throw new ProtocolError( 'empty_payload', 'Data payload must not be empty' );
@@ -366,12 +327,12 @@ export function decodeMessage( data: Uint8Array ): ProtocolMessage {
 			return { type: 'data', room, payload };
 		}
 
-		case WIRE_TYPE_UNSUBSCRIBE: {
+		case MESSAGE_TYPE_TO_WIRE_ID.unsubscribe: {
 			reader.assertDone();
 			return { type: 'unsubscribe', room };
 		}
 
-		case WIRE_TYPE_ROOM_CLOSED: {
+		case MESSAGE_TYPE_TO_WIRE_ID.room_closed: {
 			const code = reader.readVarUint();
 			validateRoomCloseCode( code );
 			reader.assertDone();

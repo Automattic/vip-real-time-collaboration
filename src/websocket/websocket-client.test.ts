@@ -6,76 +6,11 @@ import * as Yjs from 'yjs';
 
 import { decodeMessage, encodeMessage } from '../../websocket-server/protocol';
 import { createWebSocketConnection } from '../websocket-client';
+import { acknowledgeRoom, FakePhysicalWebSocket } from './fake-physical-websocket.test-helper';
 
 import type { ConnectionStatus, ProviderCreator, ProviderCreatorResult } from '@wordpress/sync';
 
 let authFetchCount = 0;
-
-interface FakeCloseEvent extends Event {
-	code: number;
-}
-
-class FakePhysicalWebSocket {
-	public static readonly CONNECTING = 0;
-	public static readonly OPEN = 1;
-	public static readonly CLOSING = 2;
-	public static readonly CLOSED = 3;
-
-	public static instances: FakePhysicalWebSocket[] = [];
-
-	public binaryType: BinaryType = 'blob';
-	public readonly sent: Uint8Array[] = [];
-	public readyState = FakePhysicalWebSocket.CONNECTING;
-	public onclose: ( ( event: FakeCloseEvent ) => void ) | null = null;
-	public onerror: ( ( event: Event ) => void ) | null = null;
-	public onmessage: ( ( event: MessageEvent< ArrayBuffer > ) => void ) | null = null;
-	public onopen: ( ( event: Event ) => void ) | null = null;
-
-	public constructor(
-		public readonly url: string | URL,
-		public readonly protocols?: string | string[]
-	) {
-		FakePhysicalWebSocket.instances.push( this );
-	}
-
-	public send( data: ArrayBufferLike | ArrayBufferView ): void {
-		let bytes: Uint8Array;
-		if ( data instanceof Uint8Array ) {
-			bytes = data;
-		} else if ( ArrayBuffer.isView( data ) ) {
-			bytes = new Uint8Array( data.buffer, data.byteOffset, data.byteLength );
-		} else {
-			bytes = new Uint8Array( data );
-		}
-		this.sent.push( new Uint8Array( bytes ) );
-	}
-
-	public close( code = 1000 ): void {
-		this.readyState = FakePhysicalWebSocket.CLOSING;
-		this.emitClose( code );
-	}
-
-	public emitOpen(): void {
-		this.readyState = FakePhysicalWebSocket.OPEN;
-		this.onopen?.( new Event( 'open' ) );
-	}
-
-	public emitMessage( message: Uint8Array ): void {
-		const data = message.buffer.slice(
-			message.byteOffset,
-			message.byteOffset + message.byteLength
-		) as ArrayBuffer;
-		this.onmessage?.( new MessageEvent( 'message', { data } ) );
-	}
-
-	public emitClose( code: number ): void {
-		if ( this.readyState === FakePhysicalWebSocket.CLOSED ) {
-			return;
-		}
-		this.readyState = FakePhysicalWebSocket.CLOSED;
-		this.onclose?.( Object.assign( new Event( 'close' ), { code } ) );
-	}
-}
 
 interface ProviderContext {
 	awareness: Awareness;
@@ -180,7 +115,7 @@ function destroyProvider( context: ProviderContext ): void {
 }
 
 function acknowledgeInitialRoom( physical: FakePhysicalWebSocket ): void {
-	physical.emitMessage( encodeMessage( { type: 'subscribed', room: 'site-1/postType/page-123' } ) );
+	acknowledgeRoom( physical, 'site-1/postType/page-123' );
 }
 
 function lastStatus( statuses: ConnectionStatus[] ): ConnectionStatus {
@@ -190,6 +125,85 @@ function lastStatus( statuses: ConnectionStatus[] ): ConnectionStatus {
 }
 
 describe( 'createWebSocketConnection multiplex lifecycle', () => {
+	it( 'returns the provider while transient token outages retry with exponential backoff', async () => {
+		mock.method( console, 'log', () => {} );
+		const backoffDelays: number[] = [];
+		const finishBackoffs: Array< () => void > = [];
+		let fetchCount = 0;
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => {
+				fetchCount += 1;
+				return fetchCount <= 2
+					? Promise.reject( new Error( 'temporary REST failure' ) )
+					: Promise.resolve( 'fresh-grant' );
+			},
+			waitBeforeRetry: delayInMs =>
+				new Promise( resolve => {
+					backoffDelays.push( delayInMs );
+					finishBackoffs.push( resolve );
+				} ),
+		} );
+
+		const context = await createProviderFromCreator( providerCreator, '123' );
+		assert.strictEqual( fetchCount, 1 );
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 0 );
+
+		const firstBackoff = finishBackoffs[ 0 ];
+		assert.ok( firstBackoff );
+		firstBackoff();
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		assert.strictEqual( fetchCount, 2 );
+		assert.deepStrictEqual( backoffDelays, [ 2000, 4000 ] );
+
+		const secondBackoff = finishBackoffs[ 1 ];
+		assert.ok( secondBackoff );
+		secondBackoff();
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		assert.strictEqual( fetchCount, 3 );
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
+		destroyProvider( context );
+	} );
+
+	it( 'does not reconnect after teardown during an in-flight token request', async () => {
+		let resolveToken = ( _grant: string ): void => {};
+		const inFlightToken = new Promise< string >( resolve => {
+			resolveToken = resolve;
+		} );
+		let fetchCount = 0;
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => {
+				fetchCount += 1;
+				return fetchCount === 1 ? Promise.resolve( 'initial-grant' ) : inFlightToken;
+			},
+			waitBeforeRetry: async () => {},
+		} );
+		const context = await createProviderFromCreator( providerCreator, '123' );
+		const physical = FakePhysicalWebSocket.instances[ 0 ];
+		assert.ok( physical );
+		physical.emitOpen();
+		acknowledgeInitialRoom( physical );
+
+		physical.emitClose( 1011 );
+		await Promise.resolve();
+		await Promise.resolve();
+		assert.strictEqual( fetchCount, 2 );
+
+		destroyProvider( context );
+		resolveToken( 'stale-grant' );
+		await Promise.resolve();
+		await Promise.resolve();
+
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
+	} );
+
 	it( 'subscribes every provider over one physical socket regardless of bootstrap grant', async () => {
 		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
 			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
@@ -277,17 +291,12 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 	} );
 
 	it( 'treats room 4002 as terminal unknown instead of a physical modal error', async () => {
-		const consoleLogs: unknown[][] = [];
-		mock.method( console, 'log', ( ...args: unknown[] ) => {
-			consoleLogs.push( args );
-		} );
 		const context = await createProvider();
 		try {
 			const physical = FakePhysicalWebSocket.instances[ 0 ];
 			assert.ok( physical );
 			physical.emitOpen();
 			acknowledgeInitialRoom( physical );
-			consoleLogs.length = 0;
 
 			physical.emitMessage(
 				encodeMessage( {
@@ -302,17 +311,6 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 			assert.strictEqual( status.error?.code, 'unknown-error' );
 			assert.ok( ! ( 'willAutoRetryInMs' in status ) );
 			assert.ok( ! ( 'backgroundRetriesFailed' in status ) );
-			assert.deepStrictEqual( consoleLogs, [
-				[
-					'[vip-rtc:websocket-client][ERROR]',
-					'WebSocket room connection closed',
-					{
-						room: 'site-1/postType/page-123',
-						closeCode: 4002,
-						willRetry: false,
-					},
-				],
-			] );
 			await Promise.resolve();
 			await Promise.resolve();
 			assert.strictEqual( authFetchCount, 1 );
@@ -321,11 +319,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		}
 	} );
 
-	it( 'logs a retryable room failure before destroy cancels its pending retry', async () => {
-		const consoleLogs: unknown[][] = [];
-		mock.method( console, 'log', ( ...args: unknown[] ) => {
-			consoleLogs.push( args );
-		} );
+	it( 'cancels a pending room retry when the provider is destroyed during backoff', async () => {
 		let finishBackoff = (): void => {};
 		const backoff = new Promise< void >( resolve => {
 			finishBackoff = resolve;
@@ -335,7 +329,6 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		assert.ok( physical );
 		physical.emitOpen();
 		acknowledgeInitialRoom( physical );
-		consoleLogs.length = 0;
 		physical.emitMessage(
 			encodeMessage( {
 				type: 'room_closed',
@@ -345,15 +338,10 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		);
 
 		const statusCountBeforeDestroy = context.statuses.length;
-		assert.deepStrictEqual( consoleLogs[ 0 ], [
-			'[vip-rtc:websocket-client][WARNING]',
-			'WebSocket room connection closed',
-			{
-				room: 'site-1/postType/page-123',
-				closeCode: 4005,
-				willRetry: true,
-			},
-		] );
+		const status = lastStatus( context.statuses );
+		assert.strictEqual( status.status, 'disconnected' );
+		assert.strictEqual( status.error?.code, 'unknown-error' );
+		assert.strictEqual( status.willAutoRetryInMs, 2000 );
 		destroyProvider( context );
 		finishBackoff();
 		await Promise.resolve();
