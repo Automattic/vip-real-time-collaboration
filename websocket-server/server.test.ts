@@ -212,7 +212,7 @@ describe( 'WebSocket transport routing', () => {
 		it( `routes neutral ${ path } through multiplex and selects V1 from ${ protocols.join(
 			', '
 		) }`, async () => {
-			const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_rooms' );
+			const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_room_connections' );
 			const baseUrl = await startServer();
 			const room = `site-7/post-${ protocols.length }`;
 			const bootstrapGrant = grant( room );
@@ -230,7 +230,10 @@ describe( 'WebSocket transport routing', () => {
 			assert.strictEqual( selectedHeader, MULTIPLEX_SUBPROTOCOL );
 			assert.strictEqual( docs.has( room ), false );
 			assert.strictEqual( runningServer?.wss.clients.size, 1 );
-			assert.strictEqual( await metricValue( 'wpvip_rtc_active_rooms' ), activeRoomsBefore );
+			assert.strictEqual(
+				await metricValue( 'wpvip_rtc_active_room_connections' ),
+				activeRoomsBefore
+			);
 
 			const messages: ProtocolMessage[] = [];
 			const roomReady = new Promise< void >( resolve => {
@@ -444,7 +447,7 @@ describe( 'WebSocket transport routing', () => {
 
 	it( 'returns a retryable room close when the bootstrap grant expires before subscribe', async t => {
 		t.mock.timers.enable( { apis: [ 'Date' ], now: 1_700_000_000_000 } );
-		const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_rooms' );
+		const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_room_connections' );
 		const baseUrl = await startServer();
 		const room = 'site-7/post-expired-bootstrap';
 		const bootstrapGrant = grant( room, { exp: 1_700_000_001 } );
@@ -459,7 +462,10 @@ describe( 'WebSocket transport routing', () => {
 		await roomClosed;
 
 		assert.strictEqual( docs.has( room ), false );
-		assert.strictEqual( await metricValue( 'wpvip_rtc_active_rooms' ), activeRoomsBefore );
+		assert.strictEqual(
+			await metricValue( 'wpvip_rtc_active_room_connections' ),
+			activeRoomsBefore
+		);
 		assert.strictEqual( client.readyState, WebSocket.OPEN );
 	} );
 
@@ -468,7 +474,7 @@ describe( 'WebSocket transport routing', () => {
 			protocol ? 'multiplex' : 'legacy'
 		} transport`, async () => {
 			const activeConnectionsBefore = await metricValue( 'wpvip_rtc_active_connections' );
-			const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_rooms' );
+			const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_room_connections' );
 			const messagesBefore = await metricValue( 'wpvip_rtc_messages_total' );
 			const baseUrl = await startServer( 100 );
 			const room = `site-7/post-common-${ protocol ? 'multiplex' : 'legacy' }`;
@@ -483,7 +489,10 @@ describe( 'WebSocket transport routing', () => {
 			if ( protocol ) {
 				assert.strictEqual( runningServer?.wss.clients.size, 1 );
 				assert.strictEqual( docs.has( room ), false );
-				assert.strictEqual( await metricValue( 'wpvip_rtc_active_rooms' ), activeRoomsBefore );
+				assert.strictEqual(
+					await metricValue( 'wpvip_rtc_active_room_connections' ),
+					activeRoomsBefore
+				);
 			}
 			client.send(
 				protocol ? encodeMessage( { type: 'unsubscribe', room } ) : Buffer.from( [ 99 ] )

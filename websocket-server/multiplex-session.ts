@@ -8,7 +8,12 @@ import {
 	type SyncTokenPayload,
 } from './auth';
 import { CONNECTION_TIMEOUT_CLOSE } from './config';
-import { recordConnectionFailure, recordRoomClose, recordRoomOpen } from './metrics';
+import {
+	recordConnectionFailure,
+	recordPeakRoomsPerConnection,
+	recordRoomClose,
+	recordRoomOpen,
+} from './metrics';
 import { startPhysicalHeartbeat } from './physical-heartbeat';
 import { decodeMessage, encodeMessage, type ProtocolMessage } from './protocol';
 import { RoomWebSocket } from './room-websocket';
@@ -39,6 +44,7 @@ export class MultiplexSession {
 	private readonly closedRooms = new Set< string >();
 	private readonly expectedRoomCloses = new Set< RoomWebSocket >();
 	private authorizationBypassAttempts = 0;
+	private peakRoomCount = 0;
 	private started = false;
 
 	public constructor(
@@ -54,7 +60,7 @@ export class MultiplexSession {
 		}
 		this.started = true;
 		this.physical.on( 'message', this.handlePhysicalMessage );
-		this.physical.on( 'close', this.handlePhysicalClose );
+		this.physical.once( 'close', this.handlePhysicalClose );
 		startPhysicalHeartbeat( this.physical, {
 			hasRooms: () => this.rooms.size > 0,
 			onEmpty: () => {
@@ -114,6 +120,7 @@ export class MultiplexSession {
 	};
 
 	private readonly handlePhysicalClose = (): void => {
+		recordPeakRoomsPerConnection( this.peakRoomCount );
 		this.cleanupRooms();
 	};
 
@@ -211,6 +218,7 @@ export class MultiplexSession {
 			this.sendPhysicalMessage( { type: 'data', room, payload }, callback );
 		} );
 		this.rooms.set( room, roomSocket );
+		this.peakRoomCount = Math.max( this.peakRoomCount, this.rooms.size );
 		this.closedRooms.delete( room );
 		roomSocket.once( 'close', () => {
 			const expectedClose = this.expectedRoomCloses.delete( roomSocket );

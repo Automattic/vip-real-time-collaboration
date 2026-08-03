@@ -54,9 +54,15 @@ const activeCollaboratorsGauge = new Gauge( {
 	help: 'Number of active collaborators (unique WordPress users by user_id)',
 } );
 
-const activeRoomsGauge = new Gauge( {
-	name: `${ METRICS_NAMESPACE }_active_rooms`,
-	help: 'Number of active logical multiplex rooms',
+const activeRoomConnectionsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_room_connections`,
+	help: 'Number of active logical multiplex room connections',
+} );
+
+const peakRoomsPerConnectionHistogram = new Histogram( {
+	name: `${ METRICS_NAMESPACE }_peak_rooms_per_connection`,
+	help: 'Peak number of active logical room connections per multiplex connection',
+	buckets: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 40 ],
 } );
 
 const messagesCounter = new Counter( {
@@ -113,11 +119,15 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 }
 
 export function recordRoomOpen(): void {
-	activeRoomsGauge.inc();
+	activeRoomConnectionsGauge.inc();
 }
 
 export function recordRoomClose(): void {
-	activeRoomsGauge.dec();
+	activeRoomConnectionsGauge.dec();
+}
+
+export function recordPeakRoomsPerConnection( peakRooms: number ): void {
+	peakRoomsPerConnectionHistogram.observe( peakRooms );
 }
 
 export function recordConnectionFailure( reason: string ): void {
