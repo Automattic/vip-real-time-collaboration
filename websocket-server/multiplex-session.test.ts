@@ -56,6 +56,7 @@ class RecordingPhysicalSocket extends EventEmitter {
 	public nextSendThrow: Error | undefined;
 	public deferSendCallbacks = false;
 	public onSend: ( () => void ) | undefined;
+	public onTerminate: ( () => void ) | undefined;
 	private readonly pendingSendCallbacks: Array< () => void > = [];
 
 	public send(
@@ -103,6 +104,7 @@ class RecordingPhysicalSocket extends EventEmitter {
 	}
 
 	public terminate(): void {
+		this.onTerminate?.();
 		this.terminateCalls += 1;
 		this.close( 1006 );
 	}
@@ -179,20 +181,45 @@ async function activeRoomMetric(): Promise< number > {
 	return Number( match[ 1 ] );
 }
 
+async function zeroRoomTimeoutMetric(): Promise< number > {
+	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_connection_failures_total' );
+	const match = metric.match(
+		/^wpvip_rtc_connection_failures_total\{reason="zero_room_timeout"\} (\d+)$/m
+	);
+	return match ? Number( match[ 1 ] ) : 0;
+}
+
 describe( 'MultiplexSession', () => {
-	it( 'uses one responsive physical heartbeat before and after rooms subscribe', t => {
+	it( 'closes an empty physical socket on the first heartbeat tick', async t => {
+		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
+		const { physical, session } = createSession();
+		const baseline = await zeroRoomTimeoutMetric();
+		try {
+			physical.delayCloseEvent = true;
+			session.start();
+
+			t.mock.timers.tick( 30_000 );
+
+			assert.strictEqual( physical.closeCode, 4001 );
+			assert.strictEqual( physical.readyState, WebSocket.CLOSING );
+			assert.strictEqual( await zeroRoomTimeoutMetric(), baseline + 1 );
+			assert.strictEqual( physical.pingCalls, 0 );
+			assert.strictEqual( physical.terminateCalls, 0 );
+		} finally {
+			physical.delayCloseEvent = false;
+			physical.close();
+			t.mock.timers.reset();
+		}
+	} );
+
+	it( 'uses one responsive physical heartbeat while rooms are active', t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
 		const { physical, session } = createSession();
 		try {
 			session.start();
+			subscribeBootstrapRoom( physical );
 			t.mock.timers.tick( 30_000 );
 			physical.emit( 'pong', Buffer.alloc( 0 ) );
-			subscribeBootstrapRoom( physical );
-			physical.receive( {
-				type: 'subscribe',
-				room: 'site-7/post-2',
-				grant: grant( { room_name: 'site-7/post-2' } ),
-			} );
 
 			t.mock.timers.tick( 30_000 );
 			physical.emit( 'pong', Buffer.alloc( 0 ) );
@@ -205,17 +232,35 @@ describe( 'MultiplexSession', () => {
 		}
 	} );
 
-	it( 'terminates the physical socket when a pong is missed', t => {
+	it( 'cleans active rooms before terminating after a missed pong', async t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
 		const { physical, session } = createSession();
+		const baseline = await activeRoomMetric();
+		let roomsActiveWhenTerminated: boolean | undefined;
+		let roomMetricWhenTerminated: Promise< number > | undefined;
 		try {
 			session.start();
+			subscribeBootstrapRoom( physical );
+			physical.receive( {
+				type: 'subscribe',
+				room: 'site-7/post-2',
+				grant: grant( { room_name: 'site-7/post-2' } ),
+			} );
+			physical.delayCloseEvent = true;
+			physical.onTerminate = () => {
+				roomsActiveWhenTerminated = docs.has( 'site-7/post-1' ) || docs.has( 'site-7/post-2' );
+				roomMetricWhenTerminated = activeRoomMetric();
+			};
 
 			t.mock.timers.tick( 60_000 );
 
+			assert.strictEqual( roomsActiveWhenTerminated, false );
+			assert.ok( roomMetricWhenTerminated );
+			assert.strictEqual( await roomMetricWhenTerminated, baseline );
 			assert.strictEqual( physical.terminateCalls, 1 );
-			assert.strictEqual( physical.readyState, WebSocket.CLOSED );
+			assert.strictEqual( physical.readyState, WebSocket.CLOSING );
 		} finally {
+			physical.delayCloseEvent = false;
 			physical.close();
 			t.mock.timers.reset();
 		}
@@ -228,29 +273,37 @@ describe( 'MultiplexSession', () => {
 			session.start();
 			assert.strictEqual( physical.listenerCount( 'pong' ), 1 );
 			physical.close();
+			assert.strictEqual( physical.listenerCount( 'pong' ), 0 );
 
 			t.mock.timers.tick( 30_000 );
 
 			assert.strictEqual( physical.pingCalls, 0 );
-			assert.strictEqual( physical.listenerCount( 'pong' ), 0 );
 		} finally {
 			t.mock.timers.reset();
 		}
 	} );
 
-	it( 'terminates the physical socket when ping throws', t => {
+	it( 'cleans the active room before terminating when ping throws', t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
 		const { physical, session } = createSession();
+		let roomActiveWhenTerminated: boolean | undefined;
 		try {
 			physical.nextPingThrow = new Error( 'ping failed' );
 			session.start();
+			subscribeBootstrapRoom( physical );
+			physical.delayCloseEvent = true;
+			physical.onTerminate = () => {
+				roomActiveWhenTerminated = docs.has( 'site-7/post-1' );
+			};
 
 			t.mock.timers.tick( 30_000 );
 
+			assert.strictEqual( roomActiveWhenTerminated, false );
 			assert.strictEqual( physical.pingCalls, 1 );
 			assert.strictEqual( physical.terminateCalls, 1 );
-			assert.strictEqual( physical.readyState, WebSocket.CLOSED );
+			assert.strictEqual( physical.readyState, WebSocket.CLOSING );
 		} finally {
+			physical.delayCloseEvent = false;
 			physical.close();
 			t.mock.timers.reset();
 		}

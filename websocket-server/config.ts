@@ -24,8 +24,13 @@ export const MAX_COLLABORATORS = parseIntFromEnv(
 	DEFAULT_MAX_COLLABORATORS
 );
 
+export const CONNECTION_TIMEOUT_CLOSE = {
+	code: 4001,
+	reason: 'Connection timed out. Reconnect.',
+} as const;
+
 export const WEBSOCKET_CLOSE_CODES: Map< number, string > = new Map( [
-	[ 4001, 'Connection timed out. Reconnect.' ],
+	[ CONNECTION_TIMEOUT_CLOSE.code, CONNECTION_TIMEOUT_CLOSE.reason ],
 	[ 4002, 'Server connection limit reached. Please try again later.' ],
 	[ 4003, 'Collaborator limit reached for this environment. Please try again later.' ],
 	[ 4004, 'Room subscription rejected.' ],

@@ -3,7 +3,7 @@ import http from 'node:http';
 import { WebSocketServer } from 'ws';
 
 import { isRequestAuthenticated, validateLegacyRoomPath } from './auth';
-import { WEBSOCKET_CLOSE_CODES } from './config';
+import { CONNECTION_TIMEOUT_CLOSE, WEBSOCKET_CLOSE_CODES } from './config';
 import { shouldAllowCollaborator, shouldAllowConnection } from './connection-limits';
 import {
 	recordConnectionClose,
@@ -126,7 +126,7 @@ export function createRtcServer( options: RtcServerOptions ): RtcServer {
 
 			recordConnectionOpen( wss, { wpClientId } );
 			const timeout = setTimeout( () => {
-				ws.close( 4001, WEBSOCKET_CLOSE_CODES.get( 4001 ) );
+				ws.close( CONNECTION_TIMEOUT_CLOSE.code, CONNECTION_TIMEOUT_CLOSE.reason );
 			}, options.connectionTimeout );
 			ws.on( 'close', code => {
 				clearTimeout( timeout );

@@ -7,7 +7,8 @@ import {
 	verifyTokenGrantIgnoringExpiration,
 	type SyncTokenPayload,
 } from './auth';
-import { recordRoomClose, recordRoomOpen } from './metrics';
+import { CONNECTION_TIMEOUT_CLOSE } from './config';
+import { recordConnectionFailure, recordRoomClose, recordRoomOpen } from './metrics';
 import { startPhysicalHeartbeat } from './physical-heartbeat';
 import { decodeMessage, encodeMessage, type ProtocolMessage } from './protocol';
 import { RoomWebSocket } from './room-websocket';
@@ -54,7 +55,14 @@ export class MultiplexSession {
 		this.started = true;
 		this.physical.on( 'message', this.handlePhysicalMessage );
 		this.physical.on( 'close', this.handlePhysicalClose );
-		startPhysicalHeartbeat( this.physical );
+		startPhysicalHeartbeat( this.physical, {
+			hasRooms: () => this.rooms.size > 0,
+			onEmpty: () => {
+				recordConnectionFailure( 'zero_room_timeout' );
+				this.closePhysical( CONNECTION_TIMEOUT_CLOSE.code, CONNECTION_TIMEOUT_CLOSE.reason );
+			},
+			onUnresponsive: () => this.cleanupRooms(),
+		} );
 	}
 
 	private readonly handlePhysicalMessage = ( data: RawData, isBinary: boolean ): void => {

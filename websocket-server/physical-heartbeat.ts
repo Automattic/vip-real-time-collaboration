@@ -1,17 +1,38 @@
-import type { WebSocket } from 'ws';
+import { WebSocket } from 'ws';
 
 const PHYSICAL_HEARTBEAT_INTERVAL_MS = 30_000;
 
 /** Start the single transport-level liveness check for a multiplex connection. */
-export function startPhysicalHeartbeat( physical: WebSocket ): () => void {
+export function startPhysicalHeartbeat(
+	physical: WebSocket,
+	{
+		hasRooms,
+		onEmpty,
+		onUnresponsive,
+	}: {
+		hasRooms: () => boolean;
+		onEmpty: () => void;
+		onUnresponsive: () => void;
+	}
+): () => void {
 	let pongReceived = true;
 	let stopped = false;
 	const handlePong = (): void => {
 		pongReceived = true;
 	};
 	const interval = setInterval( () => {
+		if ( physical.readyState !== WebSocket.OPEN ) {
+			stop();
+			return;
+		}
+		if ( ! hasRooms() ) {
+			stop();
+			onEmpty();
+			return;
+		}
 		if ( ! pongReceived ) {
 			stop();
+			onUnresponsive();
 			physical.terminate();
 			return;
 		}
@@ -20,6 +41,7 @@ export function startPhysicalHeartbeat( physical: WebSocket ): () => void {
 			physical.ping();
 		} catch {
 			stop();
+			onUnresponsive();
 			physical.terminate();
 		}
 	}, PHYSICAL_HEARTBEAT_INTERVAL_MS );
