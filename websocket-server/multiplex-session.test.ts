@@ -600,7 +600,7 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
-	it( 'rejects a duplicate subscription only for that room through normal cleanup', async () => {
+	it( 'acknowledges a duplicate subscription without replacing its active room', async () => {
 		const baseline = await activeRoomConnectionMetric();
 		const { physical, session } = createSession();
 		session.start();
@@ -610,14 +610,13 @@ describe( 'MultiplexSession', () => {
 			room: 'site-7/post-2',
 			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
-		const document = docs.get( 'site-7/post-2' );
-		assert.ok( document );
+		const originalRoomSocket = activeRoomSocket( 'site-7/post-2' );
 		physical.sent.splice( 0 );
 
 		physical.receive( {
 			type: 'subscribe',
 			room: 'site-7/post-2',
-			grant: grant( { room_name: 'site-7/post-2' } ),
+			grant: 'not-a-grant',
 		} );
 		await Promise.resolve();
 
@@ -625,20 +624,20 @@ describe( 'MultiplexSession', () => {
 			closeCode: physical.closeCode,
 			messages: decoded( physical ),
 			postOneConnections: docs.get( 'site-7/post-1' )?.conns.size,
-			postTwoActive: docs.has( 'site-7/post-2' ),
+			postTwoConnections: docs.get( 'site-7/post-2' )?.conns.size,
+			postTwoSocket: activeRoomSocket( 'site-7/post-2' ),
 			readyState: physical.readyState,
 			roomMetric: await activeRoomConnectionMetric(),
 		};
 		physical.close();
 
-		assert.deepStrictEqual( actual.messages, [
-			{ type: 'room_closed', room: 'site-7/post-2', code: 4004 },
-		] );
+		assert.deepStrictEqual( actual.messages, [ { type: 'subscribed', room: 'site-7/post-2' } ] );
 		assert.strictEqual( actual.closeCode, undefined );
 		assert.strictEqual( actual.readyState, WebSocket.OPEN );
 		assert.strictEqual( actual.postOneConnections, 1 );
-		assert.strictEqual( actual.postTwoActive, false );
-		assert.strictEqual( actual.roomMetric, baseline + 1 );
+		assert.strictEqual( actual.postTwoConnections, 1 );
+		assert.strictEqual( actual.postTwoSocket, originalRoomSocket );
+		assert.strictEqual( actual.roomMetric, baseline + 2 );
 	} );
 
 	it( 'closes an unsubscribed room through the normal adapter cleanup path', async () => {

@@ -175,8 +175,7 @@ export class MultiplexSession {
 	private subscribe( room: string, grant: string ): void {
 		const existingRoomSocket = this.rooms.get( room );
 		if ( existingRoomSocket ) {
-			this.closeRoom( existingRoomSocket );
-			this.rejectRoom( room );
+			this.sendPhysicalMessage( { type: 'subscribed', room } );
 			return;
 		}
 		let payload: SyncTokenPayload;
