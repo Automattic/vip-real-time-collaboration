@@ -12,7 +12,9 @@ import {
 	recordConnectionFailure,
 	recordPeakRoomsPerConnection,
 	recordRoomClose,
+	recordRoomConnectionClose,
 	recordRoomOpen,
+	type RoomConnectionCloseReason,
 } from './metrics';
 import { startPhysicalHeartbeat } from './physical-heartbeat';
 import { decodeMessage, encodeMessage, type ProtocolMessage } from './protocol';
@@ -42,7 +44,7 @@ function toUint8Array( data: RawData ): Uint8Array {
 export class MultiplexSession {
 	private readonly rooms = new Map< string, RoomWebSocket >();
 	private readonly closedRooms = new Set< string >();
-	private readonly expectedRoomCloses = new Set< RoomWebSocket >();
+	private readonly expectedRoomCloses = new Map< RoomWebSocket, RoomConnectionCloseReason >();
 	private authorizationBypassAttempts = 0;
 	private peakRoomCount = 0;
 	private started = false;
@@ -126,7 +128,7 @@ export class MultiplexSession {
 
 	private cleanupRooms(): void {
 		for ( const roomSocket of Array.from( this.rooms.values() ) ) {
-			this.closeRoom( roomSocket );
+			this.closeRoom( roomSocket, 'physical_connection_close' );
 		}
 	}
 
@@ -205,6 +207,7 @@ export class MultiplexSession {
 			return;
 		}
 		if ( expired ) {
+			recordRoomConnectionClose( 'grant_expired' );
 			this.sendRoomClosed( room, ROOM_INTERRUPTED_CLOSE_CODE );
 			return;
 		}
@@ -220,12 +223,14 @@ export class MultiplexSession {
 		this.peakRoomCount = Math.max( this.peakRoomCount, this.rooms.size );
 		this.closedRooms.delete( room );
 		roomSocket.once( 'close', () => {
-			const expectedClose = this.expectedRoomCloses.delete( roomSocket );
+			const closeReason = this.expectedRoomCloses.get( roomSocket ) ?? 'server_room_close';
+			this.expectedRoomCloses.delete( roomSocket );
 			if ( this.rooms.get( room ) === roomSocket ) {
 				this.rooms.delete( room );
 				this.closedRooms.add( room );
 				recordRoomClose();
-				if ( ! expectedClose && this.physical.readyState === WebSocket.OPEN ) {
+				recordRoomConnectionClose( closeReason );
+				if ( closeReason === 'server_room_close' && this.physical.readyState === WebSocket.OPEN ) {
 					this.sendRoomClosed( room, ROOM_INTERRUPTED_CLOSE_CODE );
 				}
 			}
@@ -245,11 +250,11 @@ export class MultiplexSession {
 			// client, so leaving an unknown room is intentionally idempotent.
 			return;
 		}
-		this.closeRoom( roomSocket );
+		this.closeRoom( roomSocket, 'client_unsubscribe' );
 	}
 
-	private closeRoom( roomSocket: RoomWebSocket ): void {
-		this.expectedRoomCloses.add( roomSocket );
+	private closeRoom( roomSocket: RoomWebSocket, reason: RoomConnectionCloseReason ): void {
+		this.expectedRoomCloses.set( roomSocket, reason );
 		roomSocket.close();
 	}
 
@@ -262,6 +267,7 @@ export class MultiplexSession {
 	}
 
 	private rejectRoom( room: string ): void {
+		recordRoomConnectionClose( 'authorization_rejected' );
 		this.sendRoomClosed( room, ROOM_REJECTED_CLOSE_CODE );
 	}
 

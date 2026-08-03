@@ -81,6 +81,12 @@ const connectionCloseCounter = new Counter( {
 	labelNames: [ 'code' ],
 } );
 
+const roomConnectionCloseCounter = new Counter( {
+	name: `${ METRICS_NAMESPACE }_room_connections_closed_total`,
+	help: 'Total number of logical multiplex room connections closed',
+	labelNames: [ 'reason' ],
+} );
+
 const connectionFailuresCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_connection_failures_total`,
 	help: 'Total number of WebSocket connection failures',
@@ -124,6 +130,17 @@ export function recordRoomOpen(): void {
 
 export function recordRoomClose(): void {
 	activeRoomConnectionsGauge.dec();
+}
+
+export type RoomConnectionCloseReason =
+	| 'authorization_rejected' // A room attempt failed grant or authorization checks.
+	| 'grant_expired' // A valid matching grant expired before adapter creation.
+	| 'client_unsubscribe' // A known active room received a client unsubscribe.
+	| 'server_room_close' // An active adapter closed outside client or physical cleanup.
+	| 'physical_connection_close'; // Physical cleanup closed an active room adapter.
+
+export function recordRoomConnectionClose( reason: RoomConnectionCloseReason ): void {
+	roomConnectionCloseCounter.inc( { reason } );
 }
 
 export function recordPeakRoomsPerConnection( peakRooms: number ): void {

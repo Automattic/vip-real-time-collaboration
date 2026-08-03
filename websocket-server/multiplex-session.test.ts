@@ -181,6 +181,25 @@ async function activeRoomConnectionMetric(): Promise< number > {
 	return Number( match[ 1 ] );
 }
 
+async function roomConnectionCloseMetric( reason: string ): Promise< number > {
+	const metric = await register.getSingleMetricAsString(
+		'wpvip_rtc_room_connections_closed_total'
+	);
+	const match = metric.match(
+		new RegExp( `^wpvip_rtc_room_connections_closed_total\\{reason="${ reason }"\\} (\\d+)$`, 'm' )
+	);
+	return match ? Number( match[ 1 ] ) : 0;
+}
+
+async function roomConnectionCloseTotalMetric(): Promise< number > {
+	const metric = await register.getSingleMetricAsString(
+		'wpvip_rtc_room_connections_closed_total'
+	);
+	return Array.from(
+		metric.matchAll( /^wpvip_rtc_room_connections_closed_total\{reason="[^"]+"\} (\d+)$/gm )
+	).reduce( ( total, match ) => total + Number( match[ 1 ] ), 0 );
+}
+
 async function peakRoomsPerConnectionMetric(): Promise< { count: number; sum: number } > {
 	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_peak_rooms_per_connection' );
 	const count = metric.match( /^wpvip_rtc_peak_rooms_per_connection_count (\d+)$/m );
@@ -203,6 +222,7 @@ describe( 'MultiplexSession', () => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
 		const { physical, session } = createSession();
 		const baseline = await zeroRoomTimeoutMetric();
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'physical_connection_close' );
 		try {
 			physical.delayCloseEvent = true;
 			session.start();
@@ -212,6 +232,10 @@ describe( 'MultiplexSession', () => {
 			assert.strictEqual( physical.closeCode, 4001 );
 			assert.strictEqual( physical.readyState, WebSocket.CLOSING );
 			assert.strictEqual( await zeroRoomTimeoutMetric(), baseline + 1 );
+			assert.strictEqual(
+				await roomConnectionCloseMetric( 'physical_connection_close' ),
+				roomCloseBaseline
+			);
 			assert.strictEqual( physical.pingCalls, 0 );
 			assert.strictEqual( physical.terminateCalls, 0 );
 		} finally {
@@ -541,8 +565,9 @@ describe( 'MultiplexSession', () => {
 		} );
 	}
 
-	it( 'keeps the physical connection open after multiple expired room grants', () => {
+	it( 'keeps the physical connection open after multiple expired room grants', async () => {
 		const { physical, session } = createSession();
+		const baseline = await roomConnectionCloseMetric( 'grant_expired' );
 		session.start();
 		subscribeBootstrapRoom( physical );
 		physical.sent.splice( 0 );
@@ -562,6 +587,7 @@ describe( 'MultiplexSession', () => {
 		] );
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
 		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+		assert.strictEqual( await roomConnectionCloseMetric( 'grant_expired' ), baseline + 2 );
 		physical.close();
 	} );
 
@@ -612,6 +638,7 @@ describe( 'MultiplexSession', () => {
 		} );
 		const originalRoomSocket = activeRoomSocket( 'site-7/post-2' );
 		physical.sent.splice( 0 );
+		const roomCloseBaseline = await roomConnectionCloseTotalMetric();
 
 		physical.receive( {
 			type: 'subscribe',
@@ -627,6 +654,7 @@ describe( 'MultiplexSession', () => {
 			postTwoConnections: docs.get( 'site-7/post-2' )?.conns.size,
 			postTwoSocket: activeRoomSocket( 'site-7/post-2' ),
 			readyState: physical.readyState,
+			roomCloseMetric: await roomConnectionCloseTotalMetric(),
 			roomMetric: await activeRoomConnectionMetric(),
 		};
 		physical.close();
@@ -637,6 +665,7 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( actual.postOneConnections, 1 );
 		assert.strictEqual( actual.postTwoConnections, 1 );
 		assert.strictEqual( actual.postTwoSocket, originalRoomSocket );
+		assert.strictEqual( actual.roomCloseMetric, roomCloseBaseline );
 		assert.strictEqual( actual.roomMetric, baseline + 2 );
 	} );
 
@@ -649,12 +678,18 @@ describe( 'MultiplexSession', () => {
 			room: 'site-7/post-2',
 			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'client_unsubscribe' );
 
 		physical.receive( { type: 'unsubscribe', room: 'site-7/post-2' } );
 		await Promise.resolve();
+		physical.receive( { type: 'unsubscribe', room: 'site-7/post-2' } );
 
 		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
 		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+		assert.strictEqual(
+			await roomConnectionCloseMetric( 'client_unsubscribe' ),
+			roomCloseBaseline + 1
+		);
 		physical.close();
 	} );
 
@@ -680,10 +715,11 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
-	it( 'rejects unauthorized room data and closes repeated bypass attempts', () => {
+	it( 'rejects unauthorized room data and closes repeated bypass attempts', async () => {
 		const { physical, session } = createSession();
 		session.start();
 		physical.sent.splice( 0 );
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'authorization_rejected' );
 
 		const unauthorizedData = {
 			type: 'data' as const,
@@ -698,9 +734,13 @@ describe( 'MultiplexSession', () => {
 
 		physical.receive( unauthorizedData );
 		assert.strictEqual( physical.closeCode, 1008 );
+		assert.strictEqual(
+			await roomConnectionCloseMetric( 'authorization_rejected' ),
+			roomCloseBaseline + 2
+		);
 	} );
 
-	it( 'drops late data for an authorized closed room without consuming bypass budget', () => {
+	it( 'drops late data for an authorized closed room without consuming bypass budget', async () => {
 		const { physical, session } = createSession();
 		session.start();
 		physical.receive( {
@@ -710,6 +750,7 @@ describe( 'MultiplexSession', () => {
 		} );
 		physical.receive( { type: 'unsubscribe', room: 'site-7/post-2' } );
 		physical.sent.splice( 0 );
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'authorization_rejected' );
 
 		for ( let attempt = 0; attempt < 3; attempt += 1 ) {
 			physical.receive( {
@@ -728,6 +769,10 @@ describe( 'MultiplexSession', () => {
 			{ type: 'room_closed', room: 'site-7/post-never-authorized', code: 4004 },
 		] );
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
+		assert.strictEqual(
+			await roomConnectionCloseMetric( 'authorization_rejected' ),
+			roomCloseBaseline + 1
+		);
 		physical.close();
 	} );
 
@@ -794,7 +839,7 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
-	it( 'reports an unexpected adapter close as retryable without harming another room', () => {
+	it( 'reports a server room close as retryable without harming another room', async () => {
 		const { physical, session } = createSession();
 		session.start();
 		subscribeBootstrapRoom( physical );
@@ -804,6 +849,7 @@ describe( 'MultiplexSession', () => {
 			grant: grant( { room_name: 'site-7/post-2' } ),
 		} );
 		physical.sent.splice( 0 );
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'server_room_close' );
 
 		activeRoomSocket( 'site-7/post-2' ).close();
 
@@ -813,6 +859,10 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
 		assert.strictEqual( docs.has( 'site-7/post-2' ), false );
 		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+		assert.strictEqual(
+			await roomConnectionCloseMetric( 'server_room_close' ),
+			roomCloseBaseline + 1
+		);
 		physical.close();
 	} );
 
@@ -925,6 +975,7 @@ describe( 'MultiplexSession', () => {
 
 	it( 'cleans rooms after a send failure while the physical socket is closing', async () => {
 		const baseline = await activeRoomConnectionMetric();
+		const roomCloseBaseline = await roomConnectionCloseMetric( 'physical_connection_close' );
 		const { physical, session } = createSession();
 		session.start();
 		subscribeBootstrapRoom( physical );
@@ -957,6 +1008,10 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( actual.postOneActive, false );
 		assert.strictEqual( actual.postTwoActive, false );
 		assert.strictEqual( actual.roomMetric, baseline );
+		assert.strictEqual(
+			await roomConnectionCloseMetric( 'physical_connection_close' ),
+			roomCloseBaseline + 2
+		);
 	} );
 
 	it( 'cleans every room after the physical socket closes', async () => {
