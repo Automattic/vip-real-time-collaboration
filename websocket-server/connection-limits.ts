@@ -14,7 +14,17 @@
 
 import { MAX_CONNECTIONS, BUFFER_CONNECTIONS, MAX_COLLABORATORS } from './config';
 
-import type { WebSocketServer } from 'ws';
+import type { WebSocket, WebSocketServer } from 'ws';
+
+type WebSocketWithIdentity = WebSocket & {
+	wpClientId?: string;
+	userId?: number;
+};
+
+// WebSocketServer.clients uses ws's base type, which omits augmented fields.
+function clientsWithIdentity( wss: WebSocketServer ): Iterable< WebSocketWithIdentity > {
+	return wss.clients;
+}
 
 /**
  * Calculate soft limit from max connections and buffer
@@ -36,7 +46,7 @@ function isClientActive( wss: WebSocketServer, wpClientId: string | null ): bool
 		return false;
 	}
 
-	for ( const ws of wss.clients ) {
+	for ( const ws of clientsWithIdentity( wss ) ) {
 		if ( ws.wpClientId === wpClientId ) {
 			return true;
 		}
@@ -63,7 +73,7 @@ export function getActiveConnectionCount( wss: WebSocketServer ): number {
  * Derives count from wss.clients by counting unique wpClientId values
  */
 export function getActiveClientCount( wss: WebSocketServer ): number {
-	return new Set( Array.from( wss.clients ).map( ws => ws.wpClientId ) ).size;
+	return new Set( Array.from( clientsWithIdentity( wss ), ws => ws.wpClientId ) ).size;
 }
 
 /**
@@ -95,7 +105,7 @@ export function shouldAllowConnection( wss: WebSocketServer, wpClientId: string 
  */
 export function getActiveCollaboratorCount( wss: WebSocketServer ): number {
 	const userIds = new Set< number >();
-	for ( const ws of wss.clients ) {
+	for ( const ws of clientsWithIdentity( wss ) ) {
 		if ( typeof ws.userId === 'number' ) {
 			userIds.add( ws.userId );
 		}
@@ -113,7 +123,7 @@ export function isUserActive( wss: WebSocketServer, userId: number | null ): boo
 		return false;
 	}
 
-	for ( const ws of wss.clients ) {
+	for ( const ws of clientsWithIdentity( wss ) ) {
 		if ( ws.userId === userId ) {
 			return true;
 		}
