@@ -44,6 +44,7 @@ async function createProvider(
 	PhysicalWebSocket: typeof WebSocket = FakePhysicalWebSocket as unknown as typeof WebSocket
 ): Promise< ProviderContext > {
 	const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+		multiplexingEnabled: true,
 		PhysicalWebSocket,
 		fetchToken: () => {
 			authFetchCount += 1;
@@ -131,6 +132,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		const finishBackoffs: Array< () => void > = [];
 		let fetchCount = 0;
 		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
 			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
 			fetchToken: () => {
 				fetchCount += 1;
@@ -178,6 +180,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		} );
 		let fetchCount = 0;
 		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
 			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
 			fetchToken: () => {
 				fetchCount += 1;
@@ -206,6 +209,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 
 	it( 'subscribes every provider over one physical socket regardless of bootstrap grant', async () => {
 		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
 			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
 			fetchToken: () => {
 				authFetchCount += 1;
@@ -232,6 +236,32 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 				grant: 'grant-2',
 			},
 		] );
+	} );
+
+	it( 'creates native room-specific sockets when multiplexing is disabled', async () => {
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: false,
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => {
+				authFetchCount += 1;
+				return Promise.resolve( `grant-${ authFetchCount }` );
+			},
+		} );
+		await createProviderFromCreator( providerCreator, '123' );
+		await createProviderFromCreator( providerCreator, '456' );
+
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 2 );
+		assert.deepStrictEqual(
+			FakePhysicalWebSocket.instances.map( socket => socket.url ),
+			[
+				'wss://example.test/_ws/site-1/postType/page-123?auth=grant-1',
+				'wss://example.test/_ws/site-1/postType/page-456?auth=grant-2',
+			]
+		);
+		assert.deepStrictEqual(
+			FakePhysicalWebSocket.instances.map( socket => socket.protocols ),
+			[ [], [] ]
+		);
 	} );
 
 	it( 'gates real y-websocket open and initial sync send on subscribed', async () => {

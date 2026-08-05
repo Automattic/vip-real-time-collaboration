@@ -9,6 +9,7 @@ import { createSharedWebSocketAdapter } from '@/shared-websocket';
 import {
 	isDevelopment,
 	BLOG_ID,
+	MULTIPLEXING_ENABLED,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
@@ -40,6 +41,7 @@ export interface WebSocketConnectionConfig {
 }
 
 interface WebSocketConnectionDependencies {
+	multiplexingEnabled?: boolean;
 	PhysicalWebSocket?: typeof WebSocket;
 	fetchToken?: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
 	waitBeforeRetry?: ( delayInMs: number ) => Promise< void >;
@@ -299,27 +301,40 @@ function setupRoomClientLimit(
  * Function that creates a new WebSocket Connection.
  *
  * @param {string} serverUrl The WebSocket server URL.
+ * @param {WebSocketConnectionDependencies} dependencies Optional test overrides.
  * @return {ProviderCreator} A function that connects a Y.Doc to a WebSocket server.
  */
 export function createWebSocketConnection(
 	serverUrl: string,
 	dependencies: WebSocketConnectionDependencies = {}
 ): ProviderCreator {
-	const SharedWebSocket = createSharedWebSocketAdapter( serverUrl, dependencies.PhysicalWebSocket );
+	const multiplexingEnabled = dependencies.multiplexingEnabled ?? MULTIPLEXING_ENABLED;
 	const fetchToken = dependencies.fetchToken ?? fetchAuthToken;
 	const waitBeforeRetry =
 		dependencies.waitBeforeRetry ??
 		( ( delayInMs: number ) => new Promise( resolve => setTimeout( resolve, delayInMs ) ) );
+	const providerOptions: WebsocketProviderOptions = {
+		/**
+		 * Disable automatic connection to prevent websocket from attempting to connect
+		 * before the auth token is fetched.
+		 */
+		connect: false,
+	};
+
+	if ( multiplexingEnabled ) {
+		providerOptions.WebSocketPolyfill = createSharedWebSocketAdapter(
+			serverUrl,
+			dependencies.PhysicalWebSocket
+		);
+	} else if ( dependencies.PhysicalWebSocket ) {
+		// Tests inject a socket here. Production leaves it unset so y-websocket
+		// uses the native WebSocket for the legacy per-room transport.
+		providerOptions.WebSocketPolyfill = dependencies.PhysicalWebSocket;
+	}
+
 	const config: WebSocketConnectionConfig = {
 		serverUrl,
-		options: {
-			/**
-			 * Disable automatic connection to prevent websocket from attempting to connect
-			 * before the auth token is fetched.
-			 */
-			connect: false,
-			WebSocketPolyfill: SharedWebSocket,
-		},
+		options: providerOptions,
 	};
 
 	return async function ( {
