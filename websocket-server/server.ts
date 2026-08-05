@@ -100,6 +100,10 @@ export function createRtcServer( options: RtcServerOptions ): RtcServer {
 		const userId = initialGrant.user_id;
 
 		wss.handleUpgrade( request, socket, head, ( ws: WebSocket ): void => {
+			// `ws` closes invalid connections itself, but its error event must have
+			// a listener so one malformed frame cannot become an uncaught process error.
+			ws.on( 'error', () => undefined );
+
 			if ( ! shouldAllowCollaborator( wss, userId ) ) {
 				recordConnectionFailure( 'collaborator_limit_exceeded' );
 				ws.close( 4003, WEBSOCKET_CLOSE_CODES.get( 4003 ) );

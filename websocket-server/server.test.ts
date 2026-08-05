@@ -328,6 +328,22 @@ describe( 'WebSocket transport routing', () => {
 		}
 	);
 
+	it(
+		'isolates an invalid WebSocket frame to the affected connection',
+		{ timeout: 1_000 },
+		async () => {
+			const baseUrl = await startServer();
+			const path = `/?auth=${ grant( 'site-7/post-invalid-frame' ) }`;
+			const client = await connect( baseUrl, path, MULTIPLEX_SUBPROTOCOL );
+			const closed = once( client, 'close' );
+
+			client.send( 'invalid', { mask: false } );
+			await closed;
+
+			await connect( baseUrl, path, MULTIPLEX_SUBPROTOCOL );
+		}
+	);
+
 	it( 'retains exact legacy URL-to-room matching', async () => {
 		const baseUrl = await startServer();
 		const client = new WebSocket(
