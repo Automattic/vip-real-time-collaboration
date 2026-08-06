@@ -178,7 +178,7 @@ export function createSharedWebSocketAdapter(
 
 	function sendPhysicalMessage( message: ProtocolMessage ): void {
 		if ( physicalSocket?.readyState === PhysicalWebSocket.OPEN ) {
-			physicalSocket.send( Uint8Array.from( encodeMessage( message ) ) );
+			physicalSocket.send( encodeMessage( message ) );
 		}
 	}
 

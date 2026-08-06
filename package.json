@@ -76,7 +76,7 @@
     "lint-staged": "16.4.0",
     "prettier": "npm:wp-prettier@3.0.3",
     "ts-loader": "9.6.2",
-    "typescript": "6.0.3",
+    "typescript": "5.9.3",
     "ws": "8.21.2",
     "yjs": "13.6.32"
   },
