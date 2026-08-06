@@ -26,9 +26,9 @@ final class WebSocketAuth {
 		string $sync_object_id,
 		string $wp_client_id,
 	): string|WP_Error {
+		/** @var bool|WP_Error $permission_check */
 		$permission_check = SyncPermissions::can_sync( $sync_object_type, $sync_object_id );
 		if ( true !== $permission_check ) {
-			/** @psalm-suppress RedundantCondition -- Keep the WordPress API type guard at this boundary. */
 			if ( is_wp_error( $permission_check ) ) {
 				return new WP_Error(
 					'permission_denied',

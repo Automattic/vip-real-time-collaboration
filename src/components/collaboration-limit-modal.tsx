@@ -75,26 +75,6 @@ function getConnectionErrorMessage(
 		};
 	}
 
-	if ( errorCode === 'connection-expired' ) {
-		return {
-			title: __( 'Connection expired', 'vip-real-time-collaboration' ),
-			body: __(
-				'Your connection to real-time collaboration has timed out. Editing is paused to prevent conflicts with other editors.',
-				'vip-real-time-collaboration'
-			),
-		};
-	}
-
-	if ( errorCode === 'unknown-error' ) {
-		return {
-			title: __( 'Connection lost', 'vip-real-time-collaboration' ),
-			body: __(
-				'The connection to real-time collaboration was interrupted. Editing is paused to prevent conflicts with other editors.',
-				'vip-real-time-collaboration'
-			),
-		};
-	}
-
 	return {
 		title: __( 'Connection limit reached', 'vip-real-time-collaboration' ),
 		body: isAdmin
@@ -149,12 +129,7 @@ export function CollaborationLimitModal() {
 		}
 		if ( connectionStatus?.status === 'disconnected' ) {
 			const errorCode = connectionStatus.error?.code;
-			const isCustomError =
-				errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.includes( errorCode );
-
-			// Reuse the existing plugin modal as a fallback when the editor's
-			// canvas-cover modal is not rendered after background retries fail.
-			setShowModal( isCustomError || connectionStatus.backgroundRetriesFailed === true );
+			setShowModal( errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.includes( errorCode ) );
 		}
 	}, [ connectionStatus ] );
 
