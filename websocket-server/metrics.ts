@@ -54,6 +54,17 @@ const activeCollaboratorsGauge = new Gauge( {
 	help: 'Number of active collaborators (unique WordPress users by user_id)',
 } );
 
+const activeRoomConnectionsGauge = new Gauge( {
+	name: `${ METRICS_NAMESPACE }_active_room_connections`,
+	help: 'Number of active logical multiplex room connections',
+} );
+
+const peakRoomsPerConnectionHistogram = new Histogram( {
+	name: `${ METRICS_NAMESPACE }_peak_rooms_per_connection`,
+	help: 'Peak number of active logical room connections per multiplex connection',
+	buckets: [ 0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 16, 20, 40 ],
+} );
+
 const messagesCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_messages_total`,
 	help: 'Total number of WebSocket messages exchanged',
@@ -68,6 +79,12 @@ const connectionCloseCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_connections_closed_total`,
 	help: 'Total number of WebSocket connections closed',
 	labelNames: [ 'code' ],
+} );
+
+const roomConnectionCloseCounter = new Counter( {
+	name: `${ METRICS_NAMESPACE }_room_connections_closed_total`,
+	help: 'Total number of logical multiplex room connections closed',
+	labelNames: [ 'reason' ],
 } );
 
 const connectionFailuresCounter = new Counter( {
@@ -105,6 +122,29 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 	if ( isBinary ) {
 		messageBytesCounter.inc( getRawDataSizeBytes( data ) );
 	}
+}
+
+export function recordRoomOpen(): void {
+	activeRoomConnectionsGauge.inc();
+}
+
+export function recordRoomClose(): void {
+	activeRoomConnectionsGauge.dec();
+}
+
+export type RoomConnectionCloseReason =
+	| 'authorization_rejected' // A room attempt failed grant or authorization checks.
+	| 'grant_expired' // A valid matching grant expired before adapter creation.
+	| 'client_unsubscribe' // A known active room received a client unsubscribe.
+	| 'server_room_close' // An active adapter closed outside client or physical cleanup.
+	| 'physical_connection_close'; // Physical cleanup closed an active room adapter.
+
+export function recordRoomConnectionClose( reason: RoomConnectionCloseReason ): void {
+	roomConnectionCloseCounter.inc( { reason } );
+}
+
+export function recordPeakRoomsPerConnection( peakRooms: number ): void {
+	peakRoomsPerConnectionHistogram.observe( peakRooms );
 }
 
 export function recordConnectionFailure( reason: string ): void {

@@ -6,6 +6,7 @@ declare module 'y-websocket' {
 		connect?: boolean;
 		params?: Record< string, string >;
 		protocols?: string[];
+		WebSocketPolyfill?: typeof WebSocket;
 		resyncInterval?: number;
 		maxBackoffTime?: number;
 		disableBc?: boolean;

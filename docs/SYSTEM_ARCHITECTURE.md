@@ -198,6 +198,7 @@ sequenceDiagram
 
 - `VIP_RTC_WS_URL`: WebSocket server URL
 - `VIP_RTC_WS_AUTH_SECRET`: JWT secret for authentication
+- `VIP_RTC_WS_MULTIPLEXING_ENABLED`: Share one multiplexed WebSocket across all rooms (default: off, see 5.5)
 
 ### 5.2 WordPress Integration Features
 
@@ -220,6 +221,26 @@ sequenceDiagram
 - **Action Hooks**: `vip_real_time_collaboration_loaded` for extensibility
 - **Sync Provider Registration**: Uses `core.getSyncProvider` filter
 - **WordPress Meta API**: Post meta storage with revision support
+
+### 5.5 Multiplexed WebSocket Transport
+
+By default, each collaboration room opens its own WebSocket. With multiplexing enabled, all rooms in one editor session share a single physical WebSocket, and a small binary protocol (`vip-rtc-multiplex-v1`) routes each room's traffic over it.
+
+Multiplexing is controlled by the `VIP_RTC_WS_MULTIPLEXING_ENABLED` PHP constant, passed to the editor through the `VIP_RTC` script data. It is off unless the constant is exactly `true`, so an environment can be switched to either transport through its configuration, without a plugin release. The server accepts both transports at once: a client that offers the `vip-rtc-multiplex-v1` subprotocol gets multiplexing, and a client that offers none gets the legacy per-room handler.
+
+Every frame starts with the same prefix (version, type, room name) and ends with a type-specific tail. The room name is the routing key: each frame belongs to exactly one room, and both sides hand its payload to that room's socket and Yjs doc.
+
+![One multiplex frame, byte by byte](media/multiplex-frame.png)
+
+| Message       | Sent by | Meaning                                                        |
+| ------------- | ------- | -------------------------------------------------------------- |
+| `subscribe`   | client  | Join a room; carries a grant that authorizes this room only    |
+| `subscribed`  | server  | The room is joined; room data can now flow                     |
+| `data`        | both    | An unchanged y-websocket message, tagged with its room         |
+| `unsubscribe` | client  | Leave a room; the connection stays open                        |
+| `room_closed` | server  | The server closed one room (`4004` terminal, `4005` retryable) |
+
+Room failures stay scoped to the room: a `4004` or `4005` close stops or retries that room while sibling rooms keep syncing. Connection-scoped closes (for example `4001` token rotation) affect every room and restore them over one replacement socket.
 
 ## 6. Development Tools
 
