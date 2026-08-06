@@ -16,7 +16,6 @@ type WordPressConnectionError = NonNullable< DisconnectedStatus[ 'error' ] >;
  */
 export type ConnectionErrorCode =
 	| `${ WordPressConnectionError[ 'code' ] }`
-	| 'authentication-error'
 	| 'collaborator-limit-exceeded'
 	| 'room-connection-limit-exceeded';
 
