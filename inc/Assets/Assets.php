@@ -36,6 +36,9 @@ final class Assets {
 			$vip_rtc_ws_url = constant( 'VIP_RTC_WS_URL' );
 		}
 
+		$vip_rtc_ws_multiplexing_enabled = defined( 'VIP_RTC_WS_MULTIPLEXING_ENABLED' )
+			&& true === constant( 'VIP_RTC_WS_MULTIPLEXING_ENABLED' );
+
 		$asset_file = dirname( constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) ) . '/build/index.asset.php';
 		$script_file = plugins_url( 'build/index.js', constant( 'VIP_REAL_TIME_COLLABORATION__PLUGIN_ROOT' ) );
 
@@ -64,6 +67,7 @@ final class Assets {
 		$script_data = wp_json_encode( [
 			'debug' => [],
 			'wsUrl' => $vip_rtc_ws_url,
+			'multiplexingEnabled' => $vip_rtc_ws_multiplexing_enabled,
 			'blogId' => get_current_blog_id(),
 			'contactAjax' => self::get_contact_ajax_config(),
 			'supportEmail' => self::get_support_email(),
