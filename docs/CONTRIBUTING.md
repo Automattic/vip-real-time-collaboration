@@ -42,11 +42,12 @@ This starts WordPress at `http://localhost:8888` and the local WebSocket server 
 
 The following PHP constants are automatically defined in our development environment:
 
-| Variable                               | Value                    | Description                         |
-| -------------------------------------- | ------------------------ | ----------------------------------- |
-| `VIP_RTC_WS_URL`                       | `ws://localhost:1234`    | WebSocket URL for Yjs sync provider |
-| `VIP_RTC_WS_AUTH_SECRET`               | `vip_rtc_ws_auth_secret` | Secret used to generate auth tokens |
-| `VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS` | `3600`                   | Auth token expiration in seconds    |
+| Variable                               | Value                    | Description                                  |
+| -------------------------------------- | ------------------------ | -------------------------------------------- |
+| `VIP_RTC_WS_URL`                       | `ws://localhost:1234`    | WebSocket URL for Yjs sync provider          |
+| `VIP_RTC_WS_AUTH_SECRET`               | `vip_rtc_ws_auth_secret` | Secret used to generate auth tokens          |
+| `VIP_RTC_WS_AUTH_TOKEN_EXPIRE_SECONDS` | `3600`                   | Auth token expiration in seconds             |
+| `VIP_RTC_WS_MULTIPLEXING_ENABLED`      | `true`                   | Share one multiplexed WebSocket across rooms |
 
 If you use a different development environment, ensure these variables are set accordingly. Note that `VIP_RTC_WS_AUTH_SECRET` must also be provided as an environment variable to the WebSocket server.
 

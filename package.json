@@ -77,9 +77,11 @@
     "prettier": "npm:wp-prettier@3.0.3",
     "ts-loader": "9.5.2",
     "typescript": "5.9.2",
+    "ws": "8.21.2",
     "yjs": "13.6.27"
   },
   "dependencies": {
+    "lib0": "0.2.114",
     "y-protocols": "1.0.6",
     "y-websocket": "3.0.0"
   }

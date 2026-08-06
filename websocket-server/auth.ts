@@ -6,14 +6,16 @@ import type { IncomingMessage } from 'node:http';
 
 interface AuthSuccessResult {
 	authenticated: true;
+	grant: SyncTokenPayload;
 }
 
 interface AuthFailureResult {
 	authenticated: false;
-	reason: 'missing_token' | 'invalid_token' | 'invalid_token_payload';
+	reason: 'missing_token' | 'invalid_token';
 }
 
 export interface SyncTokenPayload extends JwtPayload {
+	blog_id: number;
 	connection_id?: string; // @deprecated
 	room_name: string;
 	user_id: number;
@@ -27,21 +29,35 @@ function isSyncTokenPayload( payload: unknown ): payload is SyncTokenPayload {
 	}
 
 	const obj = payload as Record< string, unknown >;
+	const hasValidWpClientId = obj.wp_client_id === undefined || typeof obj.wp_client_id === 'string';
+	const hasValidConnectionId =
+		obj.connection_id === undefined || typeof obj.connection_id === 'string';
 
 	return (
+		typeof obj.blog_id === 'number' &&
 		typeof obj.user_id === 'number' &&
 		typeof obj.username === 'string' &&
 		typeof obj.room_name === 'string' &&
+		obj.room_name.length > 0 &&
+		hasValidWpClientId &&
+		hasValidConnectionId &&
 		( typeof obj.wp_client_id === 'string' || typeof obj.connection_id === 'string' )
 	);
 }
 
-function verifyToken( token: string | null | undefined, secret: string ): SyncTokenPayload {
+function verifyToken(
+	token: string | null | undefined,
+	secret: string,
+	ignoreExpiration = false
+): SyncTokenPayload {
 	if ( ! token ) {
 		throw new Error( 'Missing token' );
 	}
 
-	const jwtPayload = verifyJwtToken( token, secret, { algorithms: [ 'HS256' ] } );
+	const jwtPayload = verifyJwtToken( token, secret, {
+		algorithms: [ 'HS256' ],
+		...( ignoreExpiration ? { ignoreExpiration: true } : {} ),
+	} );
 	if ( ! isSyncTokenPayload( jwtPayload ) ) {
 		throw new Error( 'Invalid JWT payload' );
 	}
@@ -49,66 +65,30 @@ function verifyToken( token: string | null | undefined, secret: string ): SyncTo
 	return jwtPayload;
 }
 
-/**
- * Verify that the room_name in the JWT payload matches with the request URL
- * to guard against a token being used for the different sync object that it was issued for.
- *
- * TODO: Add additonal check for user_id
- */
-function validateTokenPayload( request: IncomingMessage, jwtPayload: SyncTokenPayload ): boolean {
-	// Extract room name from token and URL, stripping leading slash and _ws/ prefix from URL path
-	const { room_name: roomNameFromToken } = jwtPayload;
-	const pathname = getRequestPathname( request );
-	const roomNameFromUrl = pathname.replace( /^\/(_ws\/)?/, '' );
+export function verifyTokenGrant( token: string, secret: string ): SyncTokenPayload {
+	return verifyToken( token, secret );
+}
 
-	const isValid = roomNameFromToken === roomNameFromUrl;
-	if ( ! isValid ) {
-		// eslint-disable-next-line no-console
-		console.error(
-			`JWT decoded successfully but token payload is invalid: ${ JSON.stringify( {
-				roomNameFromToken,
-				roomNameFromUrl,
-			} ) }`
-		);
+export function verifyTokenGrantIgnoringExpiration(
+	token: string,
+	secret: string
+): SyncTokenPayload {
+	return verifyToken( token, secret, true );
+}
+
+export function validateLegacyRoomPath(
+	request: IncomingMessage,
+	jwtPayload: SyncTokenPayload
+): boolean {
+	const pathname = getRequestPathname( request );
+	if ( pathname === '/' || pathname === '/_ws' ) {
 		return false;
 	}
-	return true;
-}
 
-export function getWpClientId( request: IncomingMessage, secret: string ): string | null {
-	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
-	const authToken = searchParams.get( 'auth' );
-
-	try {
-		const jwtPayload = verifyToken( authToken, secret );
-		return jwtPayload.wp_client_id ?? jwtPayload.connection_id ?? null;
-	} catch {
-		return null;
-	}
-}
-
-export interface TokenIdentity {
-	wpClientId: string | null;
-	userId: number | null;
-}
-
-/**
- * Extract both wp_client_id and user_id from the request's JWT in a single parse.
- * Returns nulls for whichever fields are missing or for any verification failure.
- */
-export function getTokenIdentity( request: IncomingMessage, secret: string ): TokenIdentity {
-	const searchParams = new URLSearchParams( request.url?.split( '?' )[ 1 ] || '' );
-	const authToken = searchParams.get( 'auth' );
-
-	try {
-		const jwtPayload = verifyToken( authToken, secret );
-		return {
-			wpClientId: jwtPayload.wp_client_id ?? jwtPayload.connection_id ?? null,
-			userId: jwtPayload.user_id,
-		};
-	} catch {
-		return { wpClientId: null, userId: null };
-	}
+	const roomNameFromUrl = pathname.startsWith( '/_ws/' )
+		? pathname.slice( '/_ws/'.length )
+		: pathname.slice( 1 );
+	return jwtPayload.room_name === roomNameFromUrl;
 }
 
 export function isRequestAuthenticated(
@@ -124,11 +104,7 @@ export function isRequestAuthenticated(
 
 	try {
 		const jwtPayload = verifyToken( authToken, secret );
-		const isValid = validateTokenPayload( request, jwtPayload );
-		if ( ! isValid ) {
-			return { authenticated: false, reason: 'invalid_token_payload' };
-		}
-		return { authenticated: true };
+		return { authenticated: true, grant: jwtPayload };
 	} catch {
 		return { authenticated: false, reason: 'invalid_token' };
 	}

@@ -5,10 +5,11 @@ import apiFetch from '@wordpress/api-fetch';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
-import { CUSTOM_MODAL_CLOSE_CODES } from '@/constants/sync-errors';
+import { createSharedWebSocketAdapter } from '@/shared-websocket';
 import {
 	isDevelopment,
 	BLOG_ID,
+	MULTIPLEXING_ENABLED,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
@@ -24,9 +25,9 @@ import {
 	type RoomLimitPresence,
 } from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
+import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-close-policy';
 
 import type {
-	ConnectionError,
 	ConnectionStatus,
 	ProviderCreator,
 	ProviderCreatorOptions,
@@ -37,6 +38,13 @@ import type {
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
 	serverUrl: string;
+}
+
+interface WebSocketConnectionDependencies {
+	multiplexingEnabled?: boolean;
+	PhysicalWebSocket?: typeof WebSocket;
+	fetchToken?: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
+	waitBeforeRetry?: ( delayInMs: number ) => Promise< void >;
 }
 
 const defaultResult: ProviderCreatorResult = {
@@ -92,29 +100,6 @@ function logInspectUrl( provider: WebsocketProvider ): void {
 }
 
 /**
- * Map WebSocket close codes to Gutenberg sync error types.
- *
- * @param {number} code - WebSocket close code
- * @return {ConnectionError} Error for known error codes
- */
-function getErrorFromCloseCode( code?: number ): ConnectionError {
-	switch ( code ) {
-		case 4001:
-			// Connection timeout - server forces reconnect after configured duration
-			return new WebSocketError( 'connection-expired' );
-		case 4002:
-			// Server reached maximum connection limit
-			return new WebSocketError( 'connection-limit-exceeded' );
-		case 4003:
-			// Environment reached its collaborator limit
-			return new WebSocketError( 'collaborator-limit-exceeded' );
-		default:
-			// Generic disconnection, no specific error
-			return new WebSocketError( 'unknown-error' );
-	}
-}
-
-/**
  * Number of consecutive failed reconnect attempts after which the provider
  * signals `backgroundRetriesFailed: true` so Gutenberg's default disconnection
  * modal becomes visible.
@@ -136,10 +121,6 @@ const CONNECTION_STABLE_RESET_DELAY_MS = 2000;
  */
 const ROOM_LIMIT_SETTLE_DELAY_MS = 1500;
 
-interface RetryState {
-	attempts: number;
-}
-
 function getBackoffDelayInMs( attempts: number ): number {
 	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
 }
@@ -153,27 +134,54 @@ function createConnect(
 	provider: WebsocketProvider,
 	syncObjectType: string,
 	syncObjectId: string,
-	retryState: RetryState
+	retryState: { attempts: number; eligible: boolean },
+	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >,
+	waitBeforeRetry: ( delayInMs: number ) => Promise< void >,
+	onFatalConnectError: ( error: unknown ) => void
 ): () => Promise< void > {
 	let hasAttemptedConnect = false;
 
-	return async function (): Promise< void > {
+	const connect = async (): Promise< void > => {
+		if ( ! retryState.eligible ) {
+			return;
+		}
+
 		if ( hasAttemptedConnect ) {
 			const backoffDelayInMs = getBackoffDelayInMs( retryState.attempts );
-
 			logger.warn(
 				`Attempting to reconnect to WebSocket in ${ Math.floor( backoffDelayInMs / 1000 ) }s...`
 			);
-
-			await new Promise( resolve => setTimeout( resolve, backoffDelayInMs ) );
+			await waitBeforeRetry( backoffDelayInMs );
+			if ( ! retryState.eligible ) {
+				return;
+			}
 		}
 
 		hasAttemptedConnect = true;
 		retryState.attempts += 1;
 
+		let authToken: string;
 		try {
-			const authToken = await fetchAuthToken( syncObjectType, syncObjectId );
+			authToken = await fetchToken( syncObjectType, syncObjectId );
+		} catch ( error: unknown ) {
+			logger.error(
+				`${ __(
+					'Failed to fetch auth token and connect to WebSocket',
+					'vip-real-time-collaboration'
+				) }: ${ getErrorMessage( error ) }`
+			);
+			if ( retryState.eligible ) {
+				// Keep the initial provider creation detached from a REST outage.
+				void connect().catch( () => {} );
+			}
+			return;
+		}
 
+		if ( ! retryState.eligible ) {
+			return;
+		}
+
+		try {
 			provider.params = {
 				auth: authToken,
 			};
@@ -186,14 +194,12 @@ function createConnect(
 
 			logInspectUrl( provider );
 		} catch ( error: unknown ) {
-			logger.error(
-				`${ __(
-					'Failed to fetch auth token and connect to WebSocket',
-					'vip-real-time-collaboration'
-				) }: ${ getErrorMessage( error ) }`
-			);
+			onFatalConnectError( error );
+			throw error;
 		}
 	};
+
+	return connect;
 }
 
 /**
@@ -295,18 +301,40 @@ function setupRoomClientLimit(
  * Function that creates a new WebSocket Connection.
  *
  * @param {string} serverUrl The WebSocket server URL.
+ * @param {WebSocketConnectionDependencies} dependencies Optional test overrides.
  * @return {ProviderCreator} A function that connects a Y.Doc to a WebSocket server.
  */
-export function createWebSocketConnection( serverUrl: string ): ProviderCreator {
+export function createWebSocketConnection(
+	serverUrl: string,
+	dependencies: WebSocketConnectionDependencies = {}
+): ProviderCreator {
+	const multiplexingEnabled = dependencies.multiplexingEnabled ?? MULTIPLEXING_ENABLED;
+	const fetchToken = dependencies.fetchToken ?? fetchAuthToken;
+	const waitBeforeRetry =
+		dependencies.waitBeforeRetry ??
+		( ( delayInMs: number ) => new Promise( resolve => setTimeout( resolve, delayInMs ) ) );
+	const providerOptions: WebsocketProviderOptions = {
+		/**
+		 * Disable automatic connection to prevent websocket from attempting to connect
+		 * before the auth token is fetched.
+		 */
+		connect: false,
+	};
+
+	if ( multiplexingEnabled ) {
+		providerOptions.WebSocketPolyfill = createSharedWebSocketAdapter(
+			serverUrl,
+			dependencies.PhysicalWebSocket
+		);
+	} else if ( dependencies.PhysicalWebSocket ) {
+		// Tests inject a socket here. Production leaves it unset so y-websocket
+		// uses the native WebSocket for the legacy per-room transport.
+		providerOptions.WebSocketPolyfill = dependencies.PhysicalWebSocket;
+	}
+
 	const config: WebSocketConnectionConfig = {
 		serverUrl,
-		options: {
-			/**
-			 * Disable automatic connection to prevent websocket from attempting to connect
-			 * before the auth token is fetched.
-			 */
-			connect: false,
-		},
+		options: providerOptions,
 	};
 
 	return async function ( {
@@ -343,8 +371,8 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				awareness,
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
-			const retryState: RetryState = { attempts: 0 };
-			const connect = createConnect( provider, objectType, objectId ?? 'collection', retryState );
+			const retryState = { attempts: 0, eligible: true };
+			let connect: () => Promise< void > = async () => {};
 
 			// Set when this connection voluntarily yields its slot because the room
 			// is over its configured connection limit (see `setupRoomClientLimit`).
@@ -361,11 +389,28 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				roomLimitExceeded = exceeded;
 			} );
 
+			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
+
 			const handleConnectionClose = ( event: CloseEvent | null ): void => {
 				const closeCode = event?.code;
-				const isCustomModalError =
-					roomLimitExceeded ||
-					( closeCode !== undefined && CUSTOM_MODAL_CLOSE_CODES.has( closeCode ) );
+				const closeScope = getWebSocketCloseScope( event );
+				const closePolicy = getWebSocketClosePolicy( closeScope, closeCode, roomLimitExceeded );
+				const shouldRetry = closePolicy.shouldRetry;
+				if ( closeScope === 'room' ) {
+					const details = {
+						room: roomName,
+						closeCode,
+						willRetry: shouldRetry,
+					};
+					if ( shouldRetry ) {
+						logger.warn( 'WebSocket room connection closed', details );
+					} else {
+						logger.error( 'WebSocket room connection closed', details );
+					}
+				}
+				if ( ! shouldRetry ) {
+					retryState.eligible = false;
+				}
 
 				// Retry-state fields drive Gutenberg's default modal (countdown
 				// and threshold-based reveal). Omit them for errors handled by
@@ -375,33 +420,29 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				// the takeover check. `canManuallyRetry` is never set: the
 				// default modal's Retry button calls `retrySyncConnection()`
 				// which only reaches the built-in HTTP polling provider.
-				const retryStateFields = isCustomModalError
-					? {}
-					: {
+				const retryStateFields = closePolicy.includeRetryMetadata
+					? {
 							willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
 							backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
-					  };
+					  }
+					: {};
 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
-					error: roomLimitExceeded
-						? new WebSocketError( 'room-connection-limit-exceeded' )
-						: getErrorFromCloseCode( closeCode ),
+					error: new WebSocketError( closePolicy.errorCode ),
 					...retryStateFields,
 				} );
 
 				// A room-limit yield is terminal — do not reconnect (see above).
-				if ( ! roomLimitExceeded ) {
-					void connect();
+				if ( shouldRetry ) {
+					void connect().catch( () => {} );
 				}
 			};
 
 			provider.on( 'connection-close', handleConnectionClose );
 
-			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
-
 			// Listen to y-websocket's status event for connecting/connected states
-			provider.on( 'status', ( event: ConnectionStatus ) => {
+			const handleStatus = ( event: ConnectionStatus ): void => {
 				if ( event.status === 'connected' ) {
 					if ( attemptsResetTimerId !== null ) {
 						clearTimeout( attemptsResetTimerId );
@@ -422,7 +463,39 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 				if ( event.status !== 'disconnected' ) {
 					syncStatusEmitter.emit( { status: event.status } );
 				}
-			} );
+			};
+			provider.on( 'status', handleStatus );
+
+			let disposed = false;
+			const disposeProvider = (): void => {
+				if ( disposed ) {
+					return;
+				}
+				disposed = true;
+				retryState.eligible = false;
+				if ( attemptsResetTimerId !== null ) {
+					clearTimeout( attemptsResetTimerId );
+					attemptsResetTimerId = null;
+				}
+				cleanupRoomClientLimit();
+				provider.off( 'connection-close', handleConnectionClose );
+				provider.off( 'status', handleStatus );
+				syncStatusEmitter.destroy();
+				provider.destroy();
+			};
+
+			connect = createConnect(
+				provider,
+				objectType,
+				objectId ?? 'collection',
+				retryState,
+				fetchToken,
+				waitBeforeRetry,
+				error => {
+					logger.critical( 'Fatal WebSocket connection failure', { error } );
+					disposeProvider();
+				}
+			);
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
@@ -445,18 +518,14 @@ export function createWebSocketConnection( serverUrl: string ): ProviderCreator 
 						previousReconnectFunction();
 					}
 
-					void connect();
+					void connect().catch( () => {} );
 				};
 			}
 
 			await connect();
 
 			return {
-				destroy: () => {
-					cleanupRoomClientLimit();
-					syncStatusEmitter.destroy();
-					provider.destroy();
-				},
+				destroy: disposeProvider,
 				on: < K extends keyof ProviderEventMap >(
 					event: K,
 					callback: ( data: ProviderEventMap[ K ] ) => void

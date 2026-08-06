@@ -1,11 +1,11 @@
 import jwt, { type SignOptions } from 'jsonwebtoken';
 import assert from 'node:assert';
-import { afterEach, beforeEach, describe, it, Mock, mock } from 'node:test';
+import { describe, it } from 'node:test';
 
 import {
-	getTokenIdentity,
-	getWpClientId,
 	isRequestAuthenticated,
+	validateLegacyRoomPath,
+	verifyTokenGrant,
 	type SyncTokenPayload,
 } from './auth';
 
@@ -24,6 +24,7 @@ function createValidToken(
 ): string {
 	return jwt.sign(
 		{
+			blog_id: 7,
 			wp_client_id: 'conn-123',
 			room_name: 'test-room',
 			user_id: 42,
@@ -35,107 +36,65 @@ function createValidToken(
 	);
 }
 
-describe( 'getWpClientId', () => {
-	it( 'should return wp_client_id from valid token', () => {
-		const token = createValidToken( { wp_client_id: 'conn-456' } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), 'conn-456' );
+describe( 'verifyTokenGrant', () => {
+	it( 'returns the strictly validated grant payload', () => {
+		const token = createValidToken( { blog_id: 19, room_name: 'site-19/post-4' } );
+
+		assert.deepStrictEqual(
+			{
+				blogId: verifyTokenGrant( token, MOCK_JWT_SECRET ).blog_id,
+				roomName: verifyTokenGrant( token, MOCK_JWT_SECRET ).room_name,
+			},
+			{ blogId: 19, roomName: 'site-19/post-4' }
+		);
 	} );
 
-	it( 'should return connection_id from valid token when wp_client_id is not present', () => {
-		const token = createValidToken( { connection_id: 'conn-789', wp_client_id: undefined } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), 'conn-789' );
+	it( 'rejects a grant without a numeric blog_id', () => {
+		const missingBlogId = createValidToken( { blog_id: undefined } );
+		const stringBlogId = createValidToken( { blog_id: '7' as unknown as number } );
+
+		assert.throws(
+			() => verifyTokenGrant( missingBlogId, MOCK_JWT_SECRET ),
+			/Invalid JWT payload/
+		);
+		assert.throws( () => verifyTokenGrant( stringBlogId, MOCK_JWT_SECRET ), /Invalid JWT payload/ );
 	} );
 
-	it( 'should prefer wp_client_id over connection_id when both are present', () => {
-		const token = createValidToken( { wp_client_id: 'wp-id', connection_id: 'conn-id' } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), 'wp-id' );
-	} );
-
-	it( 'should return null when token is missing', () => {
-		const request = createRequest( '/test-room' );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), null );
-	} );
-
-	it( 'should return null for invalid token', () => {
-		const request = createRequest( '/test-room?auth=invalid-token' );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), null );
-	} );
-
-	it( 'should return null for token with wrong secret', () => {
-		const token = createValidToken( {} );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.strictEqual( getWpClientId( request, 'wrong-secret' ), null );
-	} );
-
-	it( 'should return null for expired token', () => {
-		const token = createValidToken( {
-			exp: EXPIRED_TIMESTAMP,
+	it( 'rejects either optional client ID when it is present with a non-string value', () => {
+		const invalidPreferredId = createValidToken( {
+			connection_id: 'valid-fallback',
+			wp_client_id: 7 as unknown as string,
 		} );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), null );
-	} );
-
-	it( 'should handle request with no URL', () => {
-		const request = createRequest();
-		assert.strictEqual( getWpClientId( request, MOCK_JWT_SECRET ), null );
-	} );
-} );
-
-describe( 'getTokenIdentity', () => {
-	it( 'should return wpClientId and userId from a valid token', () => {
-		const token = createValidToken( { wp_client_id: 'client-1', user_id: 99 } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
-			wpClientId: 'client-1',
-			userId: 99,
+		const invalidDeprecatedId = createValidToken( {
+			connection_id: 7 as unknown as string,
+			wp_client_id: 'valid-preferred',
 		} );
+
+		assert.throws(
+			() => verifyTokenGrant( invalidPreferredId, MOCK_JWT_SECRET ),
+			/Invalid JWT payload/
+		);
+		assert.throws(
+			() => verifyTokenGrant( invalidDeprecatedId, MOCK_JWT_SECRET ),
+			/Invalid JWT payload/
+		);
 	} );
 
-	it( 'should fall back to connection_id when wp_client_id is missing', () => {
-		const token = createValidToken( { connection_id: 'legacy', wp_client_id: undefined } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
-			wpClientId: 'legacy',
-			userId: 42,
-		} );
-	} );
+	it( 'rejects an empty canonical room_name', () => {
+		const token = createValidToken( { room_name: '' } );
 
-	it( 'should return nulls for an invalid token', () => {
-		const request = createRequest( '/test-room?auth=invalid' );
-		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
-			wpClientId: null,
-			userId: null,
-		} );
-	} );
-
-	it( 'should return nulls when auth is missing', () => {
-		const request = createRequest( '/test-room' );
-		assert.deepStrictEqual( getTokenIdentity( request, MOCK_JWT_SECRET ), {
-			wpClientId: null,
-			userId: null,
-		} );
+		assert.throws( () => verifyTokenGrant( token, MOCK_JWT_SECRET ), /Invalid JWT payload/ );
 	} );
 } );
 
 describe( 'isRequestAuthenticated', () => {
-	let mockConsoleError: Mock< typeof console.error >;
-
-	beforeEach( () => {
-		mockConsoleError = mock.method( console, 'error', () => {} );
-	} );
-
-	afterEach( () => {
-		mock.restoreAll();
-	} );
-
-	it( 'should return authenticated true for valid token and matching room', () => {
+	it( 'verifies a valid grant independently of the request path', () => {
 		const token = createValidToken();
-		const request = createRequest( `/test-room?auth=${ token }` );
+		const request = createRequest( `/unrelated/path?auth=${ token }` );
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
-		assert.strictEqual( result.authenticated, true );
+		assert.ok( result.authenticated );
+		assert.strictEqual( result.grant.room_name, 'test-room' );
+		assert.strictEqual( result.grant.blog_id, 7 );
 	} );
 
 	it( 'should return authenticated true for valid token with connection_id instead of wp_client_id', () => {
@@ -172,15 +131,6 @@ describe( 'isRequestAuthenticated', () => {
 		const result = isRequestAuthenticated( request, 'wrong-secret' );
 		assert.strictEqual( result.authenticated, false );
 		assert.strictEqual( result.reason, 'invalid_token' );
-	} );
-
-	it( 'should return invalid_token_payload when room names do not match', () => {
-		const token = createValidToken( { room_name: 'other-room' } );
-		const request = createRequest( `/test-room?auth=${ token }` );
-		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
-		assert.strictEqual( result.authenticated, false );
-		assert.strictEqual( result.reason, 'invalid_token_payload' );
-		assert.strictEqual( mockConsoleError.mock.calls.length, 1 );
 	} );
 
 	it( 'should return invalid_token for expired token', () => {
@@ -279,5 +229,31 @@ describe( 'isRequestAuthenticated', () => {
 		const result = isRequestAuthenticated( request, MOCK_JWT_SECRET );
 		assert.strictEqual( result.authenticated, false );
 		assert.strictEqual( result.reason, 'invalid_token' );
+	} );
+} );
+
+describe( 'validateLegacyRoomPath', () => {
+	it( 'accepts exact room paths, including internal slashes and the _ws prefix', () => {
+		const payload = verifyTokenGrant(
+			createValidToken( { room_name: 'site/123/post/456' } ),
+			MOCK_JWT_SECRET
+		);
+
+		assert.strictEqual(
+			validateLegacyRoomPath( createRequest( '/site/123/post/456' ), payload ),
+			true
+		);
+		assert.strictEqual(
+			validateLegacyRoomPath( createRequest( '/_ws/site/123/post/456' ), payload ),
+			true
+		);
+	} );
+
+	it( 'rejects a mismatched or missing legacy room path', () => {
+		const payload = verifyTokenGrant( createValidToken(), MOCK_JWT_SECRET );
+
+		assert.strictEqual( validateLegacyRoomPath( createRequest( '/other-room' ), payload ), false );
+		assert.strictEqual( validateLegacyRoomPath( createRequest( '/' ), payload ), false );
+		assert.strictEqual( validateLegacyRoomPath( createRequest( '/_ws' ), payload ), false );
 	} );
 } );
