@@ -13,7 +13,7 @@
     }
   },
   "require": {
-    "php": ">=8.1",
+    "php": ">=8.2",
     "adhocore/jwt": "^1.1"
   },
   "require-dev": {
@@ -29,7 +29,7 @@
   },
   "config": {
     "platform": {
-      "php": "8.1.0"
+      "php": "8.2.0"
     },
     "allow-plugins": {
       "dealerdirect/phpcodesniffer-composer-installer": true

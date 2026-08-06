@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9a8ddec94791914ecf564cfc157eefd0",
+    "content-hash": "a5c1ca9fd0b9ee98e116017d5c3e046e",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -1760,20 +1760,20 @@
         },
         {
             "name": "psalm/phar",
-            "version": "6.8.2",
+            "version": "6.16.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/psalm/phar.git",
-                "reference": "333a7a0d7805b699860262e1b4ea8cf14e1cd118"
+                "reference": "11c6b55449667837fc07bb2a456c45a137c05ecd"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/psalm/phar/zipball/333a7a0d7805b699860262e1b4ea8cf14e1cd118",
-                "reference": "333a7a0d7805b699860262e1b4ea8cf14e1cd118",
+                "url": "https://api.github.com/repos/psalm/phar/zipball/11c6b55449667837fc07bb2a456c45a137c05ecd",
+                "reference": "11c6b55449667837fc07bb2a456c45a137c05ecd",
                 "shasum": ""
             },
             "require": {
-                "php": "^7.1 || ^8.0"
+                "php": "^8.2"
             },
             "conflict": {
                 "vimeo/psalm": "*"
@@ -1789,9 +1789,9 @@
             "description": "Composer-based Psalm Phar",
             "support": {
                 "issues": "https://github.com/psalm/phar/issues",
-                "source": "https://github.com/psalm/phar/tree/6.8.2"
+                "source": "https://github.com/psalm/phar/tree/6.16.1"
             },
-            "time": "2025-02-20T08:23:26+00:00"
+            "time": "2026-03-19T11:11:23+00:00"
         },
         {
             "name": "sebastian/cli-parser",
@@ -2927,16 +2927,16 @@
         },
         {
             "name": "squizlabs/php_codesniffer",
-            "version": "3.13.5",
+            "version": "3.13.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/PHPCSStandards/PHP_CodeSniffer.git",
-                "reference": "0ca86845ce43291e8f5692c7356fccf3bcf02bf4"
+                "reference": "4c378e1a528ea066890fc2397cbdd2f94eb2fc91"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/PHPCSStandards/PHP_CodeSniffer/zipball/0ca86845ce43291e8f5692c7356fccf3bcf02bf4",
-                "reference": "0ca86845ce43291e8f5692c7356fccf3bcf02bf4",
+                "url": "https://api.github.com/repos/PHPCSStandards/PHP_CodeSniffer/zipball/4c378e1a528ea066890fc2397cbdd2f94eb2fc91",
+                "reference": "4c378e1a528ea066890fc2397cbdd2f94eb2fc91",
                 "shasum": ""
             },
             "require": {
@@ -3002,7 +3002,7 @@
                     "type": "thanks_dev"
                 }
             ],
-            "time": "2025-11-04T16:30:35+00:00"
+            "time": "2026-08-06T00:17:32+00:00"
         },
         {
             "name": "theseer/tokenizer",
@@ -3262,11 +3262,11 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": ">=8.1"
+        "php": ">=8.2"
     },
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.1.0"
+        "php": "8.2.0"
     },
     "plugin-api-version": "2.9.0"
 }
