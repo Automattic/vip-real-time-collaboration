@@ -108,7 +108,7 @@ final class Assets {
 
 		return [
 			'url' => admin_url( 'admin-ajax.php' ),
-			'nonce' => wp_create_nonce( 'vip-dashboard' ),
+			'nonce' => (string) wp_create_nonce( 'vip-dashboard' ),
 		];
 	}
 }

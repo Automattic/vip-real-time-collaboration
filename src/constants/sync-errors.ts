@@ -1,4 +1,4 @@
-import type { ConnectionErrorCode } from '@wordpress/sync';
+import type { ConnectionErrorCode } from '@/types/sync';
 
 /**
  * Sync error codes the plugin handles with its own modal. Gutenberg's

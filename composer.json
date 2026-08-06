@@ -1,5 +1,6 @@
 {
   "name": "automattic/vip-real-time-collaboration",
+  "description": "Real-time collaboration plugin for WordPress VIP",
   "authors": [
     {
       "name": "WPVIP"
@@ -18,8 +19,8 @@
   "require-dev": {
     "automattic/vipwpcs": "^3.0",
     "php-stubs/wordpress-globals": "^0.2.0",
-    "php-stubs/wordpress-stubs": "^6.6",
-    "php-stubs/wordpress-tests-stubs": "^6.8",
+    "php-stubs/wordpress-stubs": "^7.0",
+    "php-stubs/wordpress-tests-stubs": "^7.0",
     "phpcompatibility/phpcompatibility-wp": "^2.1",
     "phpunit/phpunit": "^9",
     "psalm/phar": "^6.5",

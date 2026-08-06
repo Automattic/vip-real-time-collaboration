@@ -32,7 +32,7 @@ import type {
 	ProviderCreatorOptions,
 	ProviderCreatorResult,
 	ProviderEventMap,
-} from '@wordpress/sync';
+} from '@/types/sync';
 
 export interface WebSocketConnectionConfig {
 	options?: WebsocketProviderOptions;
@@ -247,9 +247,7 @@ function setupRoomClientLimit(
 			return;
 		}
 
-		const presences: RoomLimitPresence[] = readPresences(
-			awareness.getStates() as Map< number, Record< string, unknown > >
-		);
+		const presences: RoomLimitPresence[] = readPresences( awareness.getStates() );
 		const withinLimit = isLocalClientWithinLimit( presences, awareness.clientID, limit );
 
 		onChange( ! withinLimit );

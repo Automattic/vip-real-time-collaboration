@@ -17,7 +17,7 @@ import { CAPABILITIES, CONTACT_AJAX, SUPPORT_EMAIL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { getCoreDataSelectors } from '@/utilities/sync-connection-status';
 
-import type { ConnectionErrorCode } from '@wordpress/sync';
+import type { ConnectionErrorCode } from '@/types/sync';
 
 interface EditorStore {
 	getCurrentPostType?: () => string | null;
@@ -75,6 +75,26 @@ function getConnectionErrorMessage(
 		};
 	}
 
+	if ( errorCode === 'connection-expired' ) {
+		return {
+			title: __( 'Connection expired', 'vip-real-time-collaboration' ),
+			body: __(
+				'Your connection to real-time collaboration has timed out. Editing is paused to prevent conflicts with other editors.',
+				'vip-real-time-collaboration'
+			),
+		};
+	}
+
+	if ( errorCode === 'unknown-error' ) {
+		return {
+			title: __( 'Connection lost', 'vip-real-time-collaboration' ),
+			body: __(
+				'The connection to real-time collaboration was interrupted. Editing is paused to prevent conflicts with other editors.',
+				'vip-real-time-collaboration'
+			),
+		};
+	}
+
 	return {
 		title: __( 'Connection limit reached', 'vip-real-time-collaboration' ),
 		body: isAdmin
@@ -129,11 +149,17 @@ export function CollaborationLimitModal() {
 		}
 		if ( connectionStatus?.status === 'disconnected' ) {
 			const errorCode = connectionStatus.error?.code;
-			setShowModal( errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.includes( errorCode ) );
+			const isCustomError =
+				errorCode !== undefined && CUSTOM_MODAL_ERROR_CODES.includes( errorCode );
+
+			// Reuse the existing plugin modal as a fallback when the editor's
+			// canvas-cover modal is not rendered after background retries fail.
+			setShowModal( isCustomError || connectionStatus.backgroundRetriesFailed === true );
 		}
 	}, [ connectionStatus ] );
 
-	const errorCode = connectionStatus?.error?.code;
+	const errorCode =
+		connectionStatus?.status === 'disconnected' ? connectionStatus.error?.code : undefined;
 	const isUpgradeLimit = errorCode === UPGRADE_ERROR_CODE;
 
 	const telemetryFired = useRef( false );

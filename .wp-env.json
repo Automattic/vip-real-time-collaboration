@@ -12,5 +12,5 @@
     ".htaccess": "./bin/conf/htaccess"
   },
   "core": "WordPress/WordPress#master",
-  "plugins": [ ".", "https://downloads.wordpress.org/plugin/gutenberg.22.8.1.zip" ]
+  "plugins": [ ".", "https://downloads.wordpress.org/plugin/gutenberg.latest-stable.zip" ]
 }
