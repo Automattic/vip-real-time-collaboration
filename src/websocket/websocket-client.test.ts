@@ -173,6 +173,72 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		destroyProvider( context );
 	} );
 
+	it( 'surfaces repeated token-fetch failures as disconnected after background retries fail', async () => {
+		const finishBackoffs: Array< () => void > = [];
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => Promise.reject( new Error( 'offline' ) ),
+			waitBeforeRetry: () =>
+				new Promise( resolve => {
+					finishBackoffs.push( resolve );
+				} ),
+		} );
+
+		const context = await createProviderFromCreator( providerCreator, '123' );
+		const firstBackoff = finishBackoffs[ 0 ];
+		assert.ok( firstBackoff );
+		firstBackoff();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const retryingStatus = lastStatus( context.statuses );
+		assert.strictEqual( retryingStatus.status, 'disconnected' );
+		assert.strictEqual( retryingStatus.willAutoRetryInMs, 4000 );
+		assert.strictEqual( retryingStatus.backgroundRetriesFailed, false );
+
+		const secondBackoff = finishBackoffs[ 1 ];
+		assert.ok( secondBackoff );
+		secondBackoff();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const exhaustedStatus = lastStatus( context.statuses );
+		assert.strictEqual( exhaustedStatus.status, 'disconnected' );
+		assert.strictEqual( exhaustedStatus.willAutoRetryInMs, 8000 );
+		assert.strictEqual( exhaustedStatus.backgroundRetriesFailed, true );
+		destroyProvider( context );
+	} );
+
+	for ( const statusCode of [ 401, 403 ] ) {
+		it( `reports a token ${ statusCode } failure with the authentication error code`, async () => {
+			let finishBackoff = (): void => {};
+			const authorizationError = Object.assign( new Error( 'Authorization failed' ), {
+				data: { status: statusCode },
+			} );
+			const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+				multiplexingEnabled: true,
+				PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+				fetchToken: () => Promise.reject( authorizationError ),
+				waitBeforeRetry: () =>
+					new Promise( resolve => {
+						finishBackoff = resolve;
+					} ),
+			} );
+
+			const context = await createProviderFromCreator( providerCreator, '123' );
+			finishBackoff();
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const status = lastStatus( context.statuses );
+			assert.strictEqual( status.status, 'disconnected' );
+			assert.strictEqual( status.error?.code, 'authentication-failed' );
+			assert.strictEqual( status.backgroundRetriesFailed, false );
+			destroyProvider( context );
+		} );
+	}
+
 	it( 'does not reconnect after teardown during an in-flight token request', async () => {
 		let resolveToken = ( _grant: string ): void => {};
 		const inFlightToken = new Promise< string >( resolve => {
