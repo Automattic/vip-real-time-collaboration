@@ -1,7 +1,7 @@
 /**
  * External dependencies
  */
-import type { ConnectionStatus } from '@wordpress/sync';
+import type { ConnectionStatus } from '@/types/sync';
 
 type ConnectionStatusCallback = ( state: ConnectionStatus ) => void;
 

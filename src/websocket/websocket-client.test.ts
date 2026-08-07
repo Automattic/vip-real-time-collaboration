@@ -8,7 +8,7 @@ import { decodeMessage, encodeMessage } from '../../websocket-server/protocol';
 import { createWebSocketConnection } from '../websocket-client';
 import { acknowledgeRoom, FakePhysicalWebSocket } from './fake-physical-websocket.test-helper';
 
-import type { ConnectionStatus, ProviderCreator, ProviderCreatorResult } from '@wordpress/sync';
+import type { ConnectionStatus, ProviderCreator, ProviderCreatorResult } from '@/types/sync';
 
 let authFetchCount = 0;
 

@@ -17,7 +17,7 @@ import { CAPABILITIES, CONTACT_AJAX, SUPPORT_EMAIL } from '@/utilities/config';
 import { Logger } from '@/utilities/logger';
 import { getCoreDataSelectors } from '@/utilities/sync-connection-status';
 
-import type { ConnectionErrorCode } from '@wordpress/sync';
+import type { ConnectionErrorCode } from '@/types/sync';
 
 interface EditorStore {
 	getCurrentPostType?: () => string | null;
@@ -133,7 +133,8 @@ export function CollaborationLimitModal() {
 		}
 	}, [ connectionStatus ] );
 
-	const errorCode = connectionStatus?.error?.code;
+	const errorCode =
+		connectionStatus?.status === 'disconnected' ? connectionStatus.error?.code : undefined;
 	const isUpgradeLimit = errorCode === UPGRADE_ERROR_CODE;
 
 	const telemetryFired = useRef( false );

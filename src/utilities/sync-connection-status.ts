@@ -1,6 +1,6 @@
 import { __dangerousOptInToUnstableAPIsOnlyForCoreModules } from '@wordpress/private-apis';
 
-import type { ConnectionStatus } from '@wordpress/sync';
+import type { ConnectionStatus } from '@/types/sync';
 
 const PRIVATE_API_CONSENT =
 	'I acknowledge private features are not for use in themes or plugins and doing so will break in the next version of WordPress.';
