@@ -82,7 +82,7 @@ describe( 'submitUpgradeTicket', () => {
 				} )
 			)
 		);
-		globalThis.fetch = fetchMock as unknown as typeof globalThis.fetch;
+		globalThis.fetch = fetchMock;
 
 		const outcome = await submitUpgradeTicket( { ...BASE_CONTEXT, contactAjax: CONTACT_AJAX } );
 
@@ -103,13 +103,13 @@ describe( 'submitUpgradeTicket', () => {
 	} );
 
 	it( 'falls back to mailto: when vip_contact returns an error payload', async () => {
-		globalThis.fetch = ( () =>
+		globalThis.fetch = () =>
 			Promise.resolve(
 				new Response( JSON.stringify( { status: 'error' } ), {
 					status: 200,
 					headers: { 'Content-Type': 'application/json' },
 				} )
-			) ) as unknown as typeof globalThis.fetch;
+			);
 
 		const outcome = await submitUpgradeTicket( { ...BASE_CONTEXT, contactAjax: CONTACT_AJAX } );
 
@@ -118,10 +118,7 @@ describe( 'submitUpgradeTicket', () => {
 	} );
 
 	it( 'falls back to mailto: on non-2xx response', async () => {
-		globalThis.fetch = ( () =>
-			Promise.resolve(
-				new Response( 'forbidden', { status: 403 } )
-			) ) as unknown as typeof globalThis.fetch;
+		globalThis.fetch = () => Promise.resolve( new Response( 'forbidden', { status: 403 } ) );
 
 		const outcome = await submitUpgradeTicket( { ...BASE_CONTEXT, contactAjax: CONTACT_AJAX } );
 
@@ -130,8 +127,7 @@ describe( 'submitUpgradeTicket', () => {
 	} );
 
 	it( 'falls back to mailto: when fetch throws', async () => {
-		globalThis.fetch = ( () =>
-			Promise.reject( new Error( 'network down' ) ) ) as unknown as typeof globalThis.fetch;
+		globalThis.fetch = () => Promise.reject( new Error( 'network down' ) );
 
 		const outcome = await submitUpgradeTicket( { ...BASE_CONTEXT, contactAjax: CONTACT_AJAX } );
 

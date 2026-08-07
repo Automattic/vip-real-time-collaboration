@@ -1,4 +1,4 @@
-import type { ConnectionErrorCode } from '@wordpress/sync';
+import type { ConnectionErrorCode } from '@/types/sync';
 
 export type WebSocketCloseScope = 'physical' | 'room';
 

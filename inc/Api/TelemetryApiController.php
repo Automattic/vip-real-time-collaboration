@@ -29,6 +29,7 @@ final class TelemetryApiController extends WP_REST_Controller {
 	 */
 	#[\Override]
 	public function register_routes(): void {
+		/** @psalm-suppress ArgumentTypeCoercion -- Set to non-empty constants in the constructor. */
 		register_rest_route(
 			$this->namespace,
 			$this->rest_base,

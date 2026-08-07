@@ -169,9 +169,9 @@ function assertDataMessage( message: ProtocolMessage | undefined ): asserts mess
 function activeRoomSocket( room: string ): RoomWebSocket {
 	const document = docs.get( room );
 	assert.ok( document );
-	const [ roomSocket ] = document.conns.keys();
-	assert.ok( roomSocket );
-	return roomSocket as unknown as RoomWebSocket;
+	const roomSocket: unknown = document.conns.keys().next().value;
+	assert.ok( roomSocket instanceof RoomWebSocket );
+	return roomSocket;
 }
 
 async function activeRoomConnectionMetric(): Promise< number > {
