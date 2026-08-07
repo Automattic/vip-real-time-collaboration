@@ -126,27 +126,19 @@ function getBackoffDelayInMs( attempts: number ): number {
 	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
 }
 
+function isRecord( value: unknown ): value is Record< string, unknown > {
+	return typeof value === 'object' && value !== null;
+}
+
 /**
  * Map WordPress REST authorization responses from the token endpoint to the
  * sync error code that Gutenberg uses for its authentication message. Network
  * and other request failures do not have a trustworthy authorization status.
  */
 function getTokenFetchErrorCode( error: unknown ): ConnectionError[ 'code' ] {
-	if ( ! error || typeof error !== 'object' || ! ( 'data' in error ) ) {
-		return 'unknown-error';
-	}
+	const status = isRecord( error ) && isRecord( error.data ) ? error.data.status : undefined;
 
-	const { data } = error;
-	if (
-		data &&
-		typeof data === 'object' &&
-		'status' in data &&
-		( data.status === 401 || data.status === 403 )
-	) {
-		return 'authentication-failed';
-	}
-
-	return 'unknown-error';
+	return status === 401 || status === 403 ? 'authentication-failed' : 'unknown-error';
 }
 
 /**

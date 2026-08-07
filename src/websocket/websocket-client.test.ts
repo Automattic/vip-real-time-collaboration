@@ -194,6 +194,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 
 		const retryingStatus = lastStatus( context.statuses );
 		assert.strictEqual( retryingStatus.status, 'disconnected' );
+		assert.strictEqual( retryingStatus.error?.code, 'unknown-error' );
 		assert.strictEqual( retryingStatus.willAutoRetryInMs, 4000 );
 		assert.strictEqual( retryingStatus.backgroundRetriesFailed, false );
 
@@ -210,11 +211,16 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		destroyProvider( context );
 	} );
 
-	for ( const statusCode of [ 401, 403 ] ) {
-		it( `reports a token ${ statusCode } failure with the authentication error code`, async () => {
+	for ( const [ description, errorData, expectedErrorCode ] of [
+		[ '401 response', { status: 401 }, 'authentication-failed' ],
+		[ '403 response', { status: 403 }, 'authentication-failed' ],
+		[ '500 response', { status: 500 }, 'unknown-error' ],
+		[ 'malformed response', 'invalid-data', 'unknown-error' ],
+	] as const ) {
+		it( `maps a token ${ description } to ${ expectedErrorCode }`, async () => {
 			let finishBackoff = (): void => {};
 			const authorizationError = Object.assign( new Error( 'Authorization failed' ), {
-				data: { status: statusCode },
+				data: errorData,
 			} );
 			const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
 				multiplexingEnabled: true,
@@ -233,7 +239,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 
 			const status = lastStatus( context.statuses );
 			assert.strictEqual( status.status, 'disconnected' );
-			assert.strictEqual( status.error?.code, 'authentication-failed' );
+			assert.strictEqual( status.error?.code, expectedErrorCode );
 			assert.strictEqual( status.backgroundRetriesFailed, false );
 			destroyProvider( context );
 		} );
