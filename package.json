@@ -83,6 +83,6 @@
   "dependencies": {
     "lib0": "0.2.114",
     "y-protocols": "1.0.7",
-    "y-websocket": "3.0.0"
+    "y-websocket": "3.1.0"
   }
 }
