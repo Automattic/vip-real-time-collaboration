@@ -85,7 +85,7 @@ export function createRtcServer( options: RtcServerOptions ): RtcServer {
 		const initialGrant = authResult.grant;
 		const pathname = getRequestPathname( request );
 		if ( isMultiplex ) {
-			if ( pathname !== '/' && pathname !== '/_ws' ) {
+			if ( ! [ '/multiplex', '/_ws/multiplex' ].includes( pathname ) ) {
 				recordConnectionFailure( 'invalid_multiplex_path' );
 				rejectHttpUpgrade( socket, '400 Bad Request' );
 				return;
