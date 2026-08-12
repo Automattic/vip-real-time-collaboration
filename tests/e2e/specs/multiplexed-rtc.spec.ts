@@ -18,7 +18,7 @@ import {
 	type ProtocolMessage,
 } from '../../../websocket-server/protocol';
 
-const WEBSOCKET_URL = process.env.WS_URL ?? 'ws://localhost:1234';
+const WEBSOCKET_URL = process.env.WS_URL ?? 'ws://localhost:1234/_ws';
 const EXTENDED_POLL_TIMEOUT_MS = 15_000;
 
 interface AuthResponse {

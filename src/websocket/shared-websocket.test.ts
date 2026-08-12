@@ -58,18 +58,6 @@ describe( 'createSharedWebSocketAdapter', () => {
 		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
 	} );
 
-	it( 'opens the explicit VIP RTC path for a direct server URL', () => {
-		const SharedWebSocket = createSharedWebSocketAdapter(
-			'ws://localhost:1234/',
-			FakePhysicalWebSocket as unknown as typeof WebSocket
-		);
-		new SharedWebSocket( 'ws://localhost:1234/site-7/postType/page-123?auth=grant-1' );
-
-		const physical = FakePhysicalWebSocket.instances[ 0 ];
-		assert.ok( physical );
-		assert.strictEqual( physical.url, 'ws://localhost:1234/vip-rtc?auth=grant-1' );
-	} );
-
 	it( 'rejects missing or empty rooms and auth grants', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws/',
