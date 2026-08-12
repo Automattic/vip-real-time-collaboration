@@ -206,8 +206,8 @@ describe( 'WebSocket transport routing', () => {
 	} );
 
 	for ( const [ path, protocols ] of [
-		[ '/multiplex', [ MULTIPLEX_SUBPROTOCOL ] ],
-		[ '/_ws/multiplex', [ 'vip-rtc-multiplex-v2', MULTIPLEX_SUBPROTOCOL ] ],
+		[ '/vip-rtc', [ MULTIPLEX_SUBPROTOCOL ] ],
+		[ '/_ws/vip-rtc', [ 'vip-rtc-multiplex-v2', MULTIPLEX_SUBPROTOCOL ] ],
 	] as const ) {
 		it( `routes ${ path } through multiplex and selects V1 from ${ protocols.join(
 			', '
@@ -335,7 +335,7 @@ describe( 'WebSocket transport routing', () => {
 		{ timeout: 1_000 },
 		async () => {
 			const baseUrl = await startServer();
-			const path = `/multiplex?auth=${ grant( 'site-7/post-invalid-frame' ) }`;
+			const path = `/vip-rtc?auth=${ grant( 'site-7/post-invalid-frame' ) }`;
 			const client = await connect( baseUrl, path, MULTIPLEX_SUBPROTOCOL );
 			const closed = once( client, 'close' );
 
@@ -405,7 +405,7 @@ describe( 'WebSocket transport routing', () => {
 		await connect( baseUrl, `/_ws/${ room }?auth=${ grant( room ) }` );
 		const multiplex = await connect(
 			baseUrl,
-			`/multiplex?auth=${ grant( room ) }`,
+			`/vip-rtc?auth=${ grant( room ) }`,
 			MULTIPLEX_SUBPROTOCOL
 		);
 		const subscribed = waitForMultiplexMessage(
@@ -428,7 +428,7 @@ describe( 'WebSocket transport routing', () => {
 			const laterRoom = 'site-7/post-later';
 			const client = await connect(
 				baseUrl,
-				`/multiplex?auth=${ grant( initialRoom ) }`,
+				`/vip-rtc?auth=${ grant( initialRoom ) }`,
 				MULTIPLEX_SUBPROTOCOL
 			);
 			const subscribed = waitForMultiplexMessage(
@@ -475,7 +475,7 @@ describe( 'WebSocket transport routing', () => {
 		const bootstrapGrant = grant( room, { exp: 1_700_000_001 } );
 		const client = await connect(
 			baseUrl,
-			`/multiplex?auth=${ bootstrapGrant }`,
+			`/vip-rtc?auth=${ bootstrapGrant }`,
 			MULTIPLEX_SUBPROTOCOL
 		);
 
@@ -504,7 +504,7 @@ describe( 'WebSocket transport routing', () => {
 			const messagesBefore = await metricValue( 'wpvip_rtc_messages_total' );
 			const baseUrl = await startServer( 100 );
 			const room = `site-7/post-common-${ protocol ? 'multiplex' : 'legacy' }`;
-			const path = protocol ? '/multiplex' : `/${ room }`;
+			const path = protocol ? '/vip-rtc' : `/${ room }`;
 			const client = await connect( baseUrl, `${ path }?auth=${ grant( room ) }`, protocol );
 			const closePromise = once( client, 'close' );
 

@@ -162,7 +162,7 @@ function recordMultiplexTransport( page: Page, wsUrl: string ): TransportRecorde
 		}
 	};
 	page.on( 'websocket', socket => {
-		if ( ! socket.url().startsWith( `${ wsUrl }/multiplex?auth=` ) ) {
+		if ( ! socket.url().startsWith( `${ wsUrl }/vip-rtc?auth=` ) ) {
 			return;
 		}
 		recorder.createdSocketCount += 1;
@@ -313,7 +313,7 @@ test.describe( 'multiplexed RTC transport', () => {
 		try {
 			// Phase: a multiplex upgrade owns no room until its explicit subscribe.
 			const rawSocket = new NodeWebSocket(
-				`${ wsUrl }/multiplex?auth=${ encodeURIComponent( primaryGrant ) }`,
+				`${ wsUrl }/vip-rtc?auth=${ encodeURIComponent( primaryGrant ) }`,
 				MULTIPLEX_SUBPROTOCOL
 			);
 			cleanups.push( () => rawSocket.close() );
