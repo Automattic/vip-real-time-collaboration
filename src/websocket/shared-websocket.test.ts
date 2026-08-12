@@ -16,7 +16,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 		FakePhysicalWebSocket.instances = [];
 	} );
 
-	it( 'normalizes room URLs into one neutral multiplex socket and rejects lookalike bases', () => {
+	it( 'normalizes room URLs into one multiplex socket and rejects lookalike bases', () => {
 		const SharedWebSocket = createSharedWebSocketAdapter(
 			'wss://example.test/_ws/',
 			FakePhysicalWebSocket as unknown as typeof WebSocket
@@ -37,7 +37,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 
 		const physical = FakePhysicalWebSocket.instances[ 0 ];
 		assert.ok( physical );
-		assert.strictEqual( physical.url, 'wss://example.test/_ws?auth=grant-1' );
+		assert.strictEqual( physical.url, 'wss://example.test/_ws/multiplex?auth=grant-1' );
 		assert.strictEqual( physical.protocols, 'vip-rtc-multiplex-v1' );
 		assert.strictEqual( physical.binaryType, 'arraybuffer' );
 
@@ -56,6 +56,18 @@ describe( 'createSharedWebSocketAdapter', () => {
 			/normalized server URL/
 		);
 		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
+	} );
+
+	it( 'opens the explicit multiplex path for a direct server URL', () => {
+		const SharedWebSocket = createSharedWebSocketAdapter(
+			'ws://localhost:1234/',
+			FakePhysicalWebSocket as unknown as typeof WebSocket
+		);
+		new SharedWebSocket( 'ws://localhost:1234/site-7/postType/page-123?auth=grant-1' );
+
+		const physical = FakePhysicalWebSocket.instances[ 0 ];
+		assert.ok( physical );
+		assert.strictEqual( physical.url, 'ws://localhost:1234/multiplex?auth=grant-1' );
 	} );
 
 	it( 'rejects missing or empty rooms and auth grants', () => {
