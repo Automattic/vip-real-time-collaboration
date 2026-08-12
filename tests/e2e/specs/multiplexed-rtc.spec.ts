@@ -18,7 +18,7 @@ import {
 	type ProtocolMessage,
 } from '../../../websocket-server/protocol';
 
-const WEBSOCKET_URL = process.env.WS_URL ?? 'ws://localhost:1234';
+const WEBSOCKET_URL = process.env.WS_URL ?? 'ws://localhost:1234/_ws';
 const EXTENDED_POLL_TIMEOUT_MS = 15_000;
 
 interface AuthResponse {
@@ -162,7 +162,7 @@ function recordMultiplexTransport( page: Page, wsUrl: string ): TransportRecorde
 		}
 	};
 	page.on( 'websocket', socket => {
-		if ( ! socket.url().startsWith( `${ wsUrl }/?auth=` ) ) {
+		if ( ! socket.url().startsWith( `${ wsUrl }/vip-rtc?auth=` ) ) {
 			return;
 		}
 		recorder.createdSocketCount += 1;
@@ -311,9 +311,9 @@ test.describe( 'multiplexed RTC transport', () => {
 		const cleanups: Array< () => void > = [];
 
 		try {
-			// Phase: a neutral upgrade owns no room until its explicit subscribe.
+			// Phase: a multiplex upgrade owns no room until its explicit subscribe.
 			const rawSocket = new NodeWebSocket(
-				`${ wsUrl }/?auth=${ encodeURIComponent( primaryGrant ) }`,
+				`${ wsUrl }/vip-rtc?auth=${ encodeURIComponent( primaryGrant ) }`,
 				MULTIPLEX_SUBPROTOCOL
 			);
 			cleanups.push( () => rawSocket.close() );

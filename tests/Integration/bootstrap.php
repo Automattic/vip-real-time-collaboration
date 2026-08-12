@@ -31,7 +31,7 @@ require_once "{$_tests_dir}/includes/functions.php";
 require_once __DIR__ . '/../../vendor/yoast/wp-test-utils/src/WPIntegration/bootstrap-functions.php';
 
 // Define WebSocket constants for testing.
-define( 'VIP_RTC_WS_URL', 'ws://localhost:1234' );
+define( 'VIP_RTC_WS_URL', 'ws://localhost:1234/_ws' );
 define( 'VIP_RTC_WS_AUTH_SECRET', 'vip_rtc_ws_auth_secret' );
 
 // Manually load the plugin being tested.
