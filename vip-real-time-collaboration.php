@@ -53,8 +53,8 @@ add_action( 'plugins_loaded', static function (): void {
 
 	Settings::init();
 
-	// If RTC is disabled, return early.
-	if ( ! Settings::is_vip_rtc_enabled() ) {
+	// Allow a higher-priority option filter to disable the Gutenberg RTC experiment.
+	if ( ! Settings::is_gutenberg_rtc_experiment_enabled() ) {
 		return;
 	}
 

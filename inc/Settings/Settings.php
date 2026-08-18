@@ -7,29 +7,40 @@ defined( 'ABSPATH' ) || exit();
 final class Settings {
 	private const SETTINGS_PAGE_SLUG = 'vip-real-time-collaboration-settings';
 
-	/**
-	 * We now have a separate option in WordPress Writing settings that we need to
-	 * target.
-	 */
-	public const GUTENBERG_OPTION_NAME = 'wp_collaboration_enabled';
+	public const GUTENBERG_EXPERIMENTS_OPTION_NAME = 'gutenberg-experiments';
+
+	public const GUTENBERG_RTC_EXPERIMENT_NAME = 'gutenberg-real-time-collaboration';
 
 	public static function init(): void {
 		add_action( 'admin_menu', [ __CLASS__, 'add_options_page' ] );
-		add_filter( 'default_option_' . self::GUTENBERG_OPTION_NAME, [ __CLASS__, 'filter_gutenberg_rtc_option' ], 99 );
+		add_filter( 'default_option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
+		add_filter( 'option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
 	}
 
-	public static function is_vip_rtc_enabled(): bool {
-		return (bool) get_option( self::GUTENBERG_OPTION_NAME );
+	public static function is_gutenberg_rtc_experiment_enabled(): bool {
+		return self::has_enabled_rtc_experiment( get_option( self::GUTENBERG_EXPERIMENTS_OPTION_NAME ) );
+	}
+
+	private static function has_enabled_rtc_experiment( mixed $experiments ): bool {
+		return is_array( $experiments ) && ! empty( $experiments[ self::GUTENBERG_RTC_EXPERIMENT_NAME ] );
 	}
 
 	/**
-	 * Filter the Gutenberg RTC option to be enabled by defailt.
+	 * Enable Gutenberg's real-time collaboration experiment while preserving the
+	 * state of all other experiments.
 	 *
-	 * @return string Whether RTC should be enabled in Gutenberg.
+	 * @param mixed $experiments The configured Gutenberg experiments.
+	 * @return array<array-key, mixed> The configured experiments with RTC enabled.
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
-	public static function filter_gutenberg_rtc_option(): string {
-		return '1';
+	public static function enable_gutenberg_rtc_experiment( mixed $experiments ): array {
+		if ( ! is_array( $experiments ) ) {
+			$experiments = [];
+		}
+
+		$experiments[ self::GUTENBERG_RTC_EXPERIMENT_NAME ] = true;
+
+		return $experiments;
 	}
 
 	/**
@@ -74,13 +85,12 @@ final class Settings {
 			</p>
 			<p>
 				<?php
-				// Add a link to the Writing settings page where real-time collaboration can be enabled or disabled.
-				$writing_settings_url = admin_url( 'options-writing.php' );
+				$experiments_url = admin_url( 'options-general.php?page=experiments-wp-admin' );
 				echo wp_kses(
 					sprintf(
-						/* translators: %s: URL to the Writing settings page */
-						__( 'Real-time collaboration can be enabled or disabled on the <a href="%s">Writing settings page</a>.', 'vip-real-time-collaboration' ),
-						esc_url( $writing_settings_url )
+						/* translators: %s: URL to the Gutenberg Experiments settings page */
+						__( 'The <a href="%s">Real-Time Collaboration experiment</a> is enabled by this plugin.', 'vip-real-time-collaboration' ),
+						esc_url( $experiments_url )
 					),
 					[ 'a' => [ 'href' => [] ] ]
 				);
