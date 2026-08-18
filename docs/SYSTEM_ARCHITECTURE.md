@@ -169,7 +169,7 @@ sequenceDiagram
 ### 4.1 Document Synchronization
 
 - **Y.js CRDT**: Maintains convergent collaborative document state across connected editors
-- **Persistence**: Gutenberg's Sync and Core Data packages manage CRDT snapshots and WordPress persistence
+- **Persistence**: Gutenberg's Sync and Core Data packages serialize CRDT snapshots and persist them in `_crdt_document` post meta through post saves and sync repair requests
 - **WebSocket Provider**: Real-time bidirectional communication with exponential backoff for connection retries
 - **VIP Transport**: This plugin replaces the default polling provider without replacing Gutenberg's document model
 
@@ -181,6 +181,7 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 
 - **JWT Tokens**: Secure WebSocket connections with time-limited tokens
 - **Post Permissions**: Post entities require the corresponding `edit_post` permission through the `sync_post` capability
+- **Persistence Authorization**: Gutenberg protects `_crdt_document` post meta with an `edit_post` authentication callback
 - **Extensible Permissions**: Collections and other entity types use the `vip_rtc_entity_sync_check_permission` filter after authentication
 
 ## 5. Configuration and Integration
@@ -257,7 +258,7 @@ Room failures stay scoped to the room: a `4004` or `4005` close stops or retries
 
 - **WordPress Authentication**: Leverages WordPress user system
 - **JWT Tokens**: Secure, time-limited connection tokens
-- **Permission Validation**: Requires `edit_post` permission for post entities; other entity types are filter-controlled
+- **Permission Validation**: The plugin requires `edit_post` permission before issuing post-entity tokens, and Gutenberg protects persisted CRDT post meta with the same permission
 - **Connection Isolation**: Users can only access authorized documents
 - **Client Identifiers**: Uses `crypto.randomUUID()` in secure contexts, with a UUID fallback for non-secure local development
 
