@@ -11,6 +11,12 @@ use function remove_filter;
  * Integration Tests for the Settings class.
  */
 final class SettingsTest extends TestCase {
+	private static function is_gutenberg_rtc_experiment_enabled(): bool {
+		$experiments = get_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME );
+
+		return is_array( $experiments ) && ! empty( $experiments[ Settings::GUTENBERG_RTC_EXPERIMENT_NAME ] );
+	}
+
 	public function set_up(): void {
 		parent::set_up();
 
@@ -24,54 +30,54 @@ final class SettingsTest extends TestCase {
 	/**
 	 * Verifies that the Gutenberg RTC experiment is enabled by default.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 */
 	public function test_gutenberg_rtc_experiment_is_enabled_by_default(): void {
-		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertTrue( self::is_gutenberg_rtc_experiment_enabled() );
 	}
 
 	/**
 	 * Verifies that the RTC experiment can be disabled with a default_option filter.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 */
 	public function test_gutenberg_rtc_experiment_can_be_disabled_with_default_option_filter(): void {
 		$filter_name = 'default_option_' . Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME;
 		add_filter( $filter_name, '__return_empty_array', 100 );
-		self::assertFalse( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertFalse( self::is_gutenberg_rtc_experiment_enabled() );
 		remove_filter( $filter_name, '__return_empty_array', 100 );
 
-		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertTrue( self::is_gutenberg_rtc_experiment_enabled() );
 	}
 
 	/**
 	 * Verifies that the RTC experiment can be disabled with a pre_option filter.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 */
 	public function test_gutenberg_rtc_experiment_can_be_disabled_with_pre_option_filter(): void {
 		$filter_name = 'pre_option_' . Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME;
 		add_filter( $filter_name, '__return_empty_array' );
-		self::assertFalse( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertFalse( self::is_gutenberg_rtc_experiment_enabled() );
 		remove_filter( $filter_name, '__return_empty_array' );
 
-		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertTrue( self::is_gutenberg_rtc_experiment_enabled() );
 	}
 
 	/**
 	 * Verifies that a persisted empty experiment list still enables RTC.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 */
 	public function test_gutenberg_rtc_experiment_is_enabled_with_empty_option(): void {
 		add_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME, [] );
-		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertTrue( self::is_gutenberg_rtc_experiment_enabled() );
 	}
 
 	/**
 	 * Verifies that disabling the plugin setting disables the RTC experiment.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_vip_rtc_enabled
 	 */
 	public function test_plugin_setting_disables_gutenberg_rtc_experiment(): void {
@@ -85,7 +91,7 @@ final class SettingsTest extends TestCase {
 		);
 
 		self::assertFalse( Settings::is_vip_rtc_enabled() );
-		self::assertFalse( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertFalse( self::is_gutenberg_rtc_experiment_enabled() );
 		self::assertSame(
 			[
 				'gutenberg-example-experiment' => true,
@@ -170,14 +176,14 @@ final class SettingsTest extends TestCase {
 	/**
 	 * Verifies that enabling RTC preserves other Gutenberg experiments.
 	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
 	 */
 	public function test_enabling_rtc_preserves_other_experiments(): void {
 		$experiments = [ 'gutenberg-example-experiment' => true ];
 
 		add_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME, $experiments );
 
-		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertTrue( self::is_gutenberg_rtc_experiment_enabled() );
 		self::assertSame(
 			[
 				'gutenberg-example-experiment' => true,

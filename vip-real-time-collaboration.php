@@ -51,10 +51,12 @@ add_action( 'plugins_loaded', static function (): void {
 		return;
 	}
 
+	// Initialize settings before the early return so a disabled plugin setting also
+	// disables an RTC experiment that was previously enabled in Gutenberg.
 	Settings::init();
 
-	// Allow a higher-priority option filter to disable the Gutenberg RTC experiment.
-	if ( ! Settings::is_gutenberg_rtc_experiment_enabled() ) {
+	// Keep the runtime gate independent from Gutenberg's filtered experiment value.
+	if ( ! Settings::is_vip_rtc_enabled() ) {
 		return;
 	}
 

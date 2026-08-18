@@ -35,14 +35,6 @@ final class Settings {
 		return false === $value || 0 === $value || '0' === $value;
 	}
 
-	public static function is_gutenberg_rtc_experiment_enabled(): bool {
-		return self::has_enabled_rtc_experiment( get_option( self::GUTENBERG_EXPERIMENTS_OPTION_NAME ) );
-	}
-
-	private static function has_enabled_rtc_experiment( mixed $experiments ): bool {
-		return is_array( $experiments ) && ! empty( $experiments[ self::GUTENBERG_RTC_EXPERIMENT_NAME ] );
-	}
-
 	/**
 	 * Set Gutenberg's real-time collaboration experiment from the plugin setting
 	 * while preserving the state of all other experiments.
@@ -107,6 +99,7 @@ final class Settings {
 
 	/**
 	 * Sanitize settings before saving.
+	 * Only an explicit disabled value turns RTC off; invalid input remains enabled.
 	 *
 	 * @param mixed $input The submitted settings.
 	 * @return array{enable-vip-rtc: bool}
@@ -216,7 +209,6 @@ final class Settings {
 
 	/**
 	 * Display the enable/disable radio buttons.
-	 *
 	 */
 	public static function display_settings_radio(): void {
 		$is_enabled = self::is_vip_rtc_enabled();
