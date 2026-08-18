@@ -103,7 +103,21 @@ final class SettingsTest extends TestCase {
 	public function test_plugin_setting_is_sanitized(): void {
 		self::assertSame( [ 'enable-vip-rtc' => true ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '1' ] ) );
 		self::assertSame( [ 'enable-vip-rtc' => false ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '0' ] ) );
-		self::assertSame( [ 'enable-vip-rtc' => false ], Settings::sanitize_settings( 'invalid' ) );
+		self::assertSame( [ 'enable-vip-rtc' => true ], Settings::sanitize_settings( 'invalid' ) );
+		self::assertSame( [ 'enable-vip-rtc' => true ], Settings::sanitize_settings( [] ) );
+	}
+
+	/**
+	 * Verifies that malformed saved settings do not disable RTC.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_vip_rtc_enabled
+	 */
+	public function test_malformed_plugin_setting_defaults_to_enabled(): void {
+		update_option( Settings::OPTION_NAME, 'invalid' );
+		self::assertTrue( Settings::is_vip_rtc_enabled() );
+
+		update_option( Settings::OPTION_NAME, [] );
+		self::assertTrue( Settings::is_vip_rtc_enabled() );
 	}
 
 	/**

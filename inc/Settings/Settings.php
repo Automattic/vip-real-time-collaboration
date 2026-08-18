@@ -22,9 +22,17 @@ final class Settings {
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
-		$options = (array) get_option( self::OPTION_NAME, self::get_default_options() );
+		$options = get_option( self::OPTION_NAME, self::get_default_options() );
 
-		return ! empty( $options[ self::ENABLED_SETTING_NAME ] );
+		if ( ! is_array( $options ) || ! array_key_exists( self::ENABLED_SETTING_NAME, $options ) ) {
+			return true;
+		}
+
+		return ! self::is_disabled_value( $options[ self::ENABLED_SETTING_NAME ] );
+	}
+
+	private static function is_disabled_value( mixed $value ): bool {
+		return false === $value || 0 === $value || '0' === $value;
 	}
 
 	public static function is_gutenberg_rtc_experiment_enabled(): bool {
@@ -105,8 +113,13 @@ final class Settings {
 	 * @psalm-suppress PossiblyUnusedMethod Psalm does not detect usage via register_setting.
 	 */
 	public static function sanitize_settings( mixed $input ): array {
+		$is_enabled = true;
+		if ( is_array( $input ) && array_key_exists( self::ENABLED_SETTING_NAME, $input ) ) {
+			$is_enabled = ! self::is_disabled_value( $input[ self::ENABLED_SETTING_NAME ] );
+		}
+
 		return [
-			self::ENABLED_SETTING_NAME => is_array( $input ) && isset( $input[ self::ENABLED_SETTING_NAME ] ) && '1' === $input[ self::ENABLED_SETTING_NAME ],
+			self::ENABLED_SETTING_NAME => $is_enabled,
 		];
 	}
 
