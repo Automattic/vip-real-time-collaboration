@@ -17,17 +17,17 @@ The VIP Real-Time Collaboration plugin provides real-time collaborative editing 
 
 ### Key Technologies
 
-- **[Y.js (Yjs)](https://docs.yjs.dev/)**: [Conflict-free Replicated Data Types](https://crdt.tech/) (CRDTs) for operational transformation
+- **[Y.js (Yjs)](https://docs.yjs.dev/)**: [Conflict-free Replicated Data Types](https://crdt.tech/) (CRDTs) for convergent collaborative state
 - **[WebSockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API)**: Real-time bidirectional communication
 - **[JWT Authentication](https://jwt.io/introduction)**: Secure connection tokens
-- **WordPress Sync API**: Built on Gutenberg's experimental sync features
+- **WordPress Sync API**: Gutenberg's collaboration and CRDT infrastructure, exposed through `@wordpress/sync`
 
 ### High-Level Architecture
 
 ```mermaid
 graph TB
     A[WordPress Editor] --> B[Y.js CRDT Provider]
-    A --> C[Awareness Manager]
+    A --> C[Gutenberg Awareness]
     B --> D[WebSocket Server]
     C --> D
     D --> E[Other Connected Users]
@@ -50,30 +50,25 @@ graph TB
 
 ```mermaid
 graph TB
-    A[index.ts] --> B[SyncProviderWithAwareness]
-    A --> C[RTCSettingsPanel]
+    A[index.ts] --> B[sync.providers filter]
+    A --> C[CollaborationLimitModal]
     B --> D[WebSocketClient]
-    B --> E[AwarenessManager]
-    B --> F[CRDT Provider]
-    B --> G[Client-side CRDT Persistence]
-    C --> H[React Components]
-    D --> I[JWT Authentication]
-    G --> J[Content Hash Verification]
-    G --> K[Version Control]
+    D --> E[y-websocket provider]
+    D --> F[JWT Authentication]
+    D --> G[Shared WebSocket adapter]
+    G --> H[Multiplexed transport]
 ```
 
 #### Key Components
 
-- **SyncProviderWithAwareness** (`provider.ts`): Main sync provider extending WordPress sync, handles document bootstrapping and CRDT persistence
-- **AwarenessManager** (`awareness-manager.ts`): Singleton managing user presence, cursor positions, and collaboration state
-- **WebSocketClient** (`websocket-client.ts`): Real-time communication with connection monitoring and exponential backoff for reconnections
-- **RTCOverlay** (`components/rtc-overlay.tsx`): React component rendering collaborative UI elements in editor iframe
-- **React Components** (`components/`): Modular UI for avatars, cursors, highlights, and modals
-- **Store Management** (`store/`): WordPress data stores for awareness and settings persistence
-- **Hooks and Utilities** (`hooks/`, `utilities/`): Helper functions for selection tracking, entity management, and browser utilities
-- **CRDT Utilities** (`utilities/crdt.ts`): Client-side CRDT document serialization, deserialization, content hash verification, and version management
-- **Cryptographic Utilities** (`utilities/crypto.ts`): Secure hash generation and UUID creation with fallbacks for non-secure contexts
+- **Provider registration** (`index.ts`): Replaces Gutenberg's default polling provider through the `sync.providers` filter
+- **WebSocket client** (`websocket-client.ts`): Creates authenticated Yjs providers and handles connection status, limits, and retry behavior
+- **Shared WebSocket adapter** (`shared-websocket.ts`): Optionally multiplexes several collaboration rooms over one physical WebSocket
+- **Connection-limit modal** (`components/collaboration-limit-modal.tsx`): Handles VIP-specific collaborator and connection limit errors
+- **Cryptographic utilities** (`utilities/crypto.ts`): Generates client identifiers, with a fallback for non-secure local development
 - **Logging System** (`utilities/logger.ts`): Environment-based logging levels for performance monitoring and debugging
+
+Gutenberg owns the editor's CRDT documents, awareness state, persistence, and collaborative UI. This plugin supplies the VIP WebSocket transport and its operational UI.
 
 ### 2.3 Back-End PHP Architecture
 
@@ -81,22 +76,23 @@ graph TB
 
 ```mermaid
 graph TB
-    A[WordPress Plugin] --> B[REST API]
-    A --> C[Authentication]
-    A --> D[CRDT Persistence]
-    A --> E[Assets and Compatibility]
-    B --> F[Auth Controllers]
-    C --> G[JWT and Permissions]
+    A[WordPress Plugin] --> B[Settings]
+    A --> C[Compatibility]
+    A --> D[Assets]
+    A --> E[REST API]
+    A --> F[Sync Permissions]
+    A --> G[Telemetry]
+    E --> H[Authentication and telemetry controllers]
 ```
 
 #### Key Components
 
 - **REST API** (`Api/`): WebSocket authentication endpoints
 - **Authentication** (`Auth/`): JWT token generation, WebSocket auth, and sync permissions
-- **CRDT Persistence** (`Editor/`): Post meta registration with authentication callbacks
-- **Assets Management** (`Assets/`): JavaScript/CSS loading and configuration injection
-- **Compatibility** (`Compatibility/`): Gutenberg integration and plugin loading requirements
-- **Overrides** (`Overrides/`): Disables WordPress post locking and heartbeat for simultaneous editing
+- **Assets Management** (`Assets/`): JavaScript loading and configuration injection
+- **Compatibility** (`Compatibility/`): Gutenberg and WebSocket configuration requirements
+- **Settings** (`Settings/`): Emergency enable/disable control and Gutenberg RTC experiment management
+- **Telemetry** (`Telemetry/`): Plugin lifecycle and editor event reporting on supported VIP environments
 
 ### 2.4 WebSocket Server
 
@@ -155,16 +151,14 @@ sequenceDiagram
 sequenceDiagram
     participant User as User
     participant YJS as Y.js Provider
-    participant Client as Client-side CRDT Utils
+    participant Sync as Gutenberg Sync
     participant WP as WordPress REST API
     participant DB as Database
 
     User->>User: Save post (Ctrl+S)
-    YJS->>Client: Serialize CRDT document
-    Client->>Client: Generate content hash for verification
-    Client->>Client: Create versioned meta record
-    YJS->>WP: Persist CRDT document via post meta (REST API)
-    WP->>DB: Store serialized Y.js document with metadata
+    YJS->>Sync: Capture the current CRDT snapshot
+    Sync->>WP: Persist through Gutenberg's sync APIs
+    WP->>DB: Store the collaborative document state
     WP->>DB: Save WordPress post content
     DB->>WP: Confirm storage
     WP->>User: Save confirmation
@@ -174,23 +168,20 @@ sequenceDiagram
 
 ### 4.1 Document Synchronization
 
-- **Y.js CRDT**: Maintains document state with operational transformation and version control
-- **Client-side Persistence**: CRDT document serialization, content hash verification, and persistence logic
+- **Y.js CRDT**: Maintains convergent collaborative document state across connected editors
+- **Persistence**: Gutenberg's Sync and Core Data packages manage CRDT snapshots and WordPress persistence
 - **WebSocket Provider**: Real-time bidirectional communication with exponential backoff for connection retries
-- **WordPress Post Meta**: CRDT document storage via WordPress's built-in post meta system
+- **VIP Transport**: This plugin replaces the default polling provider without replacing Gutenberg's document model
 
 ### 4.2 Awareness System
 
-- **User Presence**: Track active collaborators
-- **Cursor Positions**: Show real-time cursor locations
-- **Block Highlighting**: Indicate which blocks users are editing
-- **User Avatars**: Display collaborator information
+Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket provider carries the associated Yjs awareness updates between connected editors.
 
 ### 4.3 Authentication Flow
 
 - **JWT Tokens**: Secure WebSocket connections with time-limited tokens
-- **WordPress Permissions**: Leverage existing WordPress user capabilities
-- **Connection Validation**: Verify user permissions for each document
+- **Post Permissions**: Post entities require the corresponding `edit_post` permission through the `sync_post` capability
+- **Extensible Permissions**: Collections and other entity types use the `vip_rtc_entity_sync_check_permission` filter after authentication
 
 ## 5. Configuration and Integration
 
@@ -202,16 +193,15 @@ sequenceDiagram
 
 ### 5.2 WordPress Integration Features
 
-- **Sync Experiment**: Built on Gutenberg's sync experiment
-- **WordPress Sync API**: Extends [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/)
-- **Post Lock Override**: Disables WordPress native post locking for simultaneous editing
-- **Site Editor Exclusion**: Automatically disables in Site Editor (FSE)
-- **Post Type Support**: Auto-detects post types with `editor` support
+- **RTC Experiment**: Enabled by this plugin and controlled from its settings page
+- **WordPress Sync API**: Integrates with [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/)
+- **Provider replacement**: Uses `sync.providers` to replace Gutenberg's default HTTP polling transport
+- **Site Editor Exclusion**: Gutenberg disables RTC in the Site Editor
+- **Entity Support**: Gutenberg supplies sync configuration; the VIP provider supports post-type entities and collections
 
 ### 5.3 Permission System
 
 - **Custom Capabilities**: Adds `sync_post` capability mapped to `edit_post` permissions
-- **Post Meta Authentication**: Post meta access controlled by authentication callbacks
 - **Permission Filters**:
   - `vip_rtc_post_sync_check_permission`: Custom post permission logic
   - `vip_rtc_entity_sync_check_permission`: Custom entity permission logic
@@ -219,8 +209,7 @@ sequenceDiagram
 ### 5.4 WordPress Hooks Integration
 
 - **Action Hooks**: `vip_real_time_collaboration_loaded` for extensibility
-- **Sync Provider Registration**: Uses `core.getSyncProvider` filter
-- **WordPress Meta API**: Post meta storage with revision support
+- **Sync Provider Registration**: Uses the `sync.providers` filter
 
 ### 5.5 Multiplexed WebSocket Transport
 
@@ -254,15 +243,13 @@ Room failures stay scoped to the room: a `4004` or `4005` close stops or retries
 
 - **Webpack**: Asset compilation and bundling
 - **TypeScript**: Type-safe development
-- **SCSS**: Styling for collaboration components
 
 ## 7. Performance and Security
 
 ### 7.1 Performance Optimizations
 
-- **Debounced Updates**: Awareness updates debounced to reduce network traffic
-- **Efficient Serialization**: Y.js binary encoding for minimal data transfer
-- **Connection Pooling**: WebSocket server handles multiple concurrent connections
+- **Efficient Serialization**: Yjs uses binary updates for synchronization
+- **Connection Pooling**: Optional multiplexing shares one physical WebSocket across several rooms
 - **Connection Resilience**: Exponential backoff for WebSocket reconnection attempts
 - **Memory Management**: Cleanup of awareness states on disconnect
 
@@ -270,10 +257,9 @@ Room failures stay scoped to the room: a `4004` or `4005` close stops or retries
 
 - **WordPress Authentication**: Leverages WordPress user system
 - **JWT Tokens**: Secure, time-limited connection tokens
-- **Permission Validation**: Respects WordPress post editing permissions with authentication callbacks
+- **Permission Validation**: Requires `edit_post` permission for post entities; other entity types are filter-controlled
 - **Connection Isolation**: Users can only access authorized documents
-- **Content Integrity**: Cryptographic hash verification for document content
-- **Secure Context Handling**: Fallback implementations for non-secure contexts in development
+- **Client Identifiers**: Uses `crypto.randomUUID()` in secure contexts, with a UUID fallback for non-secure local development
 
 ## 8. Glossary
 
@@ -282,4 +268,3 @@ Room failures stay scoped to the room: a `4004` or `4005` close stops or retries
 - **JWT**: JSON Web Tokens - secure method for transmitting information between parties
 - **WebSocket**: Protocol for full-duplex communication over a single TCP connection
 - **Awareness**: Real-time information about user presence and activity in collaborative editing
-- **Operational Transformation**: Technique for maintaining consistency in collaborative editing

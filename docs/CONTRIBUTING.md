@@ -65,7 +65,7 @@ If you use a different development environment, ensure these variables are set a
 
 ### Yjs Inspector
 
-The development environment includes a Yjs Inspector tool for debugging collaborative document state. When you open a post in the editor, a link to the Yjs Inspector will be logged in your browser's development console. This link opens a web interface where you can inspect the current state ofthe Yjs document, view document history, and debug synchronization issues.
+The development environment includes a Yjs Inspector tool for debugging collaborative document state. When you open a post in the editor, a link to the Yjs Inspector will be logged in your browser's development console. This link opens a web interface where you can inspect the current state of the Yjs document, view document history, and debug synchronization issues.
 
 ## Guidelines
 
