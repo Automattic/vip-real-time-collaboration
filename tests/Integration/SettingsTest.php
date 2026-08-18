@@ -16,6 +16,7 @@ final class SettingsTest extends TestCase {
 
 		// Ensure the option is reset before each test.
 		delete_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME );
+		delete_option( Settings::OPTION_NAME );
 
 		Settings::init();
 	}
@@ -65,6 +66,90 @@ final class SettingsTest extends TestCase {
 	public function test_gutenberg_rtc_experiment_is_enabled_with_empty_option(): void {
 		add_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME, [] );
 		self::assertTrue( Settings::is_gutenberg_rtc_experiment_enabled() );
+	}
+
+	/**
+	 * Verifies that disabling the plugin setting disables the RTC experiment.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_gutenberg_rtc_experiment_enabled
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::is_vip_rtc_enabled
+	 */
+	public function test_plugin_setting_disables_gutenberg_rtc_experiment(): void {
+		add_option( Settings::OPTION_NAME, [ 'enable-vip-rtc' => false ] );
+		add_option(
+			Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME,
+			[
+				'gutenberg-example-experiment' => true,
+				Settings::GUTENBERG_RTC_EXPERIMENT_NAME => true,
+			]
+		);
+
+		self::assertFalse( Settings::is_vip_rtc_enabled() );
+		self::assertFalse( Settings::is_gutenberg_rtc_experiment_enabled() );
+		self::assertSame(
+			[
+				'gutenberg-example-experiment' => true,
+				Settings::GUTENBERG_RTC_EXPERIMENT_NAME => false,
+			],
+			get_option( Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME )
+		);
+	}
+
+	/**
+	 * Verifies that the settings form stores explicit enabled and disabled values.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::sanitize_settings
+	 */
+	public function test_plugin_setting_is_sanitized(): void {
+		self::assertSame( [ 'enable-vip-rtc' => true ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '1' ] ) );
+		self::assertSame( [ 'enable-vip-rtc' => false ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '0' ] ) );
+	}
+
+	/**
+	 * Verifies that RTC is hidden from Gutenberg's experiments schema.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::hide_gutenberg_rtc_experiment
+	 */
+	public function test_gutenberg_rtc_experiment_is_hidden_from_schema(): void {
+		$args = [
+			'show_in_rest' => [
+				'schema' => [
+					'properties' => [
+						'gutenberg-example-experiment' => [ 'type' => 'boolean' ],
+						Settings::GUTENBERG_RTC_EXPERIMENT_NAME => [ 'type' => 'boolean' ],
+					],
+				],
+			],
+		];
+
+		self::assertSame(
+			[
+				'show_in_rest' => [
+					'schema' => [
+						'properties' => [
+							'gutenberg-example-experiment' => [ 'type' => 'boolean' ],
+						],
+					],
+				],
+			],
+			Settings::hide_gutenberg_rtc_experiment(
+				$args,
+				[],
+				Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME,
+				Settings::GUTENBERG_EXPERIMENTS_OPTION_NAME
+			)
+		);
+	}
+
+	/**
+	 * Verifies that unrelated settings schemas are unchanged.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::hide_gutenberg_rtc_experiment
+	 */
+	public function test_unrelated_settings_schema_is_unchanged(): void {
+		$args = [ 'show_in_rest' => true ];
+
+		self::assertSame( $args, Settings::hide_gutenberg_rtc_experiment( $args, [], 'another-group', 'another-option' ) );
 	}
 
 	/**

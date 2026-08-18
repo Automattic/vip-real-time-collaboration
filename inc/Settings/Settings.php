@@ -6,15 +6,25 @@ defined( 'ABSPATH' ) || exit();
 
 final class Settings {
 	private const SETTINGS_PAGE_SLUG = 'vip-real-time-collaboration-settings';
+	public const OPTION_NAME = 'vip_real_time_collaboration_settings';
 
 	public const GUTENBERG_EXPERIMENTS_OPTION_NAME = 'gutenberg-experiments';
 
 	public const GUTENBERG_RTC_EXPERIMENT_NAME = 'gutenberg-real-time-collaboration';
 
 	public static function init(): void {
+		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
 		add_action( 'admin_menu', [ __CLASS__, 'add_options_page' ] );
 		add_filter( 'default_option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
 		add_filter( 'option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
+		add_filter( 'register_setting_args', [ __CLASS__, 'hide_gutenberg_rtc_experiment' ], 10, 4 );
+	}
+
+	public static function is_vip_rtc_enabled(): bool {
+		/** @var array<string, mixed> $options */
+		$options = get_option( self::OPTION_NAME, self::get_default_options() );
+
+		return ! empty( $options['enable-vip-rtc'] );
 	}
 
 	public static function is_gutenberg_rtc_experiment_enabled(): bool {
@@ -26,8 +36,8 @@ final class Settings {
 	}
 
 	/**
-	 * Enable Gutenberg's real-time collaboration experiment while preserving the
-	 * state of all other experiments.
+	 * Set Gutenberg's real-time collaboration experiment from the plugin setting
+	 * while preserving the state of all other experiments.
 	 *
 	 * @param mixed $experiments The configured Gutenberg experiments.
 	 * @return array<array-key, mixed> The configured experiments with RTC enabled.
@@ -38,9 +48,103 @@ final class Settings {
 			$experiments = [];
 		}
 
-		$experiments[ self::GUTENBERG_RTC_EXPERIMENT_NAME ] = true;
+		$experiments[ self::GUTENBERG_RTC_EXPERIMENT_NAME ] = self::is_vip_rtc_enabled();
 
 		return $experiments;
+	}
+
+	/**
+	 * Remove RTC from Gutenberg's experiments schema so this plugin is the only
+	 * place where the feature can be enabled or disabled.
+	 *
+	 * @param array<string, mixed> $args The setting registration arguments.
+	 * @param array<string, mixed> $_defaults The default registration arguments.
+	 * @param string               $option_group The setting group.
+	 * @param string               $option_name The setting name.
+	 * @return array<string, mixed> The filtered registration arguments.
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
+	 */
+	public static function hide_gutenberg_rtc_experiment( array $args, array $_defaults, string $option_group, string $option_name ): array {
+		if ( self::GUTENBERG_EXPERIMENTS_OPTION_NAME !== $option_group || self::GUTENBERG_EXPERIMENTS_OPTION_NAME !== $option_name ) {
+			return $args;
+		}
+
+		if ( ! isset( $args['show_in_rest'] ) || ! is_array( $args['show_in_rest'] ) ) {
+			return $args;
+		}
+
+		$show_in_rest = $args['show_in_rest'];
+		if ( ! isset( $show_in_rest['schema'] ) || ! is_array( $show_in_rest['schema'] ) ) {
+			return $args;
+		}
+
+		$schema = $show_in_rest['schema'];
+		if ( isset( $schema['properties'] ) && is_array( $schema['properties'] ) ) {
+			unset( $schema['properties'][ self::GUTENBERG_RTC_EXPERIMENT_NAME ] );
+			$show_in_rest['schema'] = $schema;
+			$args['show_in_rest'] = $show_in_rest;
+		}
+
+		return $args;
+	}
+
+	/**
+	 * Get the default plugin settings.
+	 *
+	 * @return array{enable-vip-rtc: bool}
+	 */
+	public static function get_default_options(): array {
+		return [ 'enable-vip-rtc' => true ];
+	}
+
+	/**
+	 * Sanitize settings before saving.
+	 *
+	 * @param array<string, mixed>|null $input The submitted settings.
+	 * @return array{enable-vip-rtc: bool}
+	 * @psalm-suppress PossiblyUnusedMethod Psalm does not detect usage via register_setting.
+	 */
+	public static function sanitize_settings( ?array $input = [] ): array {
+		return [
+			'enable-vip-rtc' => isset( $input['enable-vip-rtc'] ) && '1' === $input['enable-vip-rtc'],
+		];
+	}
+
+	/**
+	 * Register the plugin settings.
+	 */
+	public static function register_settings(): void {
+		register_setting(
+			self::SETTINGS_PAGE_SLUG,
+			self::OPTION_NAME,
+			[
+				'type' => 'array',
+				'default' => self::get_default_options(),
+				'sanitize_callback' => [ __CLASS__, 'sanitize_settings' ],
+			]
+		);
+
+		add_settings_section(
+			'plugin-settings',
+			'',
+			'__return_null',
+			self::SETTINGS_PAGE_SLUG
+		);
+
+		/** @psalm-suppress InvalidArgument WordPress Settings API allows custom args. */
+		add_settings_field(
+			'enable-vip-rtc',
+			__( 'Real-Time Collaboration', 'vip-real-time-collaboration' ),
+			[ __CLASS__, 'display_settings_radio' ],
+			self::SETTINGS_PAGE_SLUG,
+			'plugin-settings',
+			[
+				'field_id' => 'enable-vip-rtc',
+				'enabled_label' => __( 'Enabled (recommended)', 'vip-real-time-collaboration' ),
+				'disabled_label' => __( 'Disabled (emergency fallback)', 'vip-real-time-collaboration' ),
+				'description' => __( 'Real-time collaboration is enabled by default, allowing multiple users to work together in the editor. Disable only in an emergency.', 'vip-real-time-collaboration' ),
+			]
+		);
 	}
 
 	/**
@@ -60,9 +164,26 @@ final class Settings {
 	 * Display the settings page content.
 	 */
 	public static function settings_page_content(): void {
+		$is_enabled = self::is_vip_rtc_enabled();
 		?>
 		<div id="vip-real-time-collaboration-settings-wrapper" class="wrap">
 			<h1><?php esc_html_e( 'VIP Real-Time Collaboration', 'vip-real-time-collaboration' ); ?></h1>
+
+			<form action="options.php" method="post">
+				<?php
+				settings_fields( self::SETTINGS_PAGE_SLUG );
+				do_settings_sections( self::SETTINGS_PAGE_SLUG );
+				submit_button();
+				?>
+			</form>
+
+			<?php if ( ! $is_enabled ) : ?>
+				<div class="notice notice-warning inline">
+					<p>
+						<?php esc_html_e( 'Real-time collaboration is disabled in the plugin settings. Re-enable it when it is safe to do so.', 'vip-real-time-collaboration' ); ?>
+					</p>
+				</div>
+			<?php endif; ?>
 
 			<h2><?php esc_html_e( 'Debug Information', 'vip-real-time-collaboration' ); ?></h2>
 			<p>
@@ -83,20 +204,45 @@ final class Settings {
 				echo esc_html( sprintf( __( 'Gutenberg Commit Hash: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_commit_hash() ) );
 				?>
 			</p>
-			<p>
-				<?php
-				$experiments_url = admin_url( 'options-general.php?page=experiments-wp-admin' );
-				echo wp_kses(
-					sprintf(
-						/* translators: %s: URL to the Gutenberg Experiments settings page */
-						__( 'The <a href="%s">Real-Time Collaboration experiment</a> is enabled by this plugin.', 'vip-real-time-collaboration' ),
-						esc_url( $experiments_url )
-					),
-					[ 'a' => [ 'href' => [] ] ]
-				);
-				?>
-			</p>
 		</div>
+		<?php
+	}
+
+	/**
+	 * Display the enable/disable radio buttons.
+	 *
+	 * @param array{field_id: string, enabled_label: string, disabled_label: string, description: string} $args Field configuration.
+	 */
+	public static function display_settings_radio( array $args ): void {
+		/** @var array<string, mixed> $options */
+		$options = get_option( self::OPTION_NAME, self::get_default_options() );
+		$value = ! empty( $options[ $args['field_id'] ] );
+		$field_name = self::OPTION_NAME . '[' . $args['field_id'] . ']';
+		?>
+		<fieldset>
+			<label>
+				<input
+					type="radio"
+					name="<?php echo esc_attr( $field_name ); ?>"
+					id="<?php echo esc_attr( $args['field_id'] . '-enabled' ); ?>"
+					value="1"
+					<?php checked( $value ); ?>
+				/>
+				<?php echo esc_html( $args['enabled_label'] ); ?>
+			</label>
+			<br />
+			<label>
+				<input
+					type="radio"
+					name="<?php echo esc_attr( $field_name ); ?>"
+					id="<?php echo esc_attr( $args['field_id'] . '-disabled' ); ?>"
+					value="0"
+					<?php checked( $value, false ); ?>
+				/>
+				<?php echo esc_html( $args['disabled_label'] ); ?>
+			</label>
+			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+		</fieldset>
 		<?php
 	}
 
