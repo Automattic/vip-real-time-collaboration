@@ -103,6 +103,7 @@ final class SettingsTest extends TestCase {
 	public function test_plugin_setting_is_sanitized(): void {
 		self::assertSame( [ 'enable-vip-rtc' => true ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '1' ] ) );
 		self::assertSame( [ 'enable-vip-rtc' => false ], Settings::sanitize_settings( [ 'enable-vip-rtc' => '0' ] ) );
+		self::assertSame( [ 'enable-vip-rtc' => false ], Settings::sanitize_settings( 'invalid' ) );
 	}
 
 	/**

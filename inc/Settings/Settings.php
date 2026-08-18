@@ -6,6 +6,7 @@ defined( 'ABSPATH' ) || exit();
 
 final class Settings {
 	private const SETTINGS_PAGE_SLUG = 'vip-real-time-collaboration-settings';
+	private const ENABLED_SETTING_NAME = 'enable-vip-rtc';
 	public const OPTION_NAME = 'vip_real_time_collaboration_settings';
 
 	public const GUTENBERG_EXPERIMENTS_OPTION_NAME = 'gutenberg-experiments';
@@ -15,16 +16,15 @@ final class Settings {
 	public static function init(): void {
 		add_action( 'admin_init', [ __CLASS__, 'register_settings' ] );
 		add_action( 'admin_menu', [ __CLASS__, 'add_options_page' ] );
-		add_filter( 'default_option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
-		add_filter( 'option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'enable_gutenberg_rtc_experiment' ], 99 );
+		add_filter( 'default_option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'set_gutenberg_rtc_experiment' ], 99 );
+		add_filter( 'option_' . self::GUTENBERG_EXPERIMENTS_OPTION_NAME, [ __CLASS__, 'set_gutenberg_rtc_experiment' ], 99 );
 		add_filter( 'register_setting_args', [ __CLASS__, 'hide_gutenberg_rtc_experiment' ], 10, 4 );
 	}
 
 	public static function is_vip_rtc_enabled(): bool {
-		/** @var array<string, mixed> $options */
-		$options = get_option( self::OPTION_NAME, self::get_default_options() );
+		$options = (array) get_option( self::OPTION_NAME, self::get_default_options() );
 
-		return ! empty( $options['enable-vip-rtc'] );
+		return ! empty( $options[ self::ENABLED_SETTING_NAME ] );
 	}
 
 	public static function is_gutenberg_rtc_experiment_enabled(): bool {
@@ -40,10 +40,10 @@ final class Settings {
 	 * while preserving the state of all other experiments.
 	 *
 	 * @param mixed $experiments The configured Gutenberg experiments.
-	 * @return array<array-key, mixed> The configured experiments with RTC enabled.
+	 * @return array<array-key, mixed> The configured experiments with RTC matching the plugin setting.
 	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
-	public static function enable_gutenberg_rtc_experiment( mixed $experiments ): array {
+	public static function set_gutenberg_rtc_experiment( mixed $experiments ): array {
 		if ( ! is_array( $experiments ) ) {
 			$experiments = [];
 		}
@@ -94,19 +94,19 @@ final class Settings {
 	 * @return array{enable-vip-rtc: bool}
 	 */
 	public static function get_default_options(): array {
-		return [ 'enable-vip-rtc' => true ];
+		return [ self::ENABLED_SETTING_NAME => true ];
 	}
 
 	/**
 	 * Sanitize settings before saving.
 	 *
-	 * @param array<string, mixed>|null $input The submitted settings.
+	 * @param mixed $input The submitted settings.
 	 * @return array{enable-vip-rtc: bool}
 	 * @psalm-suppress PossiblyUnusedMethod Psalm does not detect usage via register_setting.
 	 */
-	public static function sanitize_settings( ?array $input = [] ): array {
+	public static function sanitize_settings( mixed $input ): array {
 		return [
-			'enable-vip-rtc' => isset( $input['enable-vip-rtc'] ) && '1' === $input['enable-vip-rtc'],
+			self::ENABLED_SETTING_NAME => is_array( $input ) && isset( $input[ self::ENABLED_SETTING_NAME ] ) && '1' === $input[ self::ENABLED_SETTING_NAME ],
 		];
 	}
 
@@ -131,19 +131,12 @@ final class Settings {
 			self::SETTINGS_PAGE_SLUG
 		);
 
-		/** @psalm-suppress InvalidArgument WordPress Settings API allows custom args. */
 		add_settings_field(
-			'enable-vip-rtc',
+			self::ENABLED_SETTING_NAME,
 			__( 'Real-Time Collaboration', 'vip-real-time-collaboration' ),
 			[ __CLASS__, 'display_settings_radio' ],
 			self::SETTINGS_PAGE_SLUG,
-			'plugin-settings',
-			[
-				'field_id' => 'enable-vip-rtc',
-				'enabled_label' => __( 'Enabled (recommended)', 'vip-real-time-collaboration' ),
-				'disabled_label' => __( 'Disabled (emergency fallback)', 'vip-real-time-collaboration' ),
-				'description' => __( 'Real-time collaboration is enabled by default, allowing multiple users to work together in the editor. Disable only in an emergency.', 'vip-real-time-collaboration' ),
-			]
+			'plugin-settings'
 		);
 	}
 
@@ -211,37 +204,36 @@ final class Settings {
 	/**
 	 * Display the enable/disable radio buttons.
 	 *
-	 * @param array{field_id: string, enabled_label: string, disabled_label: string, description: string} $args Field configuration.
 	 */
-	public static function display_settings_radio( array $args ): void {
-		/** @var array<string, mixed> $options */
-		$options = get_option( self::OPTION_NAME, self::get_default_options() );
-		$value = ! empty( $options[ $args['field_id'] ] );
-		$field_name = self::OPTION_NAME . '[' . $args['field_id'] . ']';
+	public static function display_settings_radio(): void {
+		$is_enabled = self::is_vip_rtc_enabled();
+		$field_name = self::OPTION_NAME . '[' . self::ENABLED_SETTING_NAME . ']';
 		?>
 		<fieldset>
 			<label>
 				<input
 					type="radio"
 					name="<?php echo esc_attr( $field_name ); ?>"
-					id="<?php echo esc_attr( $args['field_id'] . '-enabled' ); ?>"
+					id="<?php echo esc_attr( self::ENABLED_SETTING_NAME . '-enabled' ); ?>"
 					value="1"
-					<?php checked( $value ); ?>
+					<?php checked( $is_enabled ); ?>
 				/>
-				<?php echo esc_html( $args['enabled_label'] ); ?>
+				<?php esc_html_e( 'Enabled (recommended)', 'vip-real-time-collaboration' ); ?>
 			</label>
 			<br />
 			<label>
 				<input
 					type="radio"
 					name="<?php echo esc_attr( $field_name ); ?>"
-					id="<?php echo esc_attr( $args['field_id'] . '-disabled' ); ?>"
+					id="<?php echo esc_attr( self::ENABLED_SETTING_NAME . '-disabled' ); ?>"
 					value="0"
-					<?php checked( $value, false ); ?>
+					<?php checked( $is_enabled, false ); ?>
 				/>
-				<?php echo esc_html( $args['disabled_label'] ); ?>
+				<?php esc_html_e( 'Disabled (emergency fallback)', 'vip-real-time-collaboration' ); ?>
 			</label>
-			<p class="description"><?php echo esc_html( $args['description'] ); ?></p>
+			<p class="description">
+				<?php esc_html_e( 'Real-time collaboration is enabled by default, allowing multiple users to work together in the editor. Disable only in an emergency.', 'vip-real-time-collaboration' ); ?>
+			</p>
 		</fieldset>
 		<?php
 	}
