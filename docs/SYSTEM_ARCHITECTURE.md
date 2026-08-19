@@ -22,6 +22,8 @@ The VIP Real-Time Collaboration plugin provides real-time collaborative editing 
 - **[JWT Authentication](https://jwt.io/introduction)**: Secure connection tokens
 - **WordPress Sync API**: Gutenberg's collaboration and CRDT infrastructure, exposed through `@wordpress/sync`
 
+For the Gutenberg-owned document model, provider API, persistence, awareness, and undo behavior, see Gutenberg's [Real-time collaboration architecture](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/CODE.md).
+
 ### High-Level Architecture
 
 ```mermaid
@@ -147,41 +149,24 @@ sequenceDiagram
 
 ### 3.3 Document Persistence
 
-```mermaid
-sequenceDiagram
-    participant User as User
-    participant YJS as Y.js Provider
-    participant Sync as Gutenberg Sync
-    participant WP as WordPress REST API
-    participant DB as Database
-
-    User->>User: Save post (Ctrl+S)
-    YJS->>Sync: Capture the current CRDT snapshot
-    Sync->>WP: Persist through Gutenberg's sync APIs
-    WP->>DB: Store the collaborative document state
-    WP->>DB: Save WordPress post content
-    DB->>WP: Confirm storage
-    WP->>User: Save confirmation
-```
+Gutenberg owns CRDT serialization, restoration, and persistence through Core Data. This plugin does not replace that persistence path; it replaces only the provider that carries live updates between peers. See Gutenberg's [Persistence documentation](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/CODE.md#persistence).
 
 ## 4. Data Flow Architecture
 
 ### 4.1 Document Synchronization
 
-- **Y.js CRDT**: Maintains convergent collaborative document state across connected editors
-- **Persistence**: Gutenberg's Sync and Core Data packages serialize CRDT snapshots and persist them in `_crdt_document` post meta through post saves and sync repair requests
-- **WebSocket Provider**: Real-time bidirectional communication with exponential backoff for connection retries
-- **VIP Transport**: This plugin replaces the default polling provider without replacing Gutenberg's document model
+- **Gutenberg document model**: Gutenberg owns CRDT state, entity synchronization, persistence, and undo behavior, as described in its [Sync architecture](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/CODE.md)
+- **VIP WebSocket provider**: This plugin replaces Gutenberg's default polling provider with real-time bidirectional communication and exponential backoff for connection retries
 
 ### 4.2 Awareness System
 
-Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket provider carries the associated Yjs awareness updates between connected editors.
+Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket provider carries the associated Yjs awareness updates between connected editors. See Gutenberg's [Awareness documentation](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/CODE.md#awareness).
 
 ### 4.3 Authentication Flow
 
 - **JWT Tokens**: Secure WebSocket connections with time-limited tokens
 - **Post Permissions**: Post entities require the corresponding `edit_post` permission through the `sync_post` capability
-- **Persistence Authorization**: Gutenberg protects `_crdt_document` post meta with an `edit_post` authentication callback
+- **Persistence Authorization**: Gutenberg protects `_crdt_document` post meta with an `edit_post` authentication callback in its [collaboration bootstrap](https://github.com/WordPress/gutenberg/blob/trunk/lib/experimental/collaboration/collaboration.php)
 - **Extensible Permissions**: Collections and other entity types use the `vip_rtc_entity_sync_check_permission` filter after authentication
 
 ## 5. Configuration and Integration
@@ -194,10 +179,10 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 
 ### 5.2 WordPress Integration Features
 
-- **RTC Experiment**: Enabled by this plugin and controlled from its settings page
-- **WordPress Sync API**: Integrates with [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/)
-- **Provider replacement**: Uses `sync.providers` to replace Gutenberg's default HTTP polling transport
-- **Site Editor Exclusion**: Gutenberg disables RTC in the Site Editor
+- **RTC Experiment**: Enabled by this plugin and controlled from its settings page; Gutenberg defines it in the [experiments registration](https://github.com/WordPress/gutenberg/blob/trunk/lib/experimental/experiments/load.php)
+- **WordPress Sync API**: Integrates with [`@wordpress/sync`](https://developer.wordpress.org/block-editor/reference-guides/packages/packages-sync/) using Gutenberg's documented [custom provider interface](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/CODE.md#custom-providers)
+- **Provider replacement**: Uses `sync.providers` to replace Gutenberg's [default HTTP polling provider](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/src/providers/http-polling/README.md)
+- **Site Editor Exclusion**: Gutenberg disables RTC in both Site Editor implementations in its [editor experiment settings](https://github.com/WordPress/gutenberg/blob/trunk/lib/experimental/editor-settings.php)
 - **Entity Support**: Gutenberg supplies sync configuration; the VIP provider supports post-type entities and collections
 
 ### 5.3 Permission System
