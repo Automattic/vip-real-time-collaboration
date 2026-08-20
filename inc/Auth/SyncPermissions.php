@@ -49,13 +49,7 @@ final class SyncPermissions {
 
 		// Handle post type entities (not collections)
 		if ( 'postType' === $entity_kind && 'collection' !== $sync_object_id ) {
-			/**
-			 * For post entities, we only need the sync object ID (post ID) for permission checking.
-			 * The entity_name is Gutenberg's entity name which maps to post type name instead of
-			 * post type slug, but we can determine the post type from the post ID by fetching post
-			 * using the ID and then getting the post type from the post object.
-			 */
-			return self::check_post_sync_permissions( $sync_object_id );
+			return self::check_post_sync_permissions( $entity_name, $sync_object_id );
 		}
 
 		// Allow extensions to handle other sync object types via filter
@@ -92,21 +86,30 @@ final class SyncPermissions {
 	/**
 	 * Check sync permission for a specific post.
 	 *
+	 * @param string $post_type The expected post type.
 	 * @param string $post_id The post ID.
 	 */
 	private static function check_post_sync_permissions(
+		string $post_type,
 		string $post_id
 	): WP_Error|bool {
-		// Validate post ID format
-		if ( ! is_numeric( $post_id ) ) {
+		/** @var int $parsed_post_id */
+		$parsed_post_id = absint( $post_id );
+
+		// Validate that the ID is a canonical positive integer.
+		if ( 0 === $parsed_post_id || (string) $parsed_post_id !== $post_id ) {
 			return new WP_Error(
 				'invalid_post_id',
 				__( 'Post ID must be numeric', 'vip-real-time-collaboration' )
 			);
 		}
 
-		/** @var int $parsed_post_id */
-		$parsed_post_id = absint( $post_id );
+		if ( get_post_type( $parsed_post_id ) !== $post_type ) {
+			return new WP_Error(
+				'insufficient_sync_permissions',
+				__( 'You do not have permission to sync this content', 'vip-real-time-collaboration' )
+			);
+		}
 
 		// Check sync_post capability (will be mapped to edit_post via map_meta_cap)
 		/** @var bool|WP_Error $can_sync_post */
@@ -133,18 +136,38 @@ final class SyncPermissions {
 	}
 
 	/**
-	 * Check permission for custom sync object types via filters.
-	 * Currently resolves to true by default.
+	 * Check permission for collection and custom sync object types.
 	 *
 	 * @param string $entity_kind The Gutenberg entity kind (e.g., 'postType', 'root').
 	 * @param string $entity_name The Gutenberg entity name (e.g., 'post', 'site').
-	 * @param string $entity_id   The Gutenberg entity ID (e.g. '12' for postType).
+	 * @param string $entity_id   The Gutenberg entity ID or 'collection'.
 	 */
 	private static function check_custom_sync_permissions(
 		string $entity_kind,
 		string $entity_name,
 		string $entity_id
 	): WP_Error|bool {
+		$can_sync_entity = false;
+
+		if ( 'collection' === $entity_id && 'postType' === $entity_kind ) {
+			$post_type = get_post_type_object( $entity_name );
+			/** @var string|null $edit_posts_capability */
+			$edit_posts_capability = $post_type?->cap->edit_posts ?? null;
+
+			if ( is_string( $edit_posts_capability ) && current_user_can( $edit_posts_capability ) ) {
+				$can_sync_entity = true;
+			}
+		} elseif (
+			'collection' === $entity_id
+			&& (
+				( 'root' === $entity_kind && 'comment' === $entity_name )
+				|| ( 'taxonomy' === $entity_kind && taxonomy_exists( $entity_name ) )
+			)
+			&& self::current_user_can_edit_rest_post_type()
+		) {
+			$can_sync_entity = true;
+		}
+
 		/**
 		 * Allow customizing the permission check for a specific sync object type.
 		 *
@@ -153,14 +176,45 @@ final class SyncPermissions {
 		 * @param string        $entity_name       The Gutenberg entity name.
 		 * @param string        $entity_id    The Gutenberg entity ID (e.g. '12' for postType).
 		 */
-		/** @var bool|WP_Error */
-		return apply_filters(
+		/** @var bool|WP_Error $permission_check */
+		$permission_check = apply_filters(
 			'vip_rtc_entity_sync_check_permission',
-			true,
+			$can_sync_entity,
 			$entity_kind,
 			$entity_name,
 			$entity_id
 		);
+
+		if ( false === $permission_check ) {
+			return new WP_Error(
+				'insufficient_sync_permissions',
+				__( 'You do not have permission to sync this content', 'vip-real-time-collaboration' )
+			);
+		}
+
+		return $permission_check;
+	}
+
+	/**
+	 * Check whether the current user can edit a post type exposed through the REST API.
+	 *
+	 * Shared comment and taxonomy collection rooms do not identify a specific post, so
+	 * use the registered post type capabilities instead of the global edit_posts cap.
+	 */
+	private static function current_user_can_edit_rest_post_type(): bool {
+		/** @var \WP_Post_Type[] $post_types */
+		$post_types = get_post_types( [ 'show_in_rest' => true ], 'objects' );
+
+		foreach ( $post_types as $post_type ) {
+			/** @var string|null $edit_posts_capability */
+			$edit_posts_capability = $post_type->cap->edit_posts ?? null;
+
+			if ( is_string( $edit_posts_capability ) && current_user_can( $edit_posts_capability ) ) {
+				return true;
+			}
+		}
+
+		return false;
 	}
 
 	/**
