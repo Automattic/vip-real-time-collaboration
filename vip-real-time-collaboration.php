@@ -53,7 +53,7 @@ add_action( 'plugins_loaded', static function (): void {
 
 	Settings::init();
 
-	// Keep the runtime gate independent from Gutenberg's filtered experiment value.
+	// If RTC is disabled, return early.
 	if ( ! Settings::is_vip_rtc_enabled() ) {
 		return;
 	}
