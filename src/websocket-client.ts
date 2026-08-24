@@ -26,6 +26,7 @@ import {
 } from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-close-policy';
+import { setYjsModule } from '@/yjs-shim';
 
 import type {
 	ConnectionStatus,
@@ -340,8 +341,15 @@ export function createWebSocketConnection(
 		objectType,
 		objectId,
 		ydoc,
+		Y,
 	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
 		try {
+			if ( Y ) {
+				// Point the bundled y-websocket and y-protocols modules at the
+				// Yjs instance used by the editor. See yjs-shim.ts.
+				setYjsModule( Y );
+			}
+
 			// For now, we only support collections and traditional post types.
 			const isUnsupportedObjectType =
 				null !== objectId &&

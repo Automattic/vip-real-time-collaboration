@@ -1,7 +1,8 @@
 import type {
 	ConnectionStatus as WordPressConnectionStatus,
-	ProviderCreatorOptions,
+	ProviderCreatorOptions as WordPressProviderCreatorOptions,
 } from '@wordpress/sync';
+import type * as YjsModule from 'yjs';
 
 type ConnectedStatus = Exclude< WordPressConnectionStatus, { status: 'disconnected' } >;
 type DisconnectedStatus = Extract< WordPressConnectionStatus, { status: 'disconnected' } >;
@@ -45,8 +46,17 @@ export interface ProviderCreatorResult {
 	on: ProviderOn;
 }
 
+/**
+ * WordPress's provider creator options widened with the `Y` option added in
+ * WordPress/gutenberg#81999. Newer Gutenberg versions pass the editor's Yjs
+ * module here. Older versions expose it as the `wp.sync.Y` global instead, so
+ * the option stays optional. This local widening can be removed once the
+ * installed `@wordpress/sync` types include `Y`.
+ */
+export type ProviderCreatorOptions = WordPressProviderCreatorOptions & {
+	Y?: typeof YjsModule;
+};
+
 export type ProviderCreator = (
 	options: ProviderCreatorOptions
 ) => Promise< ProviderCreatorResult >;
-
-export type { ProviderCreatorOptions };
