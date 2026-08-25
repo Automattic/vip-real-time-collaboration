@@ -29,8 +29,21 @@ export let applyUpdate: typeof YjsModule.applyUpdate;
 export let encodeStateAsUpdate: typeof YjsModule.encodeStateAsUpdate;
 export let encodeStateVector: typeof YjsModule.encodeStateVector;
 
+let yjsModuleSet = false;
+
 export function setYjsModule( Y: typeof YjsModule ): void {
 	( { Doc, applyUpdate, encodeStateAsUpdate, encodeStateVector } = Y );
+	yjsModuleSet = true;
+}
+
+/**
+ * Whether a Yjs module has been loaded into the shim, from either the `Y`
+ * provider option or the legacy `wp.sync.Y` global. When this is false, any
+ * Yjs call made by the bundled y-websocket and y-protocols modules would
+ * throw, so callers should treat it as a fatal configuration error.
+ */
+export function isYjsModuleSet(): boolean {
+	return yjsModuleSet;
 }
 
 // Unit tests run in Node, where `window` is undefined.

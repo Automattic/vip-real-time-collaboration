@@ -26,7 +26,7 @@ import {
 } from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-close-policy';
-import { setYjsModule } from '@/yjs-shim';
+import { isYjsModuleSet, setYjsModule } from '@/yjs-shim';
 
 import type {
 	ConnectionStatus,
@@ -348,6 +348,15 @@ export function createWebSocketConnection(
 				// Point the bundled y-websocket and y-protocols modules at the
 				// Yjs instance used by the editor. See yjs-shim.ts.
 				setYjsModule( Y );
+			} else if ( ! isYjsModuleSet() ) {
+				// Without a Yjs module, the bundled y-websocket and y-protocols
+				// modules would fail later with an obscure TypeError when the
+				// first sync message is written. Fail fast with a clear message.
+				logger.error(
+					'WebSocket sync disabled: no Yjs module available. Expected the `Y` provider option or the `wp.sync.Y` global (older Gutenberg).'
+				);
+
+				return defaultResult;
 			}
 
 			// For now, we only support collections and traditional post types.

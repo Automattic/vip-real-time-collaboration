@@ -66,6 +66,7 @@ async function createProviderFromCreator(
 		objectType: 'postType/page',
 		objectId,
 		ydoc: doc,
+		Y: Yjs,
 	} );
 	const statuses: ConnectionStatus[] = [];
 	result.on( 'status', status => statuses.push( status ) );
