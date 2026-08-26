@@ -174,6 +174,20 @@ final class SettingsTest extends TestCase {
 	}
 
 	/**
+	 * Verifies that non-array arguments for unrelated settings are unchanged.
+	 *
+	 * @covers \VIPRealTimeCollaboration\Settings\Settings::hide_gutenberg_rtc_experiment
+	 */
+	public function test_unrelated_setting_with_string_args_is_unchanged(): void {
+		$args = 'legacy-setting-args';
+
+		self::assertSame(
+			$args,
+			apply_filters( 'register_setting_args', $args, [], 'another-group', 'another-option' )
+		);
+	}
+
+	/**
 	 * Verifies that enabling RTC preserves other Gutenberg experiments.
 	 *
 	 * @covers \VIPRealTimeCollaboration\Settings\Settings::set_gutenberg_rtc_experiment
