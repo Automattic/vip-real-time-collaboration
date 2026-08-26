@@ -14,19 +14,6 @@ function modernize( config, additionalScripts = {}, additionalPlugins = [], watc
 			...config.entry(),
 			...additionalScripts,
 		},
-		externals: {
-			...config.externals,
-			// Resolve @wordpress/sync to the global `wp.sync` provided by WordPress.
-			'@wordpress/sync': 'wp.sync',
-
-			// Resolve Yjs to the global `wp.sync.Y` provided by the sync package.
-			// Since dependencies import 'yjs' directly, we need to avoid importing
-			// and packaging two different Yjs instances, which would result in this
-			// conflict:
-			//
-			// https://github.com/yjs/yjs/issues/438
-			yjs: 'wp.sync.Y',
-		},
 		module: {
 			rules: config.module.rules.concat( [
 				{
@@ -48,6 +35,14 @@ function modernize( config, additionalScripts = {}, additionalPlugins = [], watc
 			alias: {
 				...config.resolve.alias,
 				'@': path.resolve( __dirname, 'src/' ),
+
+				// Resolve the bare `yjs` specifier to a shim that shares the
+				// editor's Yjs instance. y-websocket and y-protocols import
+				// 'yjs' directly; bundling a second Yjs copy would cause this
+				// conflict:
+				//
+				// https://github.com/yjs/yjs/issues/438
+				yjs$: path.resolve( __dirname, 'src/yjs-shim.ts' ),
 			},
 		},
 		watchOptions: { ...config.watchOptions, ...watchOptions },
