@@ -31,6 +31,8 @@ const metricsTrackReconnectsWindow =
  * In Memory State
  * ------------------------------------------------------------
  */
+let defaultMetricsRegistered = false;
+
 // Track recent disconnections for reconnection time measurement
 const recentDisconnects = new Map< string, number >(); // wp_client_id -> disconnect_timestamp
 
@@ -232,7 +234,10 @@ function checkReconnection( wpClientId: string | null ): void {
  * ------------------------------------------------------------
  */
 export function createMetricsServer(): http.Server {
-	collectDefaultMetrics();
+	if ( ! defaultMetricsRegistered ) {
+		collectDefaultMetrics();
+		defaultMetricsRegistered = true;
+	}
 
 	// This is technically a type mismatch, but the function is async for syntactic
 	// benefits. Node.js ignores the return value of the function and manages the

@@ -4,7 +4,8 @@ import { register } from 'prom-client';
 
 import { createMetricsServer } from './metrics';
 
-it( 'registers default Node.js metrics', () => {
+it( 'registers default Node.js metrics once', () => {
+	createMetricsServer();
 	createMetricsServer();
 
 	assert.ok( register.getSingleMetric( 'nodejs_heap_size_used_bytes' ) );
