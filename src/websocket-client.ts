@@ -29,6 +29,7 @@ import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-clo
 import { isYjsModuleSet, setYjsModule } from '@/yjs-shim';
 
 import type {
+	ConnectionError,
 	ConnectionStatus,
 	ProviderCreator,
 	ProviderCreatorOptions,
@@ -126,6 +127,21 @@ function getBackoffDelayInMs( attempts: number ): number {
 	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
 }
 
+function isRecord( value: unknown ): value is Record< string, unknown > {
+	return typeof value === 'object' && value !== null;
+}
+
+/**
+ * Map WordPress REST authorization responses from the token endpoint to the
+ * sync error code that Gutenberg uses for its authentication message. Network
+ * and other request failures do not have a trustworthy authorization status.
+ */
+function getTokenFetchErrorCode( error: unknown ): ConnectionError[ 'code' ] {
+	const status = isRecord( error ) && isRecord( error.data ) ? error.data.status : undefined;
+
+	return status === 401 || status === 403 ? 'authentication-failed' : 'unknown-error';
+}
+
 /**
  * Configure the websocket provider to use auth token for websocket connection.
  * Implement exponential backoff for reconnect attempts since we are opting out
@@ -138,6 +154,7 @@ function createConnect(
 	retryState: { attempts: number; eligible: boolean },
 	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >,
 	waitBeforeRetry: ( delayInMs: number ) => Promise< void >,
+	onRetryableTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ] ) => void,
 	onFatalConnectError: ( error: unknown ) => void
 ): () => Promise< void > {
 	let hasAttemptedConnect = false;
@@ -172,6 +189,8 @@ function createConnect(
 				) }: ${ getErrorMessage( error ) }`
 			);
 			if ( retryState.eligible ) {
+				// Token fetch failures do not trigger y-websocket's connection-close event.
+				onRetryableTokenFetchFailure( getTokenFetchErrorCode( error ) );
 				// Keep the initial provider creation detached from a REST outage.
 				void connect().catch( () => {} );
 			}
@@ -399,6 +418,18 @@ export function createWebSocketConnection(
 
 			// Create a typed event emitter for our custom sync-connection-status event.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
+			const getRetryStatusFields = () => ( {
+				willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
+				backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
+			} );
+			const handleRetryableTokenFetchFailure = ( errorCode: ConnectionError[ 'code' ] ): void => {
+				const syncStatus = {
+					status: 'disconnected' as const,
+					error: new WebSocketError( errorCode ),
+					...getRetryStatusFields(),
+				};
+				syncStatusEmitter.emit( syncStatus );
+			};
 
 			const cleanupRoomClientLimit = setupRoomClientLimit( provider, roomName, exceeded => {
 				roomLimitExceeded = exceeded;
@@ -435,12 +466,7 @@ export function createWebSocketConnection(
 				// the takeover check. `canManuallyRetry` is never set: the
 				// default modal's Retry button calls `retrySyncConnection()`
 				// which only reaches the built-in HTTP polling provider.
-				const retryStateFields = closePolicy.includeRetryMetadata
-					? {
-							willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
-							backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
-					  }
-					: {};
+				const retryStateFields = closePolicy.includeRetryMetadata ? getRetryStatusFields() : {};
 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
@@ -506,6 +532,7 @@ export function createWebSocketConnection(
 				retryState,
 				fetchToken,
 				waitBeforeRetry,
+				handleRetryableTokenFetchFailure,
 				error => {
 					logger.critical( 'Fatal WebSocket connection failure', { error } );
 					disposeProvider();
