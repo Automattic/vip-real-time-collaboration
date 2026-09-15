@@ -12,6 +12,14 @@
   "mappings": {
     ".htaccess": "./bin/conf/htaccess"
   },
+  "env": {
+    "tests": {
+      "multisite": true,
+      "mappings": {
+        "wp-content/mu-plugins": "./tests/e2e/mu-plugins"
+      }
+    }
+  },
   "core": "WordPress/WordPress#master",
   "plugins": [ ".", "https://downloads.wordpress.org/plugin/gutenberg.latest-stable.zip" ]
 }

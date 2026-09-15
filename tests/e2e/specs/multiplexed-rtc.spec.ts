@@ -11,6 +11,7 @@ import * as Yjs from 'yjs';
  * Internal dependencies
  */
 import { createSharedWebSocketAdapter } from '../../../src/shared-websocket';
+import { deleteTestUser } from '../utils/rtc';
 import {
 	MULTIPLEX_SUBPROTOCOL,
 	decodeMessage,
@@ -255,7 +256,8 @@ test.describe( 'multiplexed RTC transport', () => {
 	test.beforeAll( async ( { requestUtils } ) => {
 		await requestUtils.activatePlugin( 'gutenberg' );
 		await requestUtils.activatePlugin( 'vip-real-time-collaboration' );
-		const username = `multiplex-e2e-${ Date.now() }`;
+		// Multisite only accepts lowercase alphanumeric usernames.
+		const username = `multiplexe2e${ Date.now() }`;
 		const password = 'multiplex-e2e-password';
 		secondUser = await requestUtils.createUser( {
 			email: `${ username }@example.test`,
@@ -269,14 +271,12 @@ test.describe( 'multiplexed RTC transport', () => {
 		} );
 	} );
 
-	test.afterAll( async ( { requestUtils } ) => {
+	test.afterAll( async () => {
 		await secondUserRequests?.request.dispose();
 		if ( secondUser !== undefined ) {
-			await requestUtils.rest( {
-				method: 'DELETE',
-				params: { force: true, reassign: 1 },
-				path: `/wp/v2/users/${ secondUser.id }`,
-			} );
+			// Core's REST API refuses user deletion on multisite; WP-CLI handles
+			// both install types.
+			deleteTestUser( secondUser.id );
 		}
 	} );
 
