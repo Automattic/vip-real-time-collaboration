@@ -405,11 +405,13 @@ export function createWebSocketConnection(
 			} );
 
 			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
+			let hasConnectionError = false;
 
 			const handleConnectionClose = ( event: CloseEvent | null ): void => {
 				const closeCode = event?.code;
 				const closeScope = getWebSocketCloseScope( event );
 				const closePolicy = getWebSocketClosePolicy( closeScope, closeCode, roomLimitExceeded );
+				hasConnectionError = true;
 				const shouldRetry = closePolicy.shouldRetry;
 				if ( closeScope === 'room' ) {
 					const details = {
@@ -475,11 +477,22 @@ export function createWebSocketConnection(
 				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
 				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).
 				 */
-				if ( event.status !== 'disconnected' ) {
+				// Preserve the last failure and retry metadata throughout retries.
+				// Raw WebSocket open can precede rejection, so only successful
+				// connection clears the error.
+				if ( event.status !== 'disconnected' && ! hasConnectionError ) {
 					syncStatusEmitter.emit( { status: event.status } );
 				}
 			};
 			provider.on( 'status', handleStatus );
+
+			const handleSync = ( synced: boolean ): void => {
+				if ( synced && hasConnectionError ) {
+					hasConnectionError = false;
+					syncStatusEmitter.emit( { status: 'connected' } );
+				}
+			};
+			provider.on( 'sync', handleSync );
 
 			let disposed = false;
 			const disposeProvider = (): void => {
@@ -495,6 +508,7 @@ export function createWebSocketConnection(
 				cleanupRoomClientLimit();
 				provider.off( 'connection-close', handleConnectionClose );
 				provider.off( 'status', handleStatus );
+				provider.off( 'sync', handleSync );
 				syncStatusEmitter.destroy();
 				provider.destroy();
 			};
