@@ -476,16 +476,19 @@ export function createWebSocketConnection(
 				/*
 				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
 				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).
+				 *
+				 * While an error is showing, also skip 'connecting' and 'connected'. The server
+				 * accepts the socket before rejecting with 4002/4003 (see PR #121), so 'connected'
+				 * can be followed by a rejection. Only 'sync' proves acceptance; see handleSync.
 				 */
-				// Preserve the last failure and retry metadata throughout retries.
-				// Raw WebSocket open can precede rejection, so only successful
-				// connection clears the error.
 				if ( event.status !== 'disconnected' && ! hasConnectionError ) {
 					syncStatusEmitter.emit( { status: event.status } );
 				}
 			};
 			provider.on( 'status', handleStatus );
 
+			// 'sync' is the first event that proves the server accepted this client
+			// into the room. Clear the retained error and emit a single 'connected'.
 			const handleSync = ( synced: boolean ): void => {
 				if ( synced && hasConnectionError ) {
 					hasConnectionError = false;
