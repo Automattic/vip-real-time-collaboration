@@ -1,6 +1,8 @@
+import * as encoding from 'lib0/encoding';
 import assert from 'node:assert';
 import { afterEach, beforeEach, describe, it, mock } from 'node:test';
 import { Awareness } from 'y-protocols/awareness';
+import { writeSyncStep2 } from 'y-protocols/sync';
 import { WebsocketProvider } from 'y-websocket';
 import * as Yjs from 'yjs';
 
@@ -41,10 +43,11 @@ afterEach( () => {
 
 async function createProvider(
 	waitBeforeRetry: ( delayInMs: number ) => Promise< void > = async () => {},
-	PhysicalWebSocket: typeof WebSocket = FakePhysicalWebSocket as unknown as typeof WebSocket
+	PhysicalWebSocket: typeof WebSocket = FakePhysicalWebSocket as unknown as typeof WebSocket,
+	multiplexingEnabled = true
 ): Promise< ProviderContext > {
 	const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
-		multiplexingEnabled: true,
+		multiplexingEnabled,
 		PhysicalWebSocket,
 		fetchToken: () => {
 			authFetchCount += 1;
@@ -118,6 +121,23 @@ function destroyProvider( context: ProviderContext ): void {
 
 function acknowledgeInitialRoom( physical: FakePhysicalWebSocket ): void {
 	acknowledgeRoom( physical, 'site-1/postType/page-123' );
+}
+
+// The server's SyncStep2 reply makes y-websocket report `synced`.
+function emitServerSyncStep2(
+	socket: FakePhysicalWebSocket,
+	doc: Yjs.Doc,
+	multiplexingEnabled: boolean
+): void {
+	const encoder = encoding.createEncoder();
+	encoding.writeVarUint( encoder, 0 ); // y-websocket sync message.
+	writeSyncStep2( encoder, doc );
+	const payload = encoding.toUint8Array( encoder );
+	socket.emitMessage(
+		multiplexingEnabled
+			? encodeMessage( { type: 'data', room: 'site-1/postType/page-123', payload } )
+			: payload
+	);
 }
 
 function lastStatus( statuses: ConnectionStatus[] ): ConnectionStatus {
@@ -287,6 +307,62 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		assert.ok( firstMessage.type === 'data' && firstMessage.payload.length > 0 );
 
 		destroyProvider( context );
+	} );
+
+	for ( const multiplexingEnabled of [ true, false ] ) {
+		const transport = multiplexingEnabled ? 'multiplex' : 'legacy';
+		it( `keeps the collaborator-limit error on ${ transport } retry until the server syncs`, async () => {
+			const context = await createProvider( undefined, undefined, multiplexingEnabled );
+			const rejected = FakePhysicalWebSocket.instances[ 0 ];
+			assert.ok( rejected );
+			rejected.emitOpen();
+			rejected.emitClose( 4003 );
+			const limitStatus = lastStatus( context.statuses );
+			assert.strictEqual( limitStatus.status, 'disconnected' );
+			assert.strictEqual( limitStatus.error?.code, 'collaborator-limit-exceeded' );
+			const statusesBeforeRetry = context.statuses.length;
+			await Promise.resolve();
+			await Promise.resolve();
+
+			// A raw open (and room acknowledgment) must not clear the error.
+			const retry = FakePhysicalWebSocket.instances[ 1 ];
+			assert.ok( retry );
+			retry.emitOpen();
+			if ( multiplexingEnabled ) {
+				acknowledgeInitialRoom( retry );
+			}
+			assert.deepStrictEqual( context.statuses.slice( statusesBeforeRetry ), [] );
+
+			// Only a real sync clears the error, with exactly one event.
+			emitServerSyncStep2( retry, context.doc, multiplexingEnabled );
+			assert.deepStrictEqual( context.statuses.slice( statusesBeforeRetry ), [
+				{ status: 'connected' },
+			] );
+		} );
+	}
+
+	it( 'keeps a non-limit error and its retry metadata while the retry connects', async () => {
+		const context = await createProvider();
+		const physical = FakePhysicalWebSocket.instances[ 0 ];
+		assert.ok( physical );
+		physical.emitOpen();
+		acknowledgeInitialRoom( physical );
+
+		physical.emitClose( 4001 );
+		const expired = lastStatus( context.statuses );
+		assert.strictEqual( expired.status, 'disconnected' );
+		assert.strictEqual( expired.error?.code, 'connection-expired' );
+		assert.strictEqual( expired.willAutoRetryInMs, 2000 );
+		assert.strictEqual( expired.backgroundRetriesFailed, false );
+		const statusesBeforeRetry = context.statuses.length;
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const retry = FakePhysicalWebSocket.instances[ 1 ];
+		assert.ok( retry );
+		retry.emitOpen();
+		acknowledgeInitialRoom( retry );
+		assert.deepStrictEqual( context.statuses.slice( statusesBeforeRetry ), [] );
 	} );
 
 	it( 'does not advertise retry after a terminal physical close', async t => {
