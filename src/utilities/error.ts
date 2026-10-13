@@ -1,6 +1,6 @@
 import { __ } from '@wordpress/i18n';
 
-import type { ConnectionError } from '@wordpress/sync';
+import type { ConnectionError } from '@/types/sync';
 
 export function getErrorMessage( error: unknown, defaultMessage?: string ): string {
 	if ( error instanceof Error ) {

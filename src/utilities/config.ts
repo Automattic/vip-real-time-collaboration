@@ -1,6 +1,9 @@
 export const WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS = 15000;
 export const WEBSOCKET_URL = getVipConfigFromWindow( 'wsUrl' );
 
+export const MULTIPLEXING_ENABLED: boolean =
+	getVipConfigFromWindow( 'multiplexingEnabled' ) ?? false;
+
 export const BLOG_ID = getVipConfigFromWindow( 'blogId' );
 
 export const CONTACT_AJAX = getVipConfigFromWindow( 'contactAjax' );

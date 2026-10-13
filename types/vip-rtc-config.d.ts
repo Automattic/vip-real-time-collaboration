@@ -27,4 +27,7 @@ interface VIPRTCConfig {
 
 	// The WebSocket URL for the VIP RTC plugin.
 	wsUrl: string;
+
+	// Whether WebSocket providers should share a multiplexed connection.
+	multiplexingEnabled: boolean;
 }
