@@ -98,6 +98,9 @@ final class EditorConnections {
 		return is_numeric( $count ) ? (int) $count : 0;
 	}
 
+	/**
+	 * @psalm-pure
+	 */
 	private static function transient_key( int $post_id ): string {
 		return 'vip_rtc_editor_connections_' . $post_id;
 	}
