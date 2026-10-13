@@ -53,6 +53,8 @@ final class EditorConnections {
 	 * @param array<string, mixed> $response Heartbeat response.
 	 * @param array<string, mixed> $data     Heartbeat data sent by the editor.
 	 * @return array<string, mixed>
+	 *
+	 * @psalm-suppress PossiblyUnusedReturnValue Psalm does not detect usage via add_filter.
 	 */
 	public static function record( array $response, array $data ): array {
 		$counts = $data[ self::HEARTBEAT_KEY ] ?? null;
@@ -60,6 +62,7 @@ final class EditorConnections {
 			return $response;
 		}
 
+		/** @psalm-suppress MixedAssignment Untrusted input; cast and range-checked below. */
 		foreach ( $counts as $post_id => $connections ) {
 			$post_id = (int) $post_id;
 			$connections = (int) $connections;
@@ -81,12 +84,15 @@ final class EditorConnections {
 	/**
 	 * Editor connections open on a post, as last reported. 0 when no editor
 	 * has reported within the TTL.
+	 *
+	 * @psalm-suppress PossiblyUnusedMethod Called by other plugins, e.g. VIP Workflows.
 	 */
 	public static function get_count( int $post_id ): int {
 		if ( $post_id <= 0 ) {
 			return 0;
 		}
 
+		/** @psalm-suppress MixedAssignment get_transient() returns mixed; checked below. */
 		$count = get_transient( self::transient_key( $post_id ) );
 
 		return is_numeric( $count ) ? (int) $count : 0;
