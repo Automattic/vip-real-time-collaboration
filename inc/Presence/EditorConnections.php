@@ -20,7 +20,9 @@ use function set_transient;
  * Each editor reports the count it sees in the room's awareness, which counts
  * connections, not users: one person in two tabs is two. A disconnected editor
  * stops reporting, and a count nobody refreshes expires, so a post everyone
- * has closed reads as 0.
+ * has closed reads as 0. A higher count holds against a lower report for
+ * `HOLD_HIGHER` seconds, so departures show up a little late but a delayed
+ * report never makes a shared post look free.
  */
 final class EditorConnections {
 	/**
@@ -35,6 +37,15 @@ final class EditorConnections {
 	 * heartbeat.
 	 */
 	public const TTL = 150;
+
+	/**
+	 * How long a count stands against a lower report, in seconds. Reports from
+	 * different editors can arrive out of order, so a lower one may be stale.
+	 * Wrongly reading a post as shared only holds a write back, while wrongly
+	 * reading it as free loses edits, so a drop is believed only once nobody
+	 * has confirmed the higher count for about a heartbeat interval.
+	 */
+	public const HOLD_HIGHER = 60;
 
 	/**
 	 * Upper bound on a believable count, so a bad report cannot store anything
@@ -75,7 +86,19 @@ final class EditorConnections {
 				continue;
 			}
 
-			set_transient( self::transient_key( $post_id ), $connections, self::TTL );
+			$stored = self::read( $post_id );
+			if ( null !== $stored && $connections < $stored['count'] && time() - $stored['reported_at'] < self::HOLD_HIGHER ) {
+				continue;
+			}
+
+			set_transient(
+				self::transient_key( $post_id ),
+				[
+					'count' => $connections,
+					'reported_at' => time(),
+				],
+				self::TTL
+			);
 		}
 
 		return $response;
@@ -92,10 +115,35 @@ final class EditorConnections {
 			return 0;
 		}
 
-		/** @psalm-suppress MixedAssignment get_transient() returns mixed; checked below. */
-		$count = get_transient( self::transient_key( $post_id ) );
+		return self::read( $post_id )['count'] ?? 0;
+	}
 
-		return is_numeric( $count ) ? (int) $count : 0;
+	/**
+	 * The stored report for a post, or null when there is none.
+	 *
+	 * @return array{count: int, reported_at: int}|null
+	 */
+	private static function read( int $post_id ): ?array {
+		/** @psalm-suppress MixedAssignment get_transient() returns mixed; checked below. */
+		$stored = get_transient( self::transient_key( $post_id ) );
+
+		if ( ! is_array( $stored ) ) {
+			return null;
+		}
+
+		/** @psalm-suppress MixedAssignment Checked below. */
+		$count = $stored['count'] ?? null;
+		/** @psalm-suppress MixedAssignment Checked below. */
+		$reported_at = $stored['reported_at'] ?? null;
+
+		if ( ! is_int( $count ) || ! is_int( $reported_at ) ) {
+			return null;
+		}
+
+		return [
+			'count' => $count,
+			'reported_at' => $reported_at,
+		];
 	}
 
 	/**
