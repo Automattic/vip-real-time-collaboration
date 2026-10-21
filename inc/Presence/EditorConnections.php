@@ -108,6 +108,13 @@ final class EditorConnections {
 	 * Editor connections open on a post, as last reported. 0 when no editor
 	 * has reported within the TTL.
 	 *
+	 * 0 means no editor is reporting, not that none has the post open.
+	 * WordPress suspends the heartbeat after 60 minutes without user activity,
+	 * even on the post editor, so editors left idle that long stop reporting
+	 * while their tabs still hold the document. A post lock is released the
+	 * same way. Treat the count as a guard against writing over active
+	 * editing, not a guarantee.
+	 *
 	 * @psalm-suppress PossiblyUnusedMethod Called by other plugins, e.g. VIP Workflows.
 	 */
 	public static function get_count( int $post_id ): int {
