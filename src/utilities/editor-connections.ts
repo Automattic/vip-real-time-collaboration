@@ -30,31 +30,102 @@ export function countConnections( states: Map< number, Record< string, unknown >
 /**
  * Record one post's count and say whether it changed.
  *
- * A disconnected client removes its post instead of reporting: offline, its
- * awareness collapses to itself, and reporting that 1 would tell the server
- * the post is free while others are still editing it.
+ * A client that is not ready removes its post instead of reporting: offline,
+ * or just reconnected, its awareness holds only itself, and reporting that 1
+ * would tell the server the post is free while others are still editing it.
  *
  * @param {EditorConnectionCounts} counts      Counts to update.
  * @param {number}                 postId      Post ID.
- * @param {boolean}                connected   Whether the room is connected.
- * @param {number}                 connections Open connections, when connected.
+ * @param {boolean}                ready       Whether the room is connected and its awareness has arrived.
+ * @param {number}                 connections Open connections, when ready.
  * @return {boolean} True when what the next heartbeat will report changed.
  */
 export function recordConnections(
 	counts: EditorConnectionCounts,
 	postId: number,
-	connected: boolean,
+	ready: boolean,
 	connections: number
 ): boolean {
 	const previous = counts.get( postId );
 
-	if ( ! connected || connections < 1 ) {
+	if ( ! ready || connections < 1 ) {
 		counts.delete( postId );
 		return previous !== undefined;
 	}
 
 	counts.set( postId, connections );
 	return previous !== connections;
+}
+
+/**
+ * How long to wait after connecting for the room's awareness before counting
+ * anyway, in milliseconds. The server sends the room's awareness straight
+ * after the socket opens, so this only runs out in an empty room.
+ */
+export const AWARENESS_WAIT_MS = 3000;
+
+/**
+ * Tracks whether a room's awareness can be counted yet.
+ *
+ * y-websocket drops every remote awareness state when a socket closes and
+ * reports the socket open before the server has sent them again, so for a
+ * moment after each connect the room looks like it holds only this client.
+ * Counting then would report 1 for a shared post. The gate opens on the
+ * first awareness update from the server, or after `waitMs` if none comes,
+ * and calls `onOpen` so the caller can count.
+ */
+export class AwarenessGate {
+	private open = false;
+	private timer: ReturnType< typeof setTimeout > | null = null;
+
+	constructor(
+		private readonly onOpen: () => void,
+		private readonly waitMs: number = AWARENESS_WAIT_MS
+	) {}
+
+	public isOpen(): boolean {
+		return this.open;
+	}
+
+	/** The socket opened: wait for the room's awareness. */
+	public connected(): void {
+		this.close();
+		this.timer = setTimeout( () => this.openNow(), this.waitMs );
+	}
+
+	/** The socket closed: stop counting until the next connect. */
+	public disconnected(): void {
+		this.close();
+	}
+
+	/** An awareness update arrived from the server. */
+	public receivedAwareness(): void {
+		if ( this.timer !== null ) {
+			this.openNow();
+		}
+	}
+
+	public destroy(): void {
+		this.close();
+	}
+
+	private openNow(): void {
+		this.clearTimer();
+		this.open = true;
+		this.onOpen();
+	}
+
+	private close(): void {
+		this.clearTimer();
+		this.open = false;
+	}
+
+	private clearTimer(): void {
+		if ( this.timer !== null ) {
+			clearTimeout( this.timer );
+			this.timer = null;
+		}
+	}
 }
 
 /**

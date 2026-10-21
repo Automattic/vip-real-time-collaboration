@@ -17,6 +17,7 @@ import {
 import { generateUUID } from '@/utilities/crypto';
 import {
 	addToHeartbeat,
+	AwarenessGate,
 	countConnections,
 	recordConnections,
 	type EditorConnectionCounts,
@@ -343,11 +344,15 @@ function setupEditorConnectionReporting( provider: WebsocketProvider, postId: nu
 
 	const { awareness } = provider;
 
+	// Count only once the room's awareness has arrived after each connect, so a
+	// join or reconnect never reports this client alone (see `AwarenessGate`).
+	const gate: AwarenessGate = new AwarenessGate( () => report() );
+
 	const report = (): void => {
 		const changed = recordConnections(
 			editorConnections,
 			postId,
-			provider.wsconnected,
+			provider.wsconnected && gate.isOpen(),
 			countConnections( awareness.getStates() )
 		);
 		if ( changed ) {
@@ -355,12 +360,35 @@ function setupEditorConnectionReporting( provider: WebsocketProvider, postId: nu
 		}
 	};
 
+	const onStatus = ( event: { status?: string } ): void => {
+		if ( event?.status === 'connected' ) {
+			gate.connected();
+		} else {
+			gate.disconnected();
+		}
+		report();
+	};
+
+	const onAwarenessUpdate = ( _changes: unknown, origin: unknown ): void => {
+		// The provider is also the origin when it clears remote states on close.
+		if ( origin === provider && provider.wsconnected ) {
+			gate.receivedAwareness();
+		}
+	};
+
+	if ( provider.wsconnected ) {
+		gate.connected();
+	}
+
 	awareness.on( 'change', report );
-	provider.on( 'status', report );
+	awareness.on( 'update', onAwarenessUpdate );
+	provider.on( 'status', onStatus );
 
 	return () => {
+		gate.destroy();
 		awareness.off( 'change', report );
-		provider.off( 'status', report );
+		awareness.off( 'update', onAwarenessUpdate );
+		provider.off( 'status', onStatus );
 		editorConnections.delete( postId );
 	};
 }
