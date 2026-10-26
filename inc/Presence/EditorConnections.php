@@ -8,6 +8,9 @@ use function add_filter;
 use function current_user_can;
 use function get_transient;
 use function set_transient;
+use function usleep;
+use function wp_cache_add;
+use function wp_cache_delete;
 
 /**
  * Keeps the number of editor connections open on each post, as reported by
@@ -23,6 +26,10 @@ use function set_transient;
  * has closed reads as 0. A higher count holds against a lower report for
  * `HOLD_HIGHER` seconds, so departures show up a little late but a delayed
  * report never makes a shared post look free.
+ *
+ * Editors report at the same moment when someone joins, so each post's
+ * read-compare-write runs under a short lock. Without it, two reports can both
+ * read the old count and the lower one can land last.
  */
 final class EditorConnections {
 	/**
@@ -52,6 +59,24 @@ final class EditorConnections {
 	 * odd.
 	 */
 	private const MAX_CONNECTIONS = 1000;
+
+	/**
+	 * Object cache group for the per-post lock around a report.
+	 */
+	private const LOCK_GROUP = 'vip_rtc_editor_connections';
+
+	/**
+	 * How long a lock stands if the request holding it dies, in seconds.
+	 */
+	private const LOCK_TTL = 5;
+
+	/**
+	 * How many times to try for a busy lock, and how long to wait between
+	 * tries, in microseconds. The lock is held only for one read and one write,
+	 * so it is free again well within this.
+	 */
+	private const LOCK_ATTEMPTS = 3;
+	private const LOCK_WAIT = 50000;
 
 	public static function init(): void {
 		add_filter( 'heartbeat_received', [ __CLASS__, 'record' ], 10, 2 );
@@ -86,22 +111,64 @@ final class EditorConnections {
 				continue;
 			}
 
-			$stored = self::read( $post_id );
-			if ( null !== $stored && $connections < $stored['count'] && time() - $stored['reported_at'] < self::HOLD_HIGHER ) {
+			// A report that cannot get the lock is dropped. The editor sends
+			// the count again on its next heartbeat.
+			if ( ! self::lock( $post_id ) ) {
 				continue;
 			}
 
-			set_transient(
-				self::transient_key( $post_id ),
-				[
-					'count' => $connections,
-					'reported_at' => time(),
-				],
-				self::TTL
-			);
+			try {
+				self::store( $post_id, $connections );
+			} finally {
+				self::unlock( $post_id );
+			}
 		}
 
 		return $response;
+	}
+
+	/**
+	 * Store a reported count unless a higher one still holds. Call only while
+	 * holding the post's lock.
+	 */
+	private static function store( int $post_id, int $connections ): void {
+		$stored = self::read( $post_id );
+		if ( null !== $stored && $connections < $stored['count'] && time() - $stored['reported_at'] < self::HOLD_HIGHER ) {
+			return;
+		}
+
+		set_transient(
+			self::transient_key( $post_id ),
+			[
+				'count' => $connections,
+				'reported_at' => time(),
+			],
+			self::TTL
+		);
+	}
+
+	/**
+	 * Take the post's lock. `wp_cache_add()` only succeeds when the key is
+	 * absent, and the persistent object cache VIP runs makes that atomic
+	 * across requests.
+	 */
+	private static function lock( int $post_id ): bool {
+		for ( $attempt = 1; $attempt <= self::LOCK_ATTEMPTS; $attempt++ ) {
+			// phpcs:ignore WordPressVIPMinimum.Performance.LowExpiryCacheTime.CacheTimeUndetermined -- A lock, not a cached value; it should lapse quickly.
+			if ( wp_cache_add( self::transient_key( $post_id ), 1, self::LOCK_GROUP, self::LOCK_TTL ) ) {
+				return true;
+			}
+
+			if ( $attempt < self::LOCK_ATTEMPTS ) {
+				usleep( self::LOCK_WAIT );
+			}
+		}
+
+		return false;
+	}
+
+	private static function unlock( int $post_id ): void {
+		wp_cache_delete( self::transient_key( $post_id ), self::LOCK_GROUP );
 	}
 
 	/**

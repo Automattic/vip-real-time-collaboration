@@ -61,6 +61,28 @@ final class EditorConnectionsTest extends TestCase {
 	}
 
 	/**
+	 * @covers \VIPRealTimeCollaboration\Presence\EditorConnections::record
+	 */
+	public function test_a_report_is_dropped_while_another_holds_the_post(): void {
+		$this->report( 2 );
+
+		// Another request is mid-report on this post.
+		wp_cache_add( 'vip_rtc_editor_connections_' . $this->post_id, 1, 'vip_rtc_editor_connections' );
+		$this->report( 3 );
+
+		self::assertSame( 2, EditorConnections::get_count( $this->post_id ) );
+	}
+
+	/**
+	 * @covers \VIPRealTimeCollaboration\Presence\EditorConnections::record
+	 */
+	public function test_a_report_releases_the_post_when_it_is_done(): void {
+		$this->report( 1 );
+
+		self::assertFalse( wp_cache_get( 'vip_rtc_editor_connections_' . $this->post_id, 'vip_rtc_editor_connections' ) );
+	}
+
+	/**
 	 * @covers \VIPRealTimeCollaboration\Presence\EditorConnections::get_count
 	 */
 	public function test_a_post_nobody_reported_has_no_connections(): void {
