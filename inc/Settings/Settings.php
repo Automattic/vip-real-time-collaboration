@@ -280,11 +280,12 @@ final class Settings {
 	}
 
 	public static function get_gutenberg_path(): string {
-		if ( ! function_exists( 'gutenberg_pre_init' ) ) {
+		$function_name = 'gutenberg_pre_init';
+		if ( ! function_exists( $function_name ) ) {
 			return 'Unknown';
 		}
 
-		$reflection = new \ReflectionFunction( 'gutenberg_pre_init' );
+		$reflection = new \ReflectionFunction( $function_name );
 		$file_name = $reflection->getFileName();
 
 		return is_string( $file_name ) ? wp_normalize_path( $file_name ) : 'Unknown';

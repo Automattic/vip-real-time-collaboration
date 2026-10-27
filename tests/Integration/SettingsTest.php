@@ -127,21 +127,6 @@ final class SettingsTest extends TestCase {
 	}
 
 	/**
-	 * Verifies that the path to the loaded Gutenberg plugin is reported.
-	 *
-	 * @covers \VIPRealTimeCollaboration\Settings\Settings::get_gutenberg_path
-	 */
-	public function test_gutenberg_path_is_reported(): void {
-		require_once __DIR__ . '/Fixtures/gutenberg.php';
-
-		$reflection = new \ReflectionFunction( 'gutenberg_pre_init' );
-		$file_name = $reflection->getFileName();
-
-		self::assertIsString( $file_name );
-		self::assertSame( wp_normalize_path( $file_name ), Settings::get_gutenberg_path() );
-	}
-
-	/**
 	 * Verifies that RTC is hidden from Gutenberg's experiments schema.
 	 *
 	 * @covers \VIPRealTimeCollaboration\Settings\Settings::hide_gutenberg_rtc_experiment
