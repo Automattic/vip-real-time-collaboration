@@ -199,6 +199,12 @@ final class Settings {
 			</p>
 			<p>
 				<?php
+				/* translators: %s: Gutenberg plugin path */
+				echo esc_html( sprintf( __( 'Gutenberg Path: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_path() ) );
+				?>
+			</p>
+			<p>
+				<?php
 				/* translators: %s: Gutenberg commit hash */
 				echo esc_html( sprintf( __( 'Gutenberg Commit Hash: %s', 'vip-real-time-collaboration' ), self::get_gutenberg_commit_hash() ) );
 				?>
@@ -271,6 +277,17 @@ final class Settings {
 		}
 
 		return self::get_string_constant( 'GUTENBERG_VERSION' );
+	}
+
+	public static function get_gutenberg_path(): string {
+		if ( ! function_exists( 'gutenberg_pre_init' ) ) {
+			return 'Unknown';
+		}
+
+		$reflection = new \ReflectionFunction( 'gutenberg_pre_init' );
+		$file_name = $reflection->getFileName();
+
+		return is_string( $file_name ) ? wp_normalize_path( $file_name ) : 'Unknown';
 	}
 
 	public static function get_gutenberg_commit_hash(): string {
