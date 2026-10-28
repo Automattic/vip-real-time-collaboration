@@ -134,7 +134,7 @@ interface ConnectOptions {
 	retryState: { attempts: number; eligible: boolean };
 	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
 	waitBeforeRetry: ( delayInMs: number ) => Promise< void >;
-	onTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ], willRetry: boolean ) => void;
+	onTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ] ) => void;
 	onFatalConnectError: ( error: unknown ) => void;
 }
 
@@ -154,7 +154,6 @@ function createConnect( {
 	onFatalConnectError,
 }: ConnectOptions ): () => Promise< void > {
 	let hasAttemptedConnect = false;
-	let consecutiveAuthFailures = 0;
 
 	const connect = async (): Promise< void > => {
 		if ( ! retryState.eligible ) {
@@ -187,24 +186,12 @@ function createConnect( {
 			);
 			if ( retryState.eligible ) {
 				// Token fetch failures do not trigger y-websocket's connection-close event.
-				const errorCode = getTokenFetchErrorCode( error );
-				// Authentication failures may clear after a nonce or permission change,
-				// but repeated denials should not keep polling the endpoint forever.
-				consecutiveAuthFailures =
-					errorCode === 'authentication-failed' ? consecutiveAuthFailures + 1 : 0;
-				const willRetry =
-					errorCode !== 'authentication-failed' ||
-					consecutiveAuthFailures < BACKGROUND_RETRIES_FAILED_THRESHOLD;
-				retryState.eligible = willRetry;
-				onTokenFetchFailure( errorCode, willRetry );
-				if ( willRetry ) {
-					// Keep the initial provider creation detached from a REST outage.
-					void connect().catch( () => {} );
-				}
+				onTokenFetchFailure( getTokenFetchErrorCode( error ) );
+				// Keep the initial provider creation detached from a REST outage.
+				void connect().catch( () => {} );
 			}
 			return;
 		}
-		consecutiveAuthFailures = 0;
 
 		if ( ! retryState.eligible ) {
 			return;
@@ -431,15 +418,12 @@ export function createWebSocketConnection(
 				willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
 				backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
 			} );
-			const handleTokenFetchFailure = (
-				errorCode: ConnectionError[ 'code' ],
-				willRetry: boolean
-			): void => {
+			const handleTokenFetchFailure = ( errorCode: ConnectionError[ 'code' ] ): void => {
 				hasConnectionError = true;
 				const syncStatus = {
 					status: 'disconnected' as const,
 					error: new WebSocketError( errorCode ),
-					...( willRetry ? getRetryStatusFields() : { backgroundRetriesFailed: true } ),
+					...getRetryStatusFields(),
 				};
 				syncStatusEmitter.emit( syncStatus );
 			};

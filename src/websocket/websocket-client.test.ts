@@ -267,7 +267,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 	}
 
 	for ( const statusCode of [ 401, 403 ] ) {
-		it( `stops retrying after repeated token ${ statusCode } responses`, async () => {
+		it( `continues background retries after repeated token ${ statusCode } responses`, async () => {
 			const finishBackoffs: Array< () => void > = [];
 			let fetchCount = 0;
 			const authorizationError = Object.assign( new Error( 'Authorization failed' ), {
@@ -302,14 +302,14 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 			assert.strictEqual( failure.status, 'disconnected' );
 			assert.strictEqual( failure.error?.code, 'authentication-failed' );
 			assert.strictEqual( failure.backgroundRetriesFailed, true );
-			assert.ok( ! ( 'willAutoRetryInMs' in failure ) );
+			assert.strictEqual( failure.willAutoRetryInMs, 8000 );
 			assert.strictEqual( fetchCount, 3 );
-			assert.strictEqual( finishBackoffs.length, 2 );
+			assert.strictEqual( finishBackoffs.length, 3 );
 			destroyProvider( context );
 		} );
 	}
 
-	it( 'does not count earlier socket failures as repeated auth denials', async () => {
+	it( 'keeps retrying auth errors after earlier socket failures', async () => {
 		const finishBackoffs: Array< () => void > = [];
 		let fetchCount = 0;
 		const authorizationError = Object.assign( new Error( 'Authorization failed' ), {
@@ -357,7 +357,7 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		const authFailure = lastStatus( context.statuses );
 		assert.strictEqual( authFailure.status, 'disconnected' );
 		assert.strictEqual( authFailure.error?.code, 'authentication-failed' );
-		assert.ok( finishBackoffs[ 2 ], 'the first auth denial should still schedule a retry' );
+		assert.ok( finishBackoffs[ 2 ], 'the auth denial should still schedule a retry' );
 		destroyProvider( context );
 	} );
 
