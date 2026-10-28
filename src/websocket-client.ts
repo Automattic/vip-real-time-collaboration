@@ -14,7 +14,7 @@ import {
 	WEBSOCKET_URL,
 } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
-import { WebSocketError, getErrorMessage } from '@/utilities/error';
+import { WebSocketError, getErrorMessage, getTokenFetchErrorCode } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 import {
@@ -127,19 +127,15 @@ function getBackoffDelayInMs( attempts: number ): number {
 	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
 }
 
-function isRecord( value: unknown ): value is Record< string, unknown > {
-	return typeof value === 'object' && value !== null;
-}
-
-/**
- * Map WordPress REST authorization responses from the token endpoint to the
- * sync error code that Gutenberg uses for its authentication message. Network
- * and other request failures do not have a trustworthy authorization status.
- */
-function getTokenFetchErrorCode( error: unknown ): ConnectionError[ 'code' ] {
-	const status = isRecord( error ) && isRecord( error.data ) ? error.data.status : undefined;
-
-	return status === 401 || status === 403 ? 'authentication-failed' : 'unknown-error';
+interface ConnectOptions {
+	provider: WebsocketProvider;
+	syncObjectType: string;
+	syncObjectId: string;
+	retryState: { attempts: number; eligible: boolean };
+	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
+	waitBeforeRetry: ( delayInMs: number ) => Promise< void >;
+	onTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ], willRetry: boolean ) => void;
+	onFatalConnectError: ( error: unknown ) => void;
 }
 
 /**
@@ -147,17 +143,18 @@ function getTokenFetchErrorCode( error: unknown ): ConnectionError[ 'code' ] {
  * Implement exponential backoff for reconnect attempts since we are opting out
  * of the built-in reconnect logic by disabling `provider.shouldConnect`.
  */
-function createConnect(
-	provider: WebsocketProvider,
-	syncObjectType: string,
-	syncObjectId: string,
-	retryState: { attempts: number; eligible: boolean },
-	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >,
-	waitBeforeRetry: ( delayInMs: number ) => Promise< void >,
-	onRetryableTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ] ) => void,
-	onFatalConnectError: ( error: unknown ) => void
-): () => Promise< void > {
+function createConnect( {
+	provider,
+	syncObjectType,
+	syncObjectId,
+	retryState,
+	fetchToken,
+	waitBeforeRetry,
+	onTokenFetchFailure,
+	onFatalConnectError,
+}: ConnectOptions ): () => Promise< void > {
 	let hasAttemptedConnect = false;
+	let consecutiveAuthFailures = 0;
 
 	const connect = async (): Promise< void > => {
 		if ( ! retryState.eligible ) {
@@ -190,12 +187,24 @@ function createConnect(
 			);
 			if ( retryState.eligible ) {
 				// Token fetch failures do not trigger y-websocket's connection-close event.
-				onRetryableTokenFetchFailure( getTokenFetchErrorCode( error ) );
-				// Keep the initial provider creation detached from a REST outage.
-				void connect().catch( () => {} );
+				const errorCode = getTokenFetchErrorCode( error );
+				// Authentication failures may clear after a nonce or permission change,
+				// but repeated denials should not keep polling the endpoint forever.
+				consecutiveAuthFailures =
+					errorCode === 'authentication-failed' ? consecutiveAuthFailures + 1 : 0;
+				const willRetry =
+					errorCode !== 'authentication-failed' ||
+					consecutiveAuthFailures < BACKGROUND_RETRIES_FAILED_THRESHOLD;
+				retryState.eligible = willRetry;
+				onTokenFetchFailure( errorCode, willRetry );
+				if ( willRetry ) {
+					// Keep the initial provider creation detached from a REST outage.
+					void connect().catch( () => {} );
+				}
 			}
 			return;
 		}
+		consecutiveAuthFailures = 0;
 
 		if ( ! retryState.eligible ) {
 			return;
@@ -422,11 +431,15 @@ export function createWebSocketConnection(
 				willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
 				backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
 			} );
-			const handleRetryableTokenFetchFailure = ( errorCode: ConnectionError[ 'code' ] ): void => {
+			const handleTokenFetchFailure = (
+				errorCode: ConnectionError[ 'code' ],
+				willRetry: boolean
+			): void => {
+				hasConnectionError = true;
 				const syncStatus = {
 					status: 'disconnected' as const,
 					error: new WebSocketError( errorCode ),
-					...getRetryStatusFields(),
+					...( willRetry ? getRetryStatusFields() : { backgroundRetriesFailed: true } ),
 				};
 				syncStatusEmitter.emit( syncStatus );
 			};
@@ -542,19 +555,19 @@ export function createWebSocketConnection(
 				provider.destroy();
 			};
 
-			connect = createConnect(
+			connect = createConnect( {
 				provider,
-				objectType,
-				objectId ?? 'collection',
+				syncObjectType: objectType,
+				syncObjectId: objectId ?? 'collection',
 				retryState,
 				fetchToken,
 				waitBeforeRetry,
-				handleRetryableTokenFetchFailure,
-				error => {
+				onTokenFetchFailure: handleTokenFetchFailure,
+				onFatalConnectError: error => {
 					logger.critical( 'Fatal WebSocket connection failure', { error } );
 					disposeProvider();
-				}
-			);
+				},
+			} );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
