@@ -26,6 +26,7 @@ import {
 } from '@/utilities/room-client-limit';
 import { SyncConnectionStatusEmitter } from '@/utilities/sync-event-emitter';
 import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-close-policy';
+import { isYjsModuleSet, setYjsModule } from '@/yjs-shim';
 
 import type {
 	ConnectionStatus,
@@ -340,8 +341,24 @@ export function createWebSocketConnection(
 		objectType,
 		objectId,
 		ydoc,
+		Y,
 	}: ProviderCreatorOptions ): Promise< ProviderCreatorResult > {
 		try {
+			if ( Y ) {
+				// Point the bundled y-websocket and y-protocols modules at the
+				// Yjs instance used by the editor. See yjs-shim.ts.
+				setYjsModule( Y );
+			} else if ( ! isYjsModuleSet() ) {
+				// Without a Yjs module, the bundled y-websocket and y-protocols
+				// modules would fail later with an obscure TypeError when the
+				// first sync message is written. Fail fast with a clear message.
+				logger.error(
+					'WebSocket sync disabled: no Yjs module available. Expected the `Y` provider option or the `wp.sync.Y` global (older Gutenberg).'
+				);
+
+				return defaultResult;
+			}
+
 			// For now, we only support collections and traditional post types.
 			const isUnsupportedObjectType =
 				null !== objectId &&
@@ -388,11 +405,13 @@ export function createWebSocketConnection(
 			} );
 
 			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
+			let hasConnectionError = false;
 
 			const handleConnectionClose = ( event: CloseEvent | null ): void => {
 				const closeCode = event?.code;
 				const closeScope = getWebSocketCloseScope( event );
 				const closePolicy = getWebSocketClosePolicy( closeScope, closeCode, roomLimitExceeded );
+				hasConnectionError = true;
 				const shouldRetry = closePolicy.shouldRetry;
 				if ( closeScope === 'room' ) {
 					const details = {
@@ -457,12 +476,26 @@ export function createWebSocketConnection(
 				/*
 				 * Skip 'disconnected' status - handled in connection-close above to preserve error details.
 				 * y-websocket emits 'connection-close' (with error code) then 'status: disconnected' (no error).
+				 *
+				 * While an error is showing, also skip 'connecting' and 'connected'. The server
+				 * accepts the socket before rejecting with 4002/4003 (see PR #121), so 'connected'
+				 * can be followed by a rejection. Only 'sync' proves acceptance; see handleSync.
 				 */
-				if ( event.status !== 'disconnected' ) {
+				if ( event.status !== 'disconnected' && ! hasConnectionError ) {
 					syncStatusEmitter.emit( { status: event.status } );
 				}
 			};
 			provider.on( 'status', handleStatus );
+
+			// 'sync' is the first event that proves the server accepted this client
+			// into the room. Clear the retained error and emit a single 'connected'.
+			const handleSync = ( synced: boolean ): void => {
+				if ( synced && hasConnectionError ) {
+					hasConnectionError = false;
+					syncStatusEmitter.emit( { status: 'connected' } );
+				}
+			};
+			provider.on( 'sync', handleSync );
 
 			let disposed = false;
 			const disposeProvider = (): void => {
@@ -478,6 +511,7 @@ export function createWebSocketConnection(
 				cleanupRoomClientLimit();
 				provider.off( 'connection-close', handleConnectionClose );
 				provider.off( 'status', handleStatus );
+				provider.off( 'sync', handleSync );
 				syncStatusEmitter.destroy();
 				provider.destroy();
 			};
