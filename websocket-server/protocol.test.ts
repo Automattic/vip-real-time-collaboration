@@ -92,6 +92,8 @@ describe( 'protocol wire contract', () => {
 	for ( const [ name, { message, bytes } ] of Object.entries( CANONICAL_MESSAGES ) ) {
 		it( `round-trips ${ name } with its exact deployed bytes`, () => {
 			const encoded = encodeMessage( message );
+			// Browser WebSocket.send requires non-shared backing storage.
+			assert.ok( encoded.buffer instanceof ArrayBuffer );
 			assert.deepStrictEqual( Array.from( encoded ), bytes );
 			assert.deepStrictEqual( decodeMessage( encoded ), message );
 		} );

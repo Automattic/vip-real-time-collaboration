@@ -686,7 +686,7 @@ describe( 'createSharedWebSocketAdapter', () => {
 				data: staleData.buffer.slice(
 					staleData.byteOffset,
 					staleData.byteOffset + staleData.byteLength
-				) as ArrayBuffer,
+				),
 			} )
 		);
 		staleError?.( new Event( 'error' ) );
