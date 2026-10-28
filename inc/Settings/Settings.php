@@ -140,7 +140,7 @@ final class Settings {
 		add_settings_field(
 			self::ENABLED_SETTING_NAME,
 			__( 'Real-Time Collaboration', 'vip-real-time-collaboration' ),
-			[ __CLASS__, 'display_settings_radio' ],
+			self::display_settings_radio( ... ),
 			self::SETTINGS_PAGE_SLUG,
 			'plugin-settings'
 		);
