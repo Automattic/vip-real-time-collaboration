@@ -184,7 +184,7 @@ export function createSharedWebSocketAdapter(
 
 	function openPhysicalSocket( grant: string ): void {
 		const socket = new PhysicalWebSocket(
-			`${ normalizedServerUrl }?auth=${ encodeURIComponent( grant ) }`,
+			`${ normalizedServerUrl }/vip-rtc?auth=${ encodeURIComponent( grant ) }`,
 			MULTIPLEX_SUBPROTOCOL
 		);
 		physicalSocket = socket;
