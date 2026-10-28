@@ -14,7 +14,7 @@ import {
 	WEBSOCKET_URL,
 } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
-import { WebSocketError, getErrorMessage } from '@/utilities/error';
+import { WebSocketError, getErrorMessage, getTokenFetchErrorCode } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 import {
@@ -29,6 +29,7 @@ import { getWebSocketClosePolicy, getWebSocketCloseScope } from '@/websocket-clo
 import { isYjsModuleSet, setYjsModule } from '@/yjs-shim';
 
 import type {
+	ConnectionError,
 	ConnectionStatus,
 	ProviderCreator,
 	ProviderCreatorOptions,
@@ -126,20 +127,32 @@ function getBackoffDelayInMs( attempts: number ): number {
 	return Math.min( 1000 * 2 ** attempts, WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS );
 }
 
+interface ConnectOptions {
+	provider: WebsocketProvider;
+	syncObjectType: string;
+	syncObjectId: string;
+	retryState: { attempts: number; eligible: boolean };
+	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
+	waitBeforeRetry: ( delayInMs: number ) => Promise< void >;
+	onTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ] ) => void;
+	onFatalConnectError: ( error: unknown ) => void;
+}
+
 /**
  * Configure the websocket provider to use auth token for websocket connection.
  * Implement exponential backoff for reconnect attempts since we are opting out
  * of the built-in reconnect logic by disabling `provider.shouldConnect`.
  */
-function createConnect(
-	provider: WebsocketProvider,
-	syncObjectType: string,
-	syncObjectId: string,
-	retryState: { attempts: number; eligible: boolean },
-	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >,
-	waitBeforeRetry: ( delayInMs: number ) => Promise< void >,
-	onFatalConnectError: ( error: unknown ) => void
-): () => Promise< void > {
+function createConnect( {
+	provider,
+	syncObjectType,
+	syncObjectId,
+	retryState,
+	fetchToken,
+	waitBeforeRetry,
+	onTokenFetchFailure,
+	onFatalConnectError,
+}: ConnectOptions ): () => Promise< void > {
 	let hasAttemptedConnect = false;
 
 	const connect = async (): Promise< void > => {
@@ -172,6 +185,8 @@ function createConnect(
 				) }: ${ getErrorMessage( error ) }`
 			);
 			if ( retryState.eligible ) {
+				// Token fetch failures do not trigger y-websocket's connection-close event.
+				onTokenFetchFailure( getTokenFetchErrorCode( error ) );
 				// Keep the initial provider creation detached from a REST outage.
 				void connect().catch( () => {} );
 			}
@@ -399,6 +414,19 @@ export function createWebSocketConnection(
 
 			// Create a typed event emitter for our custom sync-connection-status event.
 			const syncStatusEmitter = new SyncConnectionStatusEmitter();
+			const getRetryStatusFields = () => ( {
+				willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
+				backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
+			} );
+			const handleTokenFetchFailure = ( errorCode: ConnectionError[ 'code' ] ): void => {
+				hasConnectionError = true;
+				const syncStatus = {
+					status: 'disconnected' as const,
+					error: new WebSocketError( errorCode ),
+					...getRetryStatusFields(),
+				};
+				syncStatusEmitter.emit( syncStatus );
+			};
 
 			const cleanupRoomClientLimit = setupRoomClientLimit( provider, roomName, exceeded => {
 				roomLimitExceeded = exceeded;
@@ -437,12 +465,7 @@ export function createWebSocketConnection(
 				// the takeover check. `canManuallyRetry` is never set: the
 				// default modal's Retry button calls `retrySyncConnection()`
 				// which only reaches the built-in HTTP polling provider.
-				const retryStateFields = closePolicy.includeRetryMetadata
-					? {
-							willAutoRetryInMs: getBackoffDelayInMs( retryState.attempts ),
-							backgroundRetriesFailed: retryState.attempts >= BACKGROUND_RETRIES_FAILED_THRESHOLD,
-					  }
-					: {};
+				const retryStateFields = closePolicy.includeRetryMetadata ? getRetryStatusFields() : {};
 
 				syncStatusEmitter.emit( {
 					status: 'disconnected',
@@ -516,18 +539,19 @@ export function createWebSocketConnection(
 				provider.destroy();
 			};
 
-			connect = createConnect(
+			connect = createConnect( {
 				provider,
-				objectType,
-				objectId ?? 'collection',
+				syncObjectType: objectType,
+				syncObjectId: objectId ?? 'collection',
 				retryState,
 				fetchToken,
 				waitBeforeRetry,
-				error => {
+				onTokenFetchFailure: handleTokenFetchFailure,
+				onFatalConnectError: error => {
 					logger.critical( 'Fatal WebSocket connection failure', { error } );
 					disposeProvider();
-				}
-			);
+				},
+			} );
 
 			// Provide some debugging functions in development mode.
 			if ( isDevelopment() ) {
