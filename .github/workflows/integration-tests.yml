@@ -37,7 +37,7 @@ jobs:
           - php: '8.4'
             coverage: pcov
             extensions: pcov
-            ini-values: pcov.directory=., "pcov.exclude=\"~(vendor|tests)~\""
+            ini-values: pcov.directory=., pcov.exclude=~(vendor|tests)~
             experimental: false
           - php: '8.5'
             wp: 'trunk'
