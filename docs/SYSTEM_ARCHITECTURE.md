@@ -189,7 +189,7 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 
 - **Custom Capabilities**: Adds `sync_post` capability mapped to `edit_post` permissions
 - **Permission Filters**:
-  - `vip_rtc_post_sync_check_permission`: Custom post permission logic
+  - `vip_rtc_post_sync_check_permission`: Custom post permission logic (see [Customizing collaboration access](../README.md#customizing-collaboration-access) for examples)
   - `vip_rtc_entity_sync_check_permission`: Custom entity permission logic
 
 ### 5.4 WordPress Hooks Integration
