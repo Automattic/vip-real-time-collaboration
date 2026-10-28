@@ -205,70 +205,66 @@ describe( 'WebSocket transport routing', () => {
 		assert.strictEqual( docs.get( room )?.conns.size, 1 );
 	} );
 
-	for ( const [ path, protocols ] of [
-		[ '/', [ MULTIPLEX_SUBPROTOCOL ] ],
-		[ '/_ws', [ 'vip-rtc-multiplex-v2', MULTIPLEX_SUBPROTOCOL ] ],
-	] as const ) {
-		it( `routes neutral ${ path } through multiplex and selects V1 from ${ protocols.join(
-			', '
-		) }`, async () => {
-			const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_room_connections' );
-			const baseUrl = await startServer();
-			const room = `site-7/post-${ protocols.length }`;
-			const bootstrapGrant = grant( room );
-			let selectedHeader: string | undefined;
-			const client = new WebSocket( `${ baseUrl }${ path }?auth=${ bootstrapGrant }`, [
-				...protocols,
-			] );
-			clients.add( client );
-			client.on( 'upgrade', response => {
-				selectedHeader = response.headers[ 'sec-websocket-protocol' ];
-			} );
-			await once( client, 'open' );
-
-			assert.strictEqual( client.protocol, MULTIPLEX_SUBPROTOCOL );
-			assert.strictEqual( selectedHeader, MULTIPLEX_SUBPROTOCOL );
-			assert.strictEqual( docs.has( room ), false );
-			assert.strictEqual( runningServer?.wss.clients.size, 1 );
-			assert.strictEqual(
-				await metricValue( 'wpvip_rtc_active_room_connections' ),
-				activeRoomsBefore
-			);
-
-			const messages: ProtocolMessage[] = [];
-			const roomReady = new Promise< void >( resolve => {
-				client.on( 'message', data => {
-					messages.push( decodeMessage( data as Uint8Array ) );
-					if ( messages.length === 2 ) {
-						resolve();
-					}
-				} );
-			} );
-			client.send( encodeMessage( { type: 'subscribe', room, grant: bootstrapGrant } ) );
-			await roomReady;
-			assert.deepStrictEqual( messages[ 0 ], { type: 'subscribed', room } );
-			assert.strictEqual( messages[ 1 ]?.type, 'data' );
-			assert.strictEqual( messages[ 1 ]?.room, room );
-		} );
-	}
-
-	it( 'rejects a room-specific path selected for multiplex transport', async () => {
+	it( 'routes /_ws/vip-rtc through multiplex and selects V1', async () => {
+		const activeRoomsBefore = await metricValue( 'wpvip_rtc_active_room_connections' );
 		const baseUrl = await startServer();
-		const room = 'site-7/post-room-path';
-		const client = new WebSocket( `${ baseUrl }/${ room }?auth=${ grant( room ) }`, [
+		const room = 'site-7/post-multiplex';
+		const bootstrapGrant = grant( room );
+		let selectedHeader: string | undefined;
+		const client = new WebSocket( `${ baseUrl }/_ws/vip-rtc?auth=${ bootstrapGrant }`, [
+			'vip-rtc-multiplex-v2',
 			MULTIPLEX_SUBPROTOCOL,
 		] );
 		clients.add( client );
+		client.on( 'upgrade', response => {
+			selectedHeader = response.headers[ 'sec-websocket-protocol' ];
+		} );
+		await once( client, 'open' );
 
-		const result = await upgradeResult( client );
-
-		assert.strictEqual( result.type, 'error' );
-		assert.match(
-			result.type === 'error' ? result.error.message : '',
-			/Unexpected server response: 400/
-		);
+		assert.strictEqual( client.protocol, MULTIPLEX_SUBPROTOCOL );
+		assert.strictEqual( selectedHeader, MULTIPLEX_SUBPROTOCOL );
 		assert.strictEqual( docs.has( room ), false );
+		assert.strictEqual( runningServer?.wss.clients.size, 1 );
+		assert.strictEqual(
+			await metricValue( 'wpvip_rtc_active_room_connections' ),
+			activeRoomsBefore
+		);
+
+		const messages: ProtocolMessage[] = [];
+		const roomReady = new Promise< void >( resolve => {
+			client.on( 'message', data => {
+				messages.push( decodeMessage( data as Uint8Array ) );
+				if ( messages.length === 2 ) {
+					resolve();
+				}
+			} );
+		} );
+		client.send( encodeMessage( { type: 'subscribe', room, grant: bootstrapGrant } ) );
+		await roomReady;
+		assert.deepStrictEqual( messages[ 0 ], { type: 'subscribed', room } );
+		assert.strictEqual( messages[ 1 ]?.type, 'data' );
+		assert.strictEqual( messages[ 1 ]?.room, room );
 	} );
+
+	for ( const path of [ '/', '/_ws', '/vip-rtc', '/site-7/post-room-path' ] ) {
+		it( `rejects ${ path } selected for multiplex transport`, async () => {
+			const baseUrl = await startServer();
+			const room = 'site-7/post-room-path';
+			const client = new WebSocket( `${ baseUrl }${ path }?auth=${ grant( room ) }`, [
+				MULTIPLEX_SUBPROTOCOL,
+			] );
+			clients.add( client );
+
+			const result = await upgradeResult( client );
+
+			assert.strictEqual( result.type, 'error' );
+			assert.match(
+				result.type === 'error' ? result.error.message : '',
+				/Unexpected server response: 400/
+			);
+			assert.strictEqual( docs.has( room ), false );
+		} );
+	}
 
 	it( 'rejects unsupported-only subprotocols without falling back to legacy', async () => {
 		const baseUrl = await startServer();
@@ -333,7 +329,7 @@ describe( 'WebSocket transport routing', () => {
 		{ timeout: 1_000 },
 		async () => {
 			const baseUrl = await startServer();
-			const path = `/?auth=${ grant( 'site-7/post-invalid-frame' ) }`;
+			const path = `/_ws/vip-rtc?auth=${ grant( 'site-7/post-invalid-frame' ) }`;
 			const client = await connect( baseUrl, path, MULTIPLEX_SUBPROTOCOL );
 			const closed = once( client, 'close' );
 
@@ -401,7 +397,11 @@ describe( 'WebSocket transport routing', () => {
 		const baseUrl = await startServer();
 		const room = 'site-7/post-shared';
 		await connect( baseUrl, `/_ws/${ room }?auth=${ grant( room ) }` );
-		const multiplex = await connect( baseUrl, `/?auth=${ grant( room ) }`, MULTIPLEX_SUBPROTOCOL );
+		const multiplex = await connect(
+			baseUrl,
+			`/_ws/vip-rtc?auth=${ grant( room ) }`,
+			MULTIPLEX_SUBPROTOCOL
+		);
 		const subscribed = waitForMultiplexMessage(
 			multiplex,
 			message => message.type === 'subscribed' && message.room === room
@@ -422,7 +422,7 @@ describe( 'WebSocket transport routing', () => {
 			const laterRoom = 'site-7/post-later';
 			const client = await connect(
 				baseUrl,
-				`/?auth=${ grant( initialRoom ) }`,
+				`/_ws/vip-rtc?auth=${ grant( initialRoom ) }`,
 				MULTIPLEX_SUBPROTOCOL
 			);
 			const subscribed = waitForMultiplexMessage(
@@ -467,7 +467,11 @@ describe( 'WebSocket transport routing', () => {
 		const baseUrl = await startServer();
 		const room = 'site-7/post-expired-bootstrap';
 		const bootstrapGrant = grant( room, { exp: 1_700_000_001 } );
-		const client = await connect( baseUrl, `/?auth=${ bootstrapGrant }`, MULTIPLEX_SUBPROTOCOL );
+		const client = await connect(
+			baseUrl,
+			`/_ws/vip-rtc?auth=${ bootstrapGrant }`,
+			MULTIPLEX_SUBPROTOCOL
+		);
 
 		t.mock.timers.setTime( 1_700_000_002_000 );
 		const roomClosed = waitForMultiplexMessage(
@@ -494,7 +498,7 @@ describe( 'WebSocket transport routing', () => {
 			const messagesBefore = await metricValue( 'wpvip_rtc_messages_total' );
 			const baseUrl = await startServer( 100 );
 			const room = `site-7/post-common-${ protocol ? 'multiplex' : 'legacy' }`;
-			const path = protocol ? '/' : `/${ room }`;
+			const path = protocol ? '/_ws/vip-rtc' : `/${ room }`;
 			const client = await connect( baseUrl, `${ path }?auth=${ grant( room ) }`, protocol );
 			const closePromise = once( client, 'close' );
 
