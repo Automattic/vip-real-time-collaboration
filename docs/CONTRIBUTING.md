@@ -77,6 +77,17 @@ The development environment includes a Yjs Inspector tool for debugging collabor
 - Ensure TypeScript types are correct with `npm run check-types`
 - Ensure all tests pass before committing
 
+### TypeScript compilers
+
+`npm run check-types` uses the native TypeScript 7 compiler, installed as
+`@typescript/native`. The `typescript` dependency aliases Microsoft's
+`@typescript/typescript6` compatibility package so ESLint, `ts-loader`, and
+`fork-ts-checker-webpack-plugin` can continue using the JavaScript compiler API.
+The two packages expose separate `tsc` and `tsc6` executables, following
+[Microsoft's side-by-side migration guidance](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/#running-side-by-side-with-typescript-6-0).
+Keep both dependencies when updating the compiler until these tools support the
+native compiler API.
+
 ### Testing
 
 - Write unit or integration tests for new functionality

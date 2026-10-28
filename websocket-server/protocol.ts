@@ -232,7 +232,7 @@ function unknownMessageType( message: never ): ProtocolError {
  *
  * @throws {ProtocolError} When a field is empty, oversized, or out of range.
  */
-export function encodeMessage( message: ProtocolMessage ): Uint8Array {
+export function encodeMessage( message: ProtocolMessage ): Uint8Array< ArrayBuffer > {
 	const messageType = message.type;
 	if ( ! Object.prototype.hasOwnProperty.call( MESSAGE_TYPE_TO_WIRE_ID, messageType ) ) {
 		throw unknownMessageType( message as never );
@@ -276,7 +276,9 @@ export function encodeMessage( message: ProtocolMessage ): Uint8Array {
 			throw unknownMessageType( message );
 	}
 
-	return encoding.toUint8Array( encoder );
+	// lib0 allocates a new Uint8Array, but its declaration does not retain the
+	// ArrayBuffer backing type required by the browser WebSocket.send API.
+	return encoding.toUint8Array( encoder ) as Uint8Array< ArrayBuffer >;
 }
 
 /**
