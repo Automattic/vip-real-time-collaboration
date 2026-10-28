@@ -1,5 +1,4 @@
 import plugin from '@automattic/eslint-plugin-wpvip';
-import babelPreset from '@babel/preset-react';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig( [
@@ -44,9 +43,6 @@ export default defineConfig( [
 		files: [ 'examples/**/*.js' ], // Examples use JSX in .js files
 		languageOptions: {
 			parserOptions: {
-				babelOptions: {
-					presets: [ babelPreset ],
-				},
 				ecmaFeatures: {
 					jsx: true,
 				},
