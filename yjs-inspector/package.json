@@ -72,6 +72,10 @@
     "node": ">=20.0.0"
   },
   "overrides": {
-    "simple-git": "^4.0.2"
+    "simple-git": "^4.0.2",
+    "@blocksuite/global": {
+      "zod": "$zod"
+    },
+    "minimatch@>=7 <11": "^11.0.1"
   }
 }
