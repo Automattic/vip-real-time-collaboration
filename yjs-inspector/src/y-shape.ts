@@ -41,7 +41,7 @@ export function guessType(abstractType: Y.AbstractType<unknown>) {
   return Y.AbstractType;
 }
 
-export function getYTypeName(value: Y.Doc | Y.AbstractType<unknown> | Y.Item) {
+export function getYTypeName(value: Y.Doc | Y.AbstractType<unknown>) {
   if (value instanceof Y.Doc) {
     return "YDoc";
   }
@@ -62,9 +62,6 @@ export function getYTypeName(value: Y.Doc | Y.AbstractType<unknown> | Y.Item) {
   }
   if (value instanceof Y.AbstractType) {
     return "YAbstractType";
-  }
-  if (value instanceof Y.Item) {
-    return "Update (YItem)";
   }
   // return "Y." + value.constructor.name;
   console.error("Unknown Yjs type", value);

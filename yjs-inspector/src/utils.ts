@@ -1,6 +1,6 @@
 import type { Path } from "@textea/json-viewer";
-import * as Y from "yjs";
 import { fromBase64, fromHexString } from "lib0/buffer";
+import * as Y from "yjs";
 
 const decoders = [
   {
@@ -96,3 +96,5 @@ export function unreachable(
 ): never {
   throw new Error(message);
 }
+
+export const ExampleYDocUrl = "./example-doc.ydoc";

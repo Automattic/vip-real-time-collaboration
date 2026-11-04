@@ -1,12 +1,28 @@
-import {
-  DataItemProps,
-  defineDataType,
-  objectType,
-} from "@textea/json-viewer";
+import { DataItemProps, defineDataType, objectType } from "@textea/json-viewer";
 import { ComponentType } from "react";
 import * as Y from "yjs";
+import { Badge } from "./components/ui/badge";
+import { toast } from "./components/ui/use-toast";
 import { isYItem } from "./y-shape";
-import { TypeLabel } from "./data-types";
+
+// Mirrors the TypeLabel badge from data-types.tsx for raw update structs.
+const UpdateTypeLabel = ({ value }: { value: unknown }) => (
+  <Badge
+    variant="outline"
+    className="mr-1 cursor-pointer"
+    onClick={(e) => {
+      e.stopPropagation();
+      // Log the raw Y.Item so it can be inspected in the console.
+      console.log(value);
+      toast({
+        duration: 2000,
+        description: "Check the console for the value",
+      });
+    }}
+  >
+    Update (YItem)
+  </Badge>
+);
 
 const simplifyYItem = (value: Y.Item) => {
   const valueAsObject = {
@@ -25,11 +41,11 @@ const simplifyYItem = (value: Y.Item) => {
 
   // Remove null entries from update struct
   const simplifiedValue = Object.fromEntries(
-    Object.entries(valueAsObject).filter(([_, value]) => value !== null)
+    Object.entries(valueAsObject).filter(([, value]) => value !== null),
   );
 
   return simplifiedValue;
-}
+};
 
 const YItemComponent: ComponentType<DataItemProps<Y.Item>> = ({
   value,
@@ -38,13 +54,15 @@ const YItemComponent: ComponentType<DataItemProps<Y.Item>> = ({
 }: DataItemProps<Y.Item>) => {
   const ObjComponent = objectType.Component!;
 
-    const simplifiedValue = simplifyYItem(value);
+  const simplifiedValue = simplifyYItem(value);
 
-    return <ObjComponent
+  return (
+    <ObjComponent
       value={simplifiedValue}
       prevValue={prevValue}
       {...props}
-    ></ObjComponent>;
+    ></ObjComponent>
+  );
 };
 
 const PreComponentWrapper = ({
@@ -59,7 +77,7 @@ const PreComponentWrapper = ({
 
   return (
     <span>
-      <TypeLabel value={value} />
+      <UpdateTypeLabel value={value} />
       <ObjPreComponent
         value={simplifiedValue}
         prevValue={prevValue as object}
@@ -67,7 +85,7 @@ const PreComponentWrapper = ({
       ></ObjPreComponent>
     </span>
   );
-}
+};
 
 const PostComponentWrapper = ({
   value,
@@ -98,19 +116,29 @@ const yItemDataType = defineDataType<Y.Item>({
 // Display client IDs ("{ client: <clientId>, clock: <clock> }") on one line
 const clientIdDataType = defineDataType<object>({
   is: (value) => {
-    return typeof value === 'object' && value !== null && 'client' in value && 'clock' in value;
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      "client" in value &&
+      "clock" in value
+    );
   },
   Component: ({ value }: DataItemProps<object>) => {
     let shortClientId;
 
-    if (typeof value === 'object' && value !== null && 'client' in value && 'clock' in value) {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "client" in value &&
+      "clock" in value
+    ) {
       shortClientId = `{ client: ${value.client}, clock: ${value.clock} }`;
     } else {
       shortClientId = JSON.stringify(value);
     }
 
     return <span>{shortClientId}</span>;
-  }
+  },
 });
 
 export const updateDataTypes = [yItemDataType, clientIdDataType];

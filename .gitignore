@@ -19,6 +19,7 @@ coverage
 /vendor/
 /websocket-server/node_modules/
 /yjs-inspector/node_modules/
+/yjs-inspector/dist/
 
 # Optional npm cache directory
 .npm

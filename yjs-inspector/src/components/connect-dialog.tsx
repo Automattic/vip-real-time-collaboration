@@ -1,4 +1,5 @@
 import { BlocksuiteWebsocketProvider } from "@/providers/blocksuite/provider";
+import { HocuspocusConnectProvider } from "@/providers/hocuspocus";
 import { WebSocketConnectProvider } from "@/providers/websocket";
 import { RocketIcon, TriangleAlert } from "lucide-react";
 import { useState } from "react";
@@ -32,45 +33,61 @@ import { Switch } from "./ui/switch";
 // See https://github.com/toeverything/blocksuite/blob/db6e9d278e4d821e1d5aea912681e8fd1692b39e/packages/playground/apps/default/utils/collection.ts#L66
 const BLOCKSUITE_PLAYGROUND_DOC_GUID = "collabPlayground";
 const BLOCKSUITE_NAME = "Blocksuite Playground";
+const HOCUSPOCUS_NAME = "hocuspocus";
+
+const dailyRoomSuffix = new Date().toLocaleDateString("en-CA");
+const createDailyRoom = (prefix: string) => `${prefix}-${dailyRoomSuffix}`;
 
 const officialDemos = [
   {
     name: "ProseMirror",
-    room: "prosemirror-demo-2024/06",
+    room: createDailyRoom("prosemirror-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl: "https://demos.yjs.dev/prosemirror/prosemirror.html",
   },
   {
     name: "ProseMirror with Version History",
-    room: "prosemirror-versions-demo-2024/06",
+    room: createDailyRoom("prosemirror-versions-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl:
       "https://demos.yjs.dev/prosemirror-versions/prosemirror-versions.html",
   },
   {
     name: "Quill",
-    room: "quill-demo-2024/06",
+    room: createDailyRoom("quill-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl: "https://demos.yjs.dev/quill/quill.html",
   },
   {
     name: "Monaco",
-    room: "monaco-demo-2024/06",
+    room: createDailyRoom("monaco-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl: "https://demos.yjs.dev/monaco/monaco.html",
   },
+  // {
+  //   name: "Monaco React",
+  //   room: createDailyRoom("monaco-react-demo"),
+  //   url: "wss://demos.yjs.dev/ws",
+  //   demoUrl: "https://demos.yjs.dev/monaco-react/index.html",
+  // },
   {
     name: "CodeMirror",
-    room: "codemirror-demo-2024/06",
+    room: createDailyRoom("codemirror-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl: "https://demos.yjs.dev/codemirror/codemirror.html",
   },
   {
     name: "CodeMirror 6",
-    room: "codemirror.next-demo-2024/06",
+    room: createDailyRoom("codemirror.next-demo"),
     url: "wss://demos.yjs.dev/ws",
     demoUrl: "https://demos.yjs.dev/codemirror.next/codemirror.next.html",
   },
+  // {
+  //   name: "ProseMirror React",
+  //   room: createDailyRoom("prosemirror-react-demo"),
+  //   url: "wss://demos.yjs.dev/ws",
+  //   demoUrl: "https://demos.yjs.dev/react-prosemirror/index.html",
+  // },
   {
     name: BLOCKSUITE_NAME,
     room: "",
@@ -94,11 +111,14 @@ export function ConnectDialog({
 
   const [yDoc, setYDoc] = useYDoc();
   const [url, setUrl] = useState(initialUrl ?? "wss://demos.yjs.dev/ws");
-  const [room, setRoom] = useState(initialRoom ?? "quill-demo-2024/06");
+  const [room, setRoom] = useState(
+    () => initialRoom ?? createDailyRoom("quill-demo"),
+  );
   const [provider, setProvider] = useState(initialProvider ?? "Quill");
   const [needCreateNewDoc, setNeedCreateNewDoc] = useState(
     initialCreateNewDoc ?? true,
   );
+  const [token, setToken] = useState("");
   const officialDemo = officialDemos.find((demo) => demo.name === provider);
 
   return (
@@ -119,6 +139,11 @@ export function ConnectDialog({
             value={provider}
             onValueChange={(value) => {
               setProvider(value);
+              if (value === HOCUSPOCUS_NAME) {
+                setUrl("");
+                setToken("");
+                return;
+              }
               const demo = officialDemos.find((demo) => demo.name === value);
               if (demo) {
                 setUrl(demo.url);
@@ -157,8 +182,8 @@ export function ConnectDialog({
                 <SelectItem value="liveblocks" disabled>
                   LiveblocksProvider (coming soon)
                 </SelectItem>
-                <SelectItem value="hocuspocus" disabled>
-                  HocuspocusProvider (coming soon)
+                <SelectItem value={HOCUSPOCUS_NAME}>
+                  HocuspocusProvider
                 </SelectItem>
               </SelectGroup>
             </SelectContent>
@@ -192,6 +217,22 @@ export function ConnectDialog({
             placeholder="Please enter a room name"
           />
         </div>
+
+        {provider === HOCUSPOCUS_NAME && (
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="token-input" className="text-right">
+              Token
+            </Label>
+            <Input
+              id="token-input"
+              type="password"
+              className="col-span-3"
+              value={token}
+              onInput={(e) => setToken(e.currentTarget.value)}
+              placeholder="Optional authentication token"
+            />
+          </div>
+        )}
 
         <div className="grid grid-cols-4 items-center gap-4">
           <Switch
@@ -255,6 +296,17 @@ export function ConnectDialog({
                 ws.addEventListener("error", reject);
               });
               const connectProvider = new BlocksuiteWebsocketProvider(ws, doc);
+              onConnect(connectProvider);
+              return;
+            }
+
+            if (provider === HOCUSPOCUS_NAME) {
+              const connectProvider = new HocuspocusConnectProvider(
+                url,
+                room,
+                doc,
+                token || undefined,
+              );
               onConnect(connectProvider);
               return;
             }

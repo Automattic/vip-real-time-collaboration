@@ -34,7 +34,11 @@ export function ExportButton() {
         <DropdownMenuItem
           onClick={() => {
             const encodeUpdate = Y.encodeStateAsUpdate(yDoc);
-            const blob = new Blob([encodeUpdate as any], {
+            // Clone to guarantee an ArrayBuffer-backed view for Blob.
+            // Learn more
+            // https://www.typescriptlang.org/docs/handbook/release-notes/typescript-5-9.html#libdts-changes
+            // https://github.com/microsoft/typescript/issues/62546
+            const blob = new Blob([new Uint8Array(encodeUpdate)], {
               type: "application/octet-stream",
             });
             downloadFile(blob, "ydoc-update");
@@ -45,7 +49,7 @@ export function ExportButton() {
         <DropdownMenuItem
           onClick={() => {
             const encodedStateVector = Y.encodeStateVector(yDoc);
-            const blob = new Blob([encodedStateVector as any], {
+            const blob = new Blob([new Uint8Array(encodedStateVector)], {
               type: "application/octet-stream",
             });
             downloadFile(blob, "ydoc-state-vector");
@@ -57,7 +61,7 @@ export function ExportButton() {
           onClick={() => {
             const snapshot = Y.snapshot(yDoc);
             const encodedSnapshot = Y.encodeSnapshot(snapshot);
-            const blob = new Blob([encodedSnapshot as any], {
+            const blob = new Blob([new Uint8Array(encodedSnapshot)], {
               type: "application/octet-stream",
             });
             downloadFile(blob, "ydoc-snapshot");

@@ -14,7 +14,7 @@ export function getInjectedConnection(): InjectedConnection {
         )?.get("connection") || "{}",
       ) ?? {}
     );
-  } catch (e) {
+  } catch {
     return {};
   }
 }

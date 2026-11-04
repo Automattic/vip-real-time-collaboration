@@ -40,7 +40,7 @@ export function ConfigPanel() {
 
       <div className="flex items-center space-x-2">
         <Switch
-          id="parse-y-doc-switch"
+          id="parse-updates-switch"
           checked={config.parseUpdates}
           onCheckedChange={(checked) =>
             setConfig({
@@ -49,7 +49,7 @@ export function ConfigPanel() {
             })
           }
         />
-        <Label htmlFor="parse-y-doc-switch">Parse updates</Label>
+        <Label htmlFor="parse-updates-switch">Parse updates</Label>
       </div>
 
       <div className="flex items-center space-x-2">

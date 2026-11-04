@@ -1,4 +1,4 @@
-import { JsonViewer, Path } from "@textea/json-viewer";
+import { JsonViewer } from "@textea/json-viewer";
 import { Bug } from "lucide-react";
 import { useEffect, useState } from "react";
 import * as Y from "yjs";
@@ -9,14 +9,15 @@ import {
   useIsFilterEnabled,
   useYDoc,
 } from "../state/index";
-import { getYTypeFromPath, isYArray, isYDoc, isYMap } from "../y-shape";
+import { defaultYDoc } from "../state/ydoc";
 import { updateDataTypes } from "../update-data-types";
-import { AddDataDialog } from "./add-data-dialog";
-import { DeleteDialog } from "./delete-dialog";
+import { EmptyState } from "./empty-state";
+import { JsonViewerPanel } from "./json-viewer-panel";
 import { useTheme } from "./theme-provider";
 import { Button } from "./ui/button";
 
 function useYDocUpdates(yDoc: Y.Doc) {
+  // eslint-disable-next-line @eslint-react/use-state -- The value is intentionally unused; incrementing it rerenders the Y.Doc preview.
   const [, setCount] = useState(0);
 
   useEffect(() => {
@@ -41,25 +42,27 @@ function useYDocUpdates(yDoc: Y.Doc) {
 }
 
 export function PreviewPanel() {
-  const { resolvedTheme } = useTheme();
   const [yDoc] = useYDoc();
   const [config] = useConfig();
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [path, setPath] = useState<Path>([]);
-  const [target, setTarget] = useState<unknown>(null);
+  const { resolvedTheme } = useTheme();
 
   const filterMap = useFilterMap();
   const filterEnable = useIsFilterEnabled();
   const inspectDepth = filterEnable ? 1 : 3;
   const jsonViewerValue = filterEnable ? filterMap : yDoc;
 
-  const stateAsUpdate = Y.encodeStateAsUpdate(yDoc);
-  const decodedUpdate = Y.decodeUpdate(stateAsUpdate);
-
-  const dataTypesForUpdates = config.parseUpdates ? [yDataType, ...updateDataTypes] : [yDataType];
-
   useYDocUpdates(yDoc);
+
+  const isDefaultYDoc = yDoc === defaultYDoc;
+
+  // Decode the full document state so the raw Y.Item structs can be inspected
+  // alongside the parsed document.
+  const decodedUpdate = isDefaultYDoc
+    ? null
+    : Y.decodeUpdate(Y.encodeStateAsUpdate(yDoc));
+  const dataTypesForUpdates = config.parseUpdates
+    ? [yDataType, ...updateDataTypes]
+    : [yDataType];
 
   return (
     <div className="flex flex-1 flex-col">
@@ -79,71 +82,28 @@ export function PreviewPanel() {
       </div>
 
       <div className="flex-1 overflow-auto rounded-md">
-        <h2 className="mb-4 flex-1 text-xl mt-8">Document</h2>
-
-        {/* See https://viewer.textea.io/apis */}
-        <JsonViewer
-          className="p-2"
-          value={jsonViewerValue}
-          // editable={true}
-          enableAdd={(_, value) => {
-            return (
-              config.editable &&
-              config.parseYDoc &&
-              // TODO support YArray/YText
-              (isYDoc(value) || isYMap(value))
-            );
-          }}
-          onAdd={(path) => {
-            const target = getYTypeFromPath(yDoc, path);
-            if (!target) {
-              console.error("Invalid target", path, target);
-              return;
-            }
-            setTarget(target);
-            setPath(path);
-            setAddDialogOpen(true);
-          }}
-          enableDelete={(path) => {
-            if (!config.editable || !config.parseYDoc) {
-              return false;
-            }
-            const parent = getYTypeFromPath(yDoc, path.slice(0, -1));
-            return isYMap(parent) || isYArray(parent);
-          }}
-          onDelete={(path, value) => {
-            setTarget(value);
-            setPath(path);
-            setDeleteDialogOpen(true);
-          }}
-          displaySize={config.showSize}
-          theme={resolvedTheme}
-          defaultInspectDepth={inspectDepth}
-          valueTypes={[yDataType]}
-        />
-        <h2 className="mb-4 flex-1 text-xl mt-8">Updates</h2>
-
-        <JsonViewer
-          className="p-2"
-          value={decodedUpdate}
-          displaySize={config.showSize}
-          theme={resolvedTheme}
-          defaultInspectDepth={10}
-          valueTypes={dataTypesForUpdates}
-        />
+        {isDefaultYDoc ? (
+          <EmptyState />
+        ) : (
+          <>
+            <h2 className="mb-4 flex-1 text-xl">Document</h2>
+            <JsonViewerPanel
+              value={jsonViewerValue}
+              yDoc={yDoc}
+              inspectDepth={inspectDepth}
+            />
+            <h2 className="mt-8 mb-4 flex-1 text-xl">Updates</h2>
+            <JsonViewer
+              className="p-2"
+              value={decodedUpdate}
+              displaySize={config.showSize}
+              theme={resolvedTheme}
+              defaultInspectDepth={10}
+              valueTypes={dataTypesForUpdates}
+            />
+          </>
+        )}
       </div>
-      <AddDataDialog
-        target={target}
-        path={path}
-        open={addDialogOpen}
-        onOpenChange={setAddDialogOpen}
-      />
-      <DeleteDialog
-        value={target}
-        path={path}
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-      />
     </div>
   );
 }

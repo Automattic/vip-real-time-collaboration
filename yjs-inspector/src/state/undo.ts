@@ -55,6 +55,7 @@ export const useUndoManager = () => {
   // TODO use useSyncExternalStore
   useEffect(() => {
     const callback = () => {
+      // eslint-disable-next-line @eslint-react/set-state-in-effect -- shameful ignore for now
       setState({
         canUndo: undoManager.canUndo(),
         canRedo: undoManager.canRedo(),
