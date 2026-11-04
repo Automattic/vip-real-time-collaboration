@@ -70,5 +70,8 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "overrides": {
+    "simple-git": "^4.0.2"
   }
 }
