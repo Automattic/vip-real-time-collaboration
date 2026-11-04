@@ -1,5 +1,6 @@
 import { Cable, RotateCw } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import * as Y from "yjs";
 import { ConnectProvider } from "../providers/types";
 import { useYDoc } from "../state/index";
 import { ConnectDialog } from "./connect-dialog";
@@ -10,7 +11,7 @@ import { getInjectedConnection } from "@/lib/injected-connection";
 import { WebSocketConnectProvider } from "@/providers/websocket";
 
 export function ConnectButton() {
-  const [yDoc] = useYDoc();
+  const [yDoc, setYDoc] = useYDoc();
   const [open, setOpen] = useState(false);
   const [provider, setProvider] = useState<ConnectProvider>();
   const [connectState, setConnectState] = useState<
@@ -20,7 +21,9 @@ export function ConnectButton() {
   const disconnect = useCallback(() => {
     if (connectState === "disconnected") return;
     provider?.disconnect();
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- shameful ignore for now
     setProvider(undefined);
+    // eslint-disable-next-line @eslint-react/set-state-in-effect -- shameful ignore for now
     setConnectState("disconnected");
   }, [connectState, provider]);
 
@@ -72,35 +75,51 @@ export function ConnectButton() {
     room: initialRoom,
     url: initialUrl,
   } = getInjectedConnection();
-  const [triedAutoConnect, setTriedAutoConnect] = useState(false);
+  const autoConnectTriedRef = useRef(false);
 
+  // Auto-connect once when the page is opened with injected connection details
+  // (see websocket-client.ts in the plugin, which logs such a URL).
   useEffect(() => {
     if (
-      connectState === 'disconnected' &&
-      triedAutoConnect === false &&
-      initialCreateNewDoc !== undefined &&
-      initialProvider === 'y-websocket' &&
-      initialRoom &&
-      initialUrl
+      connectState !== "disconnected" ||
+      autoConnectTriedRef.current ||
+      initialCreateNewDoc === undefined ||
+      initialProvider !== "y-websocket" ||
+      !initialRoom ||
+      !initialUrl
     ) {
-      console.log('Autoconnecting from URL parameters:', {
+      return;
+    }
+    // Defer out of the effect so the connect-state updates happen in their own
+    // render pass instead of synchronously inside this effect. The guard is set
+    // when the timer fires: StrictMode runs this effect twice on mount, and the
+    // first run's timer is cleared by its cleanup.
+    const timer = setTimeout(() => {
+      autoConnectTriedRef.current = true;
+      console.log("Autoconnecting from URL parameters:", {
         initialCreateNewDoc,
         initialProvider,
         initialRoom,
         initialUrl,
       });
 
-      setTriedAutoConnect(true);
-
-      const connectProvider = new WebSocketConnectProvider(
-        initialUrl,
-        initialRoom,
-        yDoc,
-      );
-
-      onConnect(connectProvider);
-    }
-  }, [initialCreateNewDoc, initialProvider, initialRoom, initialUrl, yDoc, connectState, onConnect, triedAutoConnect]);
+      // Auto-connect runs on first render, so the current doc is always the
+      // untouched default doc. Connect a fresh doc instead: the preview panel
+      // shows an empty-state placeholder while the default doc is selected.
+      const doc = new Y.Doc();
+      setYDoc(doc);
+      onConnect(new WebSocketConnectProvider(initialUrl, initialRoom, doc));
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [
+    initialCreateNewDoc,
+    initialProvider,
+    initialRoom,
+    initialUrl,
+    setYDoc,
+    connectState,
+    onConnect,
+  ]);
 
   if (connectState === "connecting") {
     return (

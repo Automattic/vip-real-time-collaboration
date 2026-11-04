@@ -1,0 +1,11 @@
+# Stop the repository-level .editorconfig (tabs) from leaking into Prettier
+# for this vendored copy of yjs-inspector, which uses the upstream style.
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+indent_style = space
+indent_size = 2
+insert_final_newline = true
+trim_trailing_whitespace = true
