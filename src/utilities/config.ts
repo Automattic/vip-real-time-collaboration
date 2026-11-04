@@ -11,6 +11,8 @@ export const SUPPORT_EMAIL = getVipConfigFromWindow( 'supportEmail' );
 export const CAPABILITIES: VIPRTCConfig[ 'capabilities' ] =
 	getVipConfigFromWindow( 'capabilities' ) ?? {};
 
+export const ROOM_PRESENCE_HEARTBEAT_KEY = 'vip_rtc_rooms';
+
 // Exporting this as a function allows for easier testing/mocking.
 export function isDevelopment(): boolean {
 	return 'development' === process.env.NODE_ENV;

@@ -2,6 +2,7 @@
  * External dependencies
  */
 import apiFetch from '@wordpress/api-fetch';
+import { addAction, hasAction } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
@@ -10,6 +11,7 @@ import {
 	isDevelopment,
 	BLOG_ID,
 	MULTIPLEXING_ENABLED,
+	ROOM_PRESENCE_HEARTBEAT_KEY,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
@@ -312,6 +314,53 @@ function setupRoomClientLimit(
 }
 
 /**
+ * The provider of every room open on this page, keyed by post ID. Reported on
+ * each heartbeat (see `@/utilities/room-presence`).
+ */
+const openRooms = new Map< number, WebsocketProvider >();
+
+/**
+ * Report this tab's room on the heartbeat (see `@/utilities/room-presence`),
+ * so server code can ask whether more than one person is editing the post.
+ *
+ * @param {WebsocketProvider} provider   The room's provider.
+ * @param {string}            objectType The room's object type.
+ * @param {string}            objectId   The room's object ID.
+ * @return {() => void} Cleanup function.
+ */
+function setupRoomPresence(
+	provider: WebsocketProvider,
+	objectType: string,
+	objectId: string | null
+): () => void {
+	const postId = objectType.startsWith( 'postType/' ) ? parseInt( objectId ?? '', 10 ) : 0;
+
+	if ( postId <= 0 ) {
+		return () => {};
+	}
+
+	openRooms.set( postId, provider );
+
+	// Report the connected rooms on every heartbeat. Registered once per page.
+	if ( ! hasAction( 'heartbeat.send', 'vip-rtc/room-presence' ) ) {
+		function addToHeartbeat( data: Record< string, unknown > ) {
+			const postIds = Array.from( openRooms, ( [ id, { wsconnected } ] ) => [ id, wsconnected ] )
+				.filter( ( [ _id, isConnected ] ) => isConnected )
+				.map( ( [ id ] ) => id );
+
+			// Add to heartbeat payload.
+			if ( postIds.length > 0 ) {
+				data[ ROOM_PRESENCE_HEARTBEAT_KEY ] = postIds;
+			}
+		}
+
+		addAction( 'heartbeat.send', 'vip-rtc/room-presence', addToHeartbeat );
+	}
+
+	return () => openRooms.delete( postId );
+}
+
+/**
  * Function that creates a new WebSocket Connection.
  *
  * @param {string} serverUrl The WebSocket server URL.
@@ -432,6 +481,8 @@ export function createWebSocketConnection(
 				roomLimitExceeded = exceeded;
 			} );
 
+			const cleanupRoomPresence = setupRoomPresence( provider, objectType, objectId );
+
 			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
 			let hasConnectionError = false;
 
@@ -532,6 +583,7 @@ export function createWebSocketConnection(
 					attemptsResetTimerId = null;
 				}
 				cleanupRoomClientLimit();
+				cleanupRoomPresence();
 				provider.off( 'connection-close', handleConnectionClose );
 				provider.off( 'status', handleStatus );
 				provider.off( 'sync', handleSync );
