@@ -2,7 +2,7 @@
  * External dependencies
  */
 import apiFetch from '@wordpress/api-fetch';
-import { addAction } from '@wordpress/hooks';
+import { addAction, hasAction } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
@@ -11,17 +11,11 @@ import {
 	isDevelopment,
 	BLOG_ID,
 	MULTIPLEXING_ENABLED,
+	ROOM_PRESENCE_HEARTBEAT_KEY,
 	WEBSOCKET_PROVIDER_MAX_BACKOFF_IN_MS,
 	WEBSOCKET_URL,
 } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
-import {
-	addToHeartbeat,
-	AwarenessGate,
-	countConnections,
-	recordConnections,
-	type EditorConnectionCounts,
-} from '@/utilities/editor-connections';
 import { WebSocketError, getErrorMessage } from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
@@ -305,92 +299,50 @@ function setupRoomClientLimit(
 }
 
 /**
- * Open connections per post across every room on this page, sent with each
- * heartbeat (see `@/utilities/editor-connections`).
+ * The provider of every room open on this page, keyed by post ID. Reported on
+ * each heartbeat (see `@/utilities/room-presence`).
  */
-const editorConnections: EditorConnectionCounts = new Map();
-
-let isHeartbeatReportingRegistered = false;
+const openRooms = new Map< number, WebsocketProvider >();
 
 /**
- * Ask WordPress to send a heartbeat now rather than at the next tick, so the
- * server learns about a join or a departure within seconds.
- */
-function sendHeartbeatNow(): void {
-	const heartbeat = ( window as unknown as { wp?: { heartbeat?: { connectNow?: () => void } } } ).wp
-		?.heartbeat;
-	heartbeat?.connectNow?.();
-}
-
-/**
- * Report this post's open connections to the server on the heartbeat, so
- * server code can tell whether more than one editor has the post open before
- * it writes to it. A server write never reaches the shared document, so with
- * two or more editors open the room and the write overwrite each other.
+ * Report this tab's room on the heartbeat (see `@/utilities/room-presence`),
+ * so server code can ask whether more than one person is editing the post.
  *
- * @param {WebsocketProvider} provider The room's provider.
- * @param {number}            postId   The post the room is for.
- * @return {() => void} Cleanup function that detaches listeners.
+ * @param {WebsocketProvider} provider   The room's provider.
+ * @param {string}            objectType The room's object type.
+ * @param {string}            objectId   The room's object ID.
+ * @return {() => void} Cleanup function.
  */
-function setupEditorConnectionReporting( provider: WebsocketProvider, postId: number ): () => void {
-	if ( ! isHeartbeatReportingRegistered ) {
-		isHeartbeatReportingRegistered = true;
-		addAction(
-			'heartbeat.send',
-			'vip-rtc/editor-connections',
-			( data: Record< string, unknown > ) => addToHeartbeat( editorConnections, data )
-		);
+function setupRoomPresence(
+	provider: WebsocketProvider,
+	objectType: string,
+	objectId: string | null
+): () => void {
+	const postId = objectType.startsWith( 'postType/' ) ? parseInt( objectId ?? '', 10 ) : 0;
+
+	if ( postId <= 0 ) {
+		return () => {};
 	}
 
-	const { awareness } = provider;
+	openRooms.set( postId, provider );
 
-	// Count only once the room's awareness has arrived after each connect, so a
-	// join or reconnect never reports this client alone (see `AwarenessGate`).
-	const gate: AwarenessGate = new AwarenessGate( () => report() );
+	// Report the connected rooms on every heartbeat. Registered once per page.
+	if ( ! hasAction( 'heartbeat.send', 'vip-rtc/room-presence' ) ) {
+		function addToHeartbeat( data: Record< string, unknown > ) {
+			const postIds = Array.from( openRooms, ( [ id, { wsconnected } ] ) => [ id, wsconnected ] )
+				.filter( ( [ _id, isConnected ] ) => isConnected )
+				.map( ( [ id ] ) => id );
 
-	const report = (): void => {
-		const changed = recordConnections(
-			editorConnections,
-			postId,
-			provider.wsconnected && gate.isOpen(),
-			countConnections( awareness.getStates() )
-		);
-		if ( changed ) {
-			sendHeartbeatNow();
+			// Add to heartbeat payload.
+			if ( postIds.length > 0 ) {
+				data[ ROOM_PRESENCE_HEARTBEAT_KEY ] = postIds;
+			}
 		}
-	};
 
-	const onStatus = ( event: { status?: string } ): void => {
-		if ( event?.status === 'connected' ) {
-			gate.connected();
-		} else {
-			gate.disconnected();
-		}
-		report();
-	};
-
-	const onAwarenessUpdate = ( _changes: unknown, origin: unknown ): void => {
-		// The provider is also the origin when it clears remote states on close.
-		if ( origin === provider && provider.wsconnected ) {
-			gate.receivedAwareness();
-		}
-	};
-
-	if ( provider.wsconnected ) {
-		gate.connected();
+		addAction( 'heartbeat.send', 'vip-rtc/room-presence', addToHeartbeat );
 	}
 
-	awareness.on( 'change', report );
-	awareness.on( 'update', onAwarenessUpdate );
-	provider.on( 'status', onStatus );
-
-	return () => {
-		gate.destroy();
-		awareness.off( 'change', report );
-		awareness.off( 'update', onAwarenessUpdate );
-		provider.off( 'status', onStatus );
-		editorConnections.delete( postId );
-	};
+	return () => openRooms.delete( postId );
 }
 
 /**
@@ -501,9 +453,7 @@ export function createWebSocketConnection(
 				roomLimitExceeded = exceeded;
 			} );
 
-			const postId = objectType.startsWith( 'postType/' ) ? parseInt( objectId ?? '', 10 ) : 0;
-			const cleanupEditorConnectionReporting =
-				postId > 0 ? setupEditorConnectionReporting( provider, postId ) : () => {};
+			const cleanupRoomPresence = setupRoomPresence( provider, objectType, objectId );
 
 			let attemptsResetTimerId: ReturnType< typeof setTimeout > | null = null;
 			let hasConnectionError = false;
@@ -610,7 +560,7 @@ export function createWebSocketConnection(
 					attemptsResetTimerId = null;
 				}
 				cleanupRoomClientLimit();
-				cleanupEditorConnectionReporting();
+				cleanupRoomPresence();
 				provider.off( 'connection-close', handleConnectionClose );
 				provider.off( 'status', handleStatus );
 				provider.off( 'sync', handleSync );
