@@ -102,6 +102,7 @@
     "micromark-extension-math": {
       "katex": "^0.18.2"
     },
+    "isomorphic-git@<1.38.6": "^1.38.6",
     "minimatch@>=7 <11": "^11.0.1",
     "qs@<6.16.1": "^6.16.1",
     "rimraf": {
