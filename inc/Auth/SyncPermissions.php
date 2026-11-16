@@ -165,14 +165,14 @@ final class SyncPermissions {
 	/**
 	 * Map sync capabilities to WordPress post capabilities.
 	 *
-	 * @param string[] $caps    Primitive capabilities required.
-	 * @param string   $cap     Capability being mapped.
-	 * @param int      $user_id User ID.
-	 * @param array    $args    Additional arguments.
-	 * @return string[] Mapped capabilities.
+	 * @param (string|null)[] $caps    Primitive capabilities required.
+	 * @param string|null    $cap     Capability being mapped. Plugins can pass null to capability checks.
+	 * @param int            $user_id User ID.
+	 * @param array          $args    Additional arguments.
+	 * @return (string|null)[] Mapped capabilities.
 	 * @psalm-suppress PossiblyUnusedReturnValue
 	 */
-	public static function map_sync_capabilities( array $caps, string $cap, int $user_id, array $args ): array {
+	public static function map_sync_capabilities( array $caps, ?string $cap, int $user_id, array $args ): array {
 		// Handle sync_post capability
 		if ( 'sync_post' === $cap ) {
 			/** @var int $post_id */
