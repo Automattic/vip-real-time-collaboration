@@ -89,6 +89,11 @@ const roomConnectionCloseCounter = new Counter( {
 	labelNames: [ 'reason' ],
 } );
 
+const suppressedCollectionAwarenessCounter = new Counter( {
+	name: `${ METRICS_NAMESPACE }_collection_awareness_suppressed_total`,
+	help: 'Empty awareness updates in collection rooms echoed to the sender instead of broadcast',
+} );
+
 const connectionFailuresCounter = new Counter( {
 	name: `${ METRICS_NAMESPACE }_connection_failures_total`,
 	help: 'Total number of WebSocket connection failures',
@@ -143,6 +148,10 @@ export type RoomConnectionCloseReason =
 
 export function recordRoomConnectionClose( reason: RoomConnectionCloseReason ): void {
 	roomConnectionCloseCounter.inc( { reason } );
+}
+
+export function recordSuppressedCollectionAwareness(): void {
+	suppressedCollectionAwarenessCounter.inc();
 }
 
 export function recordPeakRoomsPerConnection( peakRooms: number ): void {
