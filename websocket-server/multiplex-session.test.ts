@@ -1,10 +1,12 @@
 import { docs, setPersistence } from '@y/websocket-server/utils';
 import jwt from 'jsonwebtoken';
+import * as encoding from 'lib0/encoding';
 import assert from 'node:assert';
 import { EventEmitter } from 'node:events';
 import { afterEach, describe, it } from 'node:test';
 import { register } from 'prom-client';
 import { WebSocket } from 'ws';
+import * as Y from 'yjs';
 
 import { MultiplexSession } from './multiplex-session';
 import { NoopPersistenceProvider } from './noop-persistence-provider';
@@ -435,6 +437,63 @@ describe( 'MultiplexSession', () => {
 		} );
 
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
+		physical.close();
+	} );
+
+	it( 'encodes a room broadcast once and shares the frame across sessions', () => {
+		const first = createSession();
+		const second = createSession( tokenPayload( { user_id: 43, wp_client_id: 'client-2' } ) );
+		first.session.start();
+		second.session.start();
+		subscribeBootstrapRoom( first.physical );
+		subscribeBootstrapRoom(
+			second.physical,
+			tokenPayload( { user_id: 43, wp_client_id: 'client-2' } )
+		);
+		first.physical.sent.splice( 0 );
+		second.physical.sent.splice( 0 );
+
+		const source = new Y.Doc();
+		source.getText( 'content' ).insert( 0, 'hello' );
+		const encoder = encoding.createEncoder();
+		encoding.writeVarUint( encoder, 0 ); // y-websocket sync message.
+		encoding.writeVarUint( encoder, 2 ); // Sync update.
+		encoding.writeVarUint8Array( encoder, Y.encodeStateAsUpdate( source ) );
+		first.physical.receive( {
+			type: 'data',
+			room: 'site-7/post-1',
+			payload: encoding.toUint8Array( encoder ),
+		} );
+
+		assert.strictEqual( first.physical.sent.length, 1 );
+		assert.strictEqual( second.physical.sent.length, 1 );
+		assert.strictEqual( first.physical.sent[ 0 ], second.physical.sent[ 0 ] );
+		const [ broadcast ] = decoded( second.physical );
+		assertDataMessage( broadcast );
+		assert.strictEqual( broadcast.room, 'site-7/post-1' );
+		first.physical.close();
+		second.physical.close();
+	} );
+
+	it( 'does not reuse a cached frame for the same payload in another room', () => {
+		const { physical, session } = createSession();
+		session.start();
+		subscribeBootstrapRoom( physical );
+		physical.receive( {
+			type: 'subscribe',
+			room: 'site-7/post-2',
+			grant: grant( { room_name: 'site-7/post-2' } ),
+		} );
+		physical.sent.splice( 0 );
+		const payload = new Uint8Array( [ 1, 2, 3 ] );
+
+		activeRoomSocket( 'site-7/post-1' ).send( payload );
+		activeRoomSocket( 'site-7/post-2' ).send( payload );
+
+		assert.deepStrictEqual(
+			decoded( physical ).map( message => message.type === 'data' && message.room ),
+			[ 'site-7/post-1', 'site-7/post-2' ]
+		);
 		physical.close();
 	} );
 
