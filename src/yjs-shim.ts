@@ -28,11 +28,14 @@ export let Doc: typeof YjsModule.Doc;
 export let applyUpdate: typeof YjsModule.applyUpdate;
 export let encodeStateAsUpdate: typeof YjsModule.encodeStateAsUpdate;
 export let encodeStateVector: typeof YjsModule.encodeStateVector;
+// Not used by y-websocket; the collections room uses it to apply remote
+// signals as non-local transactions (see collections-room.ts).
+export let transact: typeof YjsModule.transact;
 
 let yjsModuleSet = false;
 
 export function setYjsModule( Y: typeof YjsModule ): void {
-	( { Doc, applyUpdate, encodeStateAsUpdate, encodeStateVector } = Y );
+	( { Doc, applyUpdate, encodeStateAsUpdate, encodeStateVector, transact } = Y );
 	yjsModuleSet = true;
 }
 

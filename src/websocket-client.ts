@@ -6,6 +6,11 @@ import { addAction, hasAction } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 import { WebsocketProvider, type WebsocketProviderOptions } from 'y-websocket';
 
+import {
+	COLLECTIONS_ROOM_OBJECT_TYPE,
+	COLLECTIONS_ROOM_RESYNC_INTERVAL_MS,
+	createCollectionsRoom,
+} from '@/collections-room';
 import { createSharedWebSocketAdapter } from '@/shared-websocket';
 import {
 	isDevelopment,
@@ -400,7 +405,17 @@ export function createWebSocketConnection(
 		options: providerOptions,
 	};
 
-	return async function ( {
+	// Every collection on the page shares one room; see collections-room.ts.
+	const collectionsRoom = createCollectionsRoom( ( ydoc, awareness ) =>
+		createProvider( {
+			awareness,
+			objectType: COLLECTIONS_ROOM_OBJECT_TYPE,
+			objectId: null,
+			ydoc,
+		} )
+	);
+
+	async function createProvider( {
 		awareness,
 		objectType,
 		objectId,
@@ -436,6 +451,11 @@ export function createWebSocketConnection(
 				return defaultResult;
 			}
 
+			const isCollectionsRoom = COLLECTIONS_ROOM_OBJECT_TYPE === objectType;
+			if ( null === objectId && ! isCollectionsRoom ) {
+				return await collectionsRoom.attach( objectType, ydoc );
+			}
+
 			/**
 			 * Some entities like posts aren't unique across all sites in a multisite setup.
 			 * To avoid conflicts, we add the blog ID to the room name.
@@ -448,6 +468,9 @@ export function createWebSocketConnection(
 			const options = {
 				...config.options,
 				awareness,
+				// The collections room has no awareness heartbeat, so resync
+				// keeps y-websocket's liveness check satisfied.
+				...( isCollectionsRoom ? { resyncInterval: COLLECTIONS_ROOM_RESYNC_INTERVAL_MS } : {} ),
 			};
 			const provider = new WebsocketProvider( config.serverUrl, roomName, ydoc, options );
 			const retryState = { attempts: 0, eligible: true };
@@ -648,5 +671,7 @@ export function createWebSocketConnection(
 		}
 
 		return defaultResult;
-	};
+	}
+
+	return createProvider;
 }
