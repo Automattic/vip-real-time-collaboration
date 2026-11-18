@@ -40,6 +40,28 @@ function toUint8Array( data: RawData ): Uint8Array {
 	return new Uint8Array( data.buffer, data.byteOffset, data.byteLength );
 }
 
+/**
+ * Most recent multiplex frame encoded for each outbound room payload.
+ *
+ * y-websocket-server broadcasts by passing the same payload object to every
+ * connection in a room, so every multiplex session in that room would otherwise
+ * re-encode an identical frame (allocating and copying the payload each time).
+ * Keying on the payload object lets one broadcast encode once. A WeakMap keeps
+ * entries only as long as y-websocket-server holds the payload. Sharing the
+ * frame is safe because `ws` never mutates data on unmasked (server) frames.
+ */
+const encodedDataFrames = new WeakMap< Uint8Array, { room: string; frame: Uint8Array } >();
+
+function encodeDataFrame( room: string, payload: Uint8Array ): Uint8Array {
+	const cached = encodedDataFrames.get( payload );
+	if ( cached && cached.room === room ) {
+		return cached.frame;
+	}
+	const frame = encodeMessage( { type: 'data', room, payload } );
+	encodedDataFrames.set( payload, { room, frame } );
+	return frame;
+}
+
 /** Owns the authorized logical-room adapters carried by one physical socket. */
 export class MultiplexSession {
 	private readonly rooms = new Map< string, RoomWebSocket >();
@@ -163,7 +185,11 @@ export class MultiplexSession {
 		};
 
 		try {
-			this.physical.send( encodeMessage( message ), { binary: true }, complete );
+			const frame =
+				message.type === 'data'
+					? encodeDataFrame( message.room, message.payload )
+					: encodeMessage( message );
+			this.physical.send( frame, { binary: true }, complete );
 		} catch ( error ) {
 			if ( completed ) {
 				throw error;
