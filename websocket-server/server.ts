@@ -3,6 +3,7 @@ import http from 'node:http';
 import { WebSocketServer } from 'ws';
 
 import { isRequestAuthenticated, validateLegacyRoomPath } from './auth';
+import { handleCollectionAwareness, isCollectionRoom } from './collection-awareness';
 import { CONNECTION_TIMEOUT_CLOSE, WEBSOCKET_CLOSE_CODES } from './config';
 import { shouldAllowCollaborator, shouldAllowConnection } from './connection-limits';
 import {
@@ -19,7 +20,7 @@ import { getRequestPathname } from './utils';
 
 import type { IncomingMessage, Server } from 'node:http';
 import type { Duplex } from 'node:stream';
-import type { WebSocket } from 'ws';
+import type { RawData, WebSocket } from 'ws';
 
 export interface RtcServer {
 	server: Server;
@@ -45,6 +46,39 @@ function requestedProtocols( request: IncomingMessage ): string[] {
 function rejectHttpUpgrade( socket: Duplex, status: '400 Bad Request' | '401 Unauthorized' ): void {
 	socket.once( 'finish', () => socket.destroy() );
 	socket.end( `HTTP/1.1 ${ status }\r\nConnection: close\r\n\r\n` );
+}
+
+type MessageListener = ( data: RawData, isBinary: boolean ) => void;
+
+/**
+ * Attach a legacy one-room connection to y-websocket-server. Collection rooms
+ * get their y-websocket message listener wrapped so empty awareness renewals
+ * are echoed to the sender instead of broadcast (see collection-awareness.ts).
+ */
+function setupLegacyRoomConnection( ws: WebSocket, request: IncomingMessage, room: string ): void {
+	if ( ! isCollectionRoom( room ) ) {
+		setupWSConnection( ws, request, { docName: room } );
+		return;
+	}
+
+	const existingListeners = new Set( ws.listeners( 'message' ) );
+	setupWSConnection( ws, request, { docName: room } );
+	for ( const listener of ws.listeners( 'message' ) as MessageListener[] ) {
+		if ( existingListeners.has( listener ) ) {
+			continue;
+		}
+		ws.off( 'message', listener );
+		ws.on( 'message', ( data: RawData, isBinary: boolean ) => {
+			// y-websocket-server sets binaryType to 'arraybuffer'.
+			if (
+				data instanceof ArrayBuffer &&
+				handleCollectionAwareness( room, new Uint8Array( data ), echo => ws.send( echo ) )
+			) {
+				return;
+			}
+			listener( data, isBinary );
+		} );
+	}
 }
 
 export function createRtcServer( options: RtcServerOptions ): RtcServer {
@@ -125,7 +159,7 @@ export function createRtcServer( options: RtcServerOptions ): RtcServer {
 			if ( ws.protocol === MULTIPLEX_SUBPROTOCOL ) {
 				new MultiplexSession( ws, request, initialGrant, options.jwtSecret ).start();
 			} else {
-				setupWSConnection( ws, request, { docName: initialGrant.room_name } );
+				setupLegacyRoomConnection( ws, request, initialGrant.room_name );
 			}
 
 			recordConnectionOpen( wss, { wpClientId } );

@@ -7,6 +7,7 @@ import {
 	verifyTokenGrantIgnoringExpiration,
 	type SyncTokenPayload,
 } from './auth';
+import { handleCollectionAwareness } from './collection-awareness';
 import { CONNECTION_TIMEOUT_CLOSE } from './config';
 import {
 	recordConnectionFailure,
@@ -102,6 +103,13 @@ export class MultiplexSession {
 						return;
 					}
 					this.rejectAuthorizationBypass( message.room );
+					return;
+				}
+				if (
+					handleCollectionAwareness( message.room, message.payload, echo =>
+						roomSocket.send( echo )
+					)
+				) {
 					return;
 				}
 				roomSocket.emit( 'message', message.payload, true );
