@@ -2,6 +2,7 @@ import { docs } from '@y/websocket-server/utils';
 import jwt from 'jsonwebtoken';
 import assert from 'node:assert';
 import { EventEmitter, once } from 'node:events';
+import fs from 'node:fs';
 import net from 'node:net';
 import { afterEach, describe, it, mock } from 'node:test';
 import { register } from 'prom-client';
@@ -174,6 +175,21 @@ afterEach( async () => {
 } );
 
 describe( 'WebSocket transport routing', () => {
+	it( 'closes a malformed client frame without logging a server failure', async () => {
+		const write = mock.method( fs, 'writeSync', () => 0 );
+		const baseUrl = await startServer();
+		const client = await connect(
+			baseUrl,
+			`/_ws/vip-rtc?auth=${ grant( 'site-7/post-malformed' ) }`,
+			MULTIPLEX_SUBPROTOCOL
+		);
+		const closed = once( client, 'close' );
+		client.send( 'invalid frame', { mask: false } );
+		const [ code ] = ( await closed ) as [ number, Buffer ];
+		assert.strictEqual( code, 1002 );
+		assert.strictEqual( write.mock.callCount(), 0 );
+	} );
+
 	it(
 		'rejects multiplex message waits and removes listeners when the client closes or errors',
 		{ timeout: 1_000 },

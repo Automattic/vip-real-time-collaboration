@@ -1,6 +1,13 @@
 import { DEFAULT_CONNECTION_TIMEOUT, DEFAULT_HOST, DEFAULT_PORT, JWT_SECRET } from './config';
+import { logServerError } from './error-logging';
 import { createMetricsServer, startMetricsMaintenanceLoop } from './metrics';
 import { createRtcServer } from './server';
+
+// Observe fatal errors without keeping a process with an uncaught exception alive.
+// With Node's default rejection policy, this also observes unhandled rejections.
+process.on( 'uncaughtExceptionMonitor', ( error, origin ) => {
+	logServerError( 'fatal', origin, error );
+} );
 
 if ( ! JWT_SECRET ) {
 	// eslint-disable-next-line no-console

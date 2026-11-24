@@ -6,6 +6,7 @@ import {
 	getActiveCollaboratorCount,
 	getActiveConnectionCount,
 } from './connection-limits';
+import { monitorServerErrors } from './error-logging';
 import { getRawDataSizeBytes, getRequestPathname } from './utils';
 
 import type { RawData, WebSocketServer } from 'ws';
@@ -245,7 +246,7 @@ export function createMetricsServer(): http.Server {
 	// when the promise resolves.
 	//
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	return http.createServer( async ( request, response ) => {
+	const server = http.createServer( async ( request, response ) => {
 		const pathname = getRequestPathname( request );
 
 		if ( pathname === '/metrics' ) {
@@ -263,6 +264,8 @@ export function createMetricsServer(): http.Server {
 		response.writeHead( 404, { 'Content-Type': 'text/plain' } );
 		response.end( 'Not Found' );
 	} );
+	monitorServerErrors( server, 'metrics' );
+	return server;
 }
 
 /**

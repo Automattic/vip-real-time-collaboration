@@ -104,6 +104,12 @@ graph TB
 - JWT authentication and connection security
 - Metrics collection and real-time message routing
 
+Server failures produce one JSON record per line on stderr. Filter on `service: vip-rtc-websocket-server` and `level: error` or `level: fatal`. Each record includes an event name, timestamp, process ID, and error message and stack when available.
+
+HTTP, WebSocket, and metrics server error events use `error`. Uncaught exceptions and fatal unhandled promise rejections use `fatal`. The logging hooks preserve Node's error handling and exit behavior. An unhandled server error can produce an `error` record followed by a `fatal` record and Node's default crash output. Routine client failures do not produce these records; existing connection metrics remain available.
+
+Structured records omit attached request data and redact the configured authentication secret, JWTs, bearer tokens, and authentication query parameters. This redaction does not change Node's default crash output. JavaScript hooks cannot log a `SIGKILL` or an operating-system out-of-memory kill; inspect container termination events for those failures.
+
 ## 3. System Workflows
 
 ### 3.1 Connection Establishment
