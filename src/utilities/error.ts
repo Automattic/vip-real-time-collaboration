@@ -44,6 +44,21 @@ export function getTokenFetchErrorCode( error: unknown ): ConnectionError[ 'code
 	return status === 401 || status === 403 ? 'authentication-failed' : 'unknown-error';
 }
 
+/**
+ * Whether a token endpoint error means the current user may not sync this
+ * object. The server returns `permission_denied` only from its per-object
+ * permission check, so other 401/403 responses (expired nonce, logged out)
+ * keep going through the normal authentication-failure path.
+ */
+export function isSyncPermissionDeniedError( error: unknown ): boolean {
+	return (
+		null !== error &&
+		typeof error === 'object' &&
+		'code' in error &&
+		error.code === 'permission_denied'
+	);
+}
+
 export class WebSocketError extends Error implements ConnectionError {
 	public name = 'WebSocketError';
 

@@ -361,6 +361,88 @@ describe( 'createWebSocketConnection multiplex lifecycle', () => {
 		destroyProvider( context );
 	} );
 
+	const permissionDeniedError = Object.assign( new Error( 'You may not sync this content' ), {
+		code: 'permission_denied',
+		data: { status: 403 },
+	} );
+
+	it( 'skips the room without a socket or status when sync permission is denied', async () => {
+		const lifecycle = observeProviderLifecycle();
+		let fetchCount = 0;
+		let backoffCount = 0;
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => {
+				fetchCount += 1;
+				return Promise.reject( permissionDeniedError );
+			},
+			waitBeforeRetry: () => {
+				backoffCount += 1;
+				return Promise.resolve();
+			},
+		} );
+
+		const context = await createProviderFromCreator( providerCreator, '123' );
+		await Promise.resolve();
+		await Promise.resolve();
+
+		assert.strictEqual( fetchCount, 1 );
+		assert.strictEqual( backoffCount, 0 );
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 0 );
+		assert.deepStrictEqual( context.statuses, [] );
+		destroyProvider( context );
+		lifecycle.cleanup();
+	} );
+
+	it( 'reuses the first token for the first connect', async () => {
+		const context = await createProvider();
+		assert.strictEqual( authFetchCount, 1 );
+		assert.strictEqual( FakePhysicalWebSocket.instances.length, 1 );
+		destroyProvider( context );
+	} );
+
+	it( 'stops reconnecting with an authentication error when sync permission is revoked', async () => {
+		mock.method( console, 'log', () => {} );
+		const finishBackoffs: Array< () => void > = [];
+		let fetchCount = 0;
+		const providerCreator = createWebSocketConnection( 'wss://example.test/_ws/', {
+			multiplexingEnabled: true,
+			PhysicalWebSocket: FakePhysicalWebSocket as unknown as typeof WebSocket,
+			fetchToken: () => {
+				fetchCount += 1;
+				return fetchCount === 1
+					? Promise.resolve( 'grant-1' )
+					: Promise.reject( permissionDeniedError );
+			},
+			waitBeforeRetry: () =>
+				new Promise( resolve => {
+					finishBackoffs.push( resolve );
+				} ),
+		} );
+
+		const context = await createProviderFromCreator( providerCreator, '123' );
+		const physical = FakePhysicalWebSocket.instances[ 0 ];
+		assert.ok( physical );
+		physical.emitOpen();
+		acknowledgeInitialRoom( physical );
+		physical.emitClose( 1011 );
+		const firstBackoff = finishBackoffs[ 0 ];
+		assert.ok( firstBackoff );
+		firstBackoff();
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		assert.strictEqual( fetchCount, 2 );
+		const denied = lastStatus( context.statuses );
+		assert.strictEqual( denied.status, 'disconnected' );
+		assert.strictEqual( denied.error?.code, 'authentication-failed' );
+		assert.strictEqual( denied.willAutoRetryInMs, undefined );
+		assert.strictEqual( finishBackoffs.length, 1, 'a permission denial should not retry' );
+		destroyProvider( context );
+	} );
+
 	it( 'keeps a token failure visible until the recovered room syncs', async () => {
 		const finishBackoffs: Array< () => void > = [];
 		let fetchCount = 0;

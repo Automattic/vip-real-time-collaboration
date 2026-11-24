@@ -16,7 +16,12 @@ import {
 	WEBSOCKET_URL,
 } from '@/utilities/config';
 import { generateUUID } from '@/utilities/crypto';
-import { WebSocketError, getErrorMessage, getTokenFetchErrorCode } from '@/utilities/error';
+import {
+	WebSocketError,
+	getErrorMessage,
+	getTokenFetchErrorCode,
+	isSyncPermissionDeniedError,
+} from '@/utilities/error';
 import { memoizeFn } from '@/utilities/function';
 import { Logger } from '@/utilities/logger';
 import {
@@ -137,6 +142,7 @@ interface ConnectOptions {
 	fetchToken: ( syncObjectType: string, syncObjectId: string ) => Promise< string >;
 	waitBeforeRetry: ( delayInMs: number ) => Promise< void >;
 	onTokenFetchFailure: ( errorCode: ConnectionError[ 'code' ] ) => void;
+	onPermissionDenied: () => void;
 	onFatalConnectError: ( error: unknown ) => void;
 }
 
@@ -153,6 +159,7 @@ function createConnect( {
 	fetchToken,
 	waitBeforeRetry,
 	onTokenFetchFailure,
+	onPermissionDenied,
 	onFatalConnectError,
 }: ConnectOptions ): () => Promise< void > {
 	let hasAttemptedConnect = false;
@@ -180,6 +187,19 @@ function createConnect( {
 		try {
 			authToken = await fetchToken( syncObjectType, syncObjectId );
 		} catch ( error: unknown ) {
+			// Retrying cannot succeed once the server says this user may not sync
+			// this object (for example, their role changed mid-session).
+			if ( isSyncPermissionDeniedError( error ) ) {
+				logger.warn( 'Permission to sync this object was denied; not reconnecting', {
+					syncObjectType,
+					syncObjectId,
+				} );
+				if ( retryState.eligible ) {
+					onPermissionDenied();
+				}
+				return;
+			}
+
 			logger.error(
 				`${ __(
 					'Failed to fetch auth token and connect to WebSocket',
@@ -444,7 +464,40 @@ export function createWebSocketConnection(
 			 * multisite. We don't sync entities like those yet. When we do, we'll need to revisit
 			 * adding the blog ID to the room name as that won't be needed.
 			 */
-			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ objectId ?? 'collection' }`;
+			const syncObjectId = objectId ?? 'collection';
+			const roomName = `site-${ BLOG_ID ?? 1 }/${ objectType }-${ syncObjectId }`;
+
+			// Fetch the first token before attaching a provider. The editor can
+			// load entities the user may read but not edit (for example, a synced
+			// pattern another user owns), and the server denies sync for those.
+			// Skip that one room, as Gutenberg's HTTP polling provider does (see
+			// WordPress/gutenberg#77242), instead of retrying until the editor shows
+			// its connection-lost modal for every entity.
+			const initialToken = fetchToken( objectType, syncObjectId );
+			try {
+				await initialToken;
+			} catch ( error: unknown ) {
+				if ( isSyncPermissionDeniedError( error ) ) {
+					logger.debug( 'WebSocket connection skipped: user may not sync this object', {
+						objectType,
+						objectId,
+					} );
+					return defaultResult;
+				}
+				// Any other failure goes through connect()'s retry handling below.
+			}
+
+			// The first connect attempt reuses the token (or error) fetched above.
+			let pendingInitialToken: Promise< string > | null = initialToken;
+			const fetchTokenForConnect = ( type: string, id: string ): Promise< string > => {
+				if ( pendingInitialToken ) {
+					const token = pendingInitialToken;
+					pendingInitialToken = null;
+					return token;
+				}
+				return fetchToken( type, id );
+			};
+
 			const options = {
 				...config.options,
 				awareness,
@@ -594,11 +647,21 @@ export function createWebSocketConnection(
 			connect = createConnect( {
 				provider,
 				syncObjectType: objectType,
-				syncObjectId: objectId ?? 'collection',
+				syncObjectId,
 				retryState,
-				fetchToken,
+				fetchToken: fetchTokenForConnect,
 				waitBeforeRetry,
 				onTokenFetchFailure: handleTokenFetchFailure,
+				onPermissionDenied: () => {
+					// Terminal: show the authentication error now rather than a
+					// retry countdown that can never succeed.
+					retryState.eligible = false;
+					hasConnectionError = true;
+					syncStatusEmitter.emit( {
+						status: 'disconnected',
+						error: new WebSocketError( 'authentication-failed' ),
+					} );
+				},
 				onFatalConnectError: error => {
 					logger.critical( 'Fatal WebSocket connection failure', { error } );
 					disposeProvider();
