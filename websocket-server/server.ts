@@ -5,6 +5,7 @@ import { WebSocketServer } from 'ws';
 import { isRequestAuthenticated, validateLegacyRoomPath } from './auth';
 import { CONNECTION_TIMEOUT_CLOSE, WEBSOCKET_CLOSE_CODES } from './config';
 import { shouldAllowCollaborator, shouldAllowConnection } from './connection-limits';
+import { monitorServerErrors } from './error-logging';
 import {
 	recordConnectionClose,
 	recordConnectionFailure,
@@ -64,6 +65,8 @@ export function createRtcServer( options: RtcServerOptions ): RtcServer {
 		response.end( 'Not Found' );
 	} );
 
+	monitorServerErrors( server, 'http' );
+	monitorServerErrors( wss, 'websocket' );
 	setPersistence( new NoopPersistenceProvider() );
 
 	server.on( 'upgrade', ( request: IncomingMessage, socket: Duplex, head: Buffer ): void => {
