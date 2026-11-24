@@ -175,7 +175,7 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 
 - `VIP_RTC_WS_URL`: WebSocket server URL
 - `VIP_RTC_WS_AUTH_SECRET`: JWT secret for authentication
-- `VIP_RTC_WS_MULTIPLEXING_ENABLED`: Share one multiplexed WebSocket across all rooms (default: off, see 5.5)
+- `VIP_RTC_WS_MULTIPLEXING_ENABLED`: Share one multiplexed WebSocket across all rooms (default: on, see 5.5)
 
 ### 5.2 WordPress Integration Features
 
@@ -199,9 +199,9 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 
 ### 5.5 Multiplexed WebSocket Transport
 
-By default, each collaboration room opens its own WebSocket. With multiplexing enabled, all rooms in one editor session share a single physical WebSocket, and a small binary protocol (`vip-rtc-multiplex-v1`) routes each room's traffic over it.
+By default, all rooms in one editor session share a single physical WebSocket, and a small binary protocol (`vip-rtc-multiplex-v1`) routes each room's traffic over it. With multiplexing disabled, each collaboration room opens its own WebSocket.
 
-Multiplexing is controlled by the `VIP_RTC_WS_MULTIPLEXING_ENABLED` PHP constant, passed to the editor through the `VIP_RTC` script data. It is off unless the constant is exactly `true`, so an environment can be switched to either transport through its configuration, without a plugin release. The server accepts both transports at once: a client that offers the `vip-rtc-multiplex-v1` subprotocol gets multiplexing, and a client that offers none gets the legacy per-room handler.
+Multiplexing is controlled by the `VIP_RTC_WS_MULTIPLEXING_ENABLED` PHP constant, passed to the editor through the `VIP_RTC` script data. It is on unless the constant is `false`, so an environment can be switched to either transport through its configuration, without a plugin release. The server accepts both transports at once: a client that offers the `vip-rtc-multiplex-v1` subprotocol gets multiplexing, and a client that offers none gets the legacy per-room handler.
 
 Every frame starts with the same prefix (version, type, room name) and ends with a type-specific tail. The room name is the routing key: each frame belongs to exactly one room, and both sides hand its payload to that room's socket and Yjs doc.
 
