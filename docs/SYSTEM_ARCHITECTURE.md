@@ -184,6 +184,7 @@ Gutenberg manages collaborator presence and awareness UI. The VIP WebSocket prov
 - **Provider replacement**: Uses `sync.providers` to replace Gutenberg's [default HTTP polling provider](https://github.com/WordPress/gutenberg/blob/trunk/packages/sync/src/providers/http-polling/README.md)
 - **Site Editor Exclusion**: Gutenberg disables RTC in both Site Editor implementations in its [editor experiment settings](https://github.com/WordPress/gutenberg/blob/trunk/lib/experimental/editor-settings.php)
 - **Entity Support**: Gutenberg supplies sync configuration; the VIP provider supports post-type entities and collections
+- **Collections**: All synced collections on a page share one room, `site-{blogId}/vip-rtc/collections-collection`. Collection documents only carry a `savedAt` signal that tells peers to refetch, so each collection's signal is bridged into its own top-level map in one shared document. The room has no awareness and re-requests sync every 15 seconds to stay connected, so an idle room costs the server O(N) rather than O(N²). Its token is authorized through `vip_rtc_entity_sync_check_permission` with kind `vip-rtc` and name `collections`.
 
 ### 5.3 Permission System
 
