@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a5c1ca9fd0b9ee98e116017d5c3e046e",
+    "content-hash": "4a70fc3e7f6a6e52aa87f7db1e189393",
     "packages": [
         {
             "name": "adhocore/jwt",
@@ -1760,16 +1760,16 @@
         },
         {
             "name": "psalm/phar",
-            "version": "6.20.1",
+            "version": "7.13.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/psalm/phar.git",
-                "reference": "0cff3b1ecec60f3d963fff2ecb46c371cd2a60bb"
+                "reference": "d9fd1fc97cfd9d1830e3d61bf8ce581124ce4773"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/psalm/phar/zipball/0cff3b1ecec60f3d963fff2ecb46c371cd2a60bb",
-                "reference": "0cff3b1ecec60f3d963fff2ecb46c371cd2a60bb",
+                "url": "https://api.github.com/repos/psalm/phar/zipball/d9fd1fc97cfd9d1830e3d61bf8ce581124ce4773",
+                "reference": "d9fd1fc97cfd9d1830e3d61bf8ce581124ce4773",
                 "shasum": ""
             },
             "require": {
@@ -1789,9 +1789,9 @@
             "description": "Composer-based Psalm Phar",
             "support": {
                 "issues": "https://github.com/psalm/phar/issues",
-                "source": "https://github.com/psalm/phar/tree/6.20.1"
+                "source": "https://github.com/psalm/phar/tree/7.13.2"
             },
-            "time": "2026-10-20T12:37:30+00:00"
+            "time": "2026-11-21T01:31:48+00:00"
         },
         {
             "name": "sebastian/cli-parser",
