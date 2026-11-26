@@ -1,4 +1,4 @@
-import { setupWSConnection } from '@y/websocket-server/utils';
+import { docs, setupWSConnection } from '@y/websocket-server/utils';
 import { TokenExpiredError } from 'jsonwebtoken';
 import { WebSocket, type RawData } from 'ws';
 
@@ -29,6 +29,13 @@ import type { IncomingMessage } from 'node:http';
 const ROOM_REJECTED_CLOSE_CODE = 4004;
 const ROOM_INTERRUPTED_CLOSE_CODE = 4005;
 const MAX_AUTHORIZATION_BYPASS_ATTEMPTS = 2;
+const SLOW_MESSAGE_SECONDS = 0.5;
+const SLOW_MESSAGE_LOG_INTERVAL_MS = 10_000;
+
+// Shared by all sessions, so that a stall that slows many sessions writes one
+// record per interval.
+let nextSlowMessageLogTime = 0;
+let suppressedSlowMessages = 0;
 
 function effectiveClientId( payload: SyncTokenPayload ): string {
 	return payload.wp_client_id ?? payload.connection_id ?? '';
@@ -42,6 +49,29 @@ function toUint8Array( data: RawData ): Uint8Array {
 		return new Uint8Array( data );
 	}
 	return new Uint8Array( data.buffer, data.byteOffset, data.byteLength );
+}
+
+/** Log a message that blocked the event loop, at most once per interval. */
+function logSlowMessage( details: Record< string, number | string > ): void {
+	const now = performance.now();
+	if ( now < nextSlowMessageLogTime ) {
+		suppressedSlowMessages += 1;
+		return;
+	}
+	nextSlowMessageLogTime = now + SLOW_MESSAGE_LOG_INTERVAL_MS;
+	// eslint-disable-next-line no-console
+	console.warn(
+		JSON.stringify( {
+			timestamp: new Date().toISOString(),
+			level: 'warn',
+			service: 'vip-rtc-websocket-server',
+			event: 'slow_message',
+			pid: process.pid,
+			...details,
+			suppressed: suppressedSlowMessages,
+		} )
+	);
+	suppressedSlowMessages = 0;
 }
 
 /** Owns the authorized logical-room adapters carried by one physical socket. */
@@ -87,9 +117,10 @@ export class MultiplexSession {
 			return;
 		}
 
+		const bytes = toUint8Array( data );
 		let message;
 		try {
-			message = decodeMessage( toUint8Array( data ) );
+			message = decodeMessage( bytes );
 		} catch {
 			this.closePhysical( 1002, 'Malformed multiplex message' );
 			return;
@@ -105,11 +136,23 @@ export class MultiplexSession {
 		// Only label rooms that this session subscribed to, so that room names a
 		// client sends cannot create unbounded metric series.
 		const isSubscribed = wasSubscribed || this.rooms.has( message.room );
+		const type = getMessageType( message );
 		recordMessageDuration(
-			getMessageType( message ),
+			type,
 			isSubscribed ? getRoomKind( message.room ) : 'other',
 			durationSeconds
 		);
+
+		// The metric cannot name the room, so log slow messages with their room.
+		if ( durationSeconds >= SLOW_MESSAGE_SECONDS ) {
+			logSlowMessage( {
+				room: message.room,
+				type,
+				bytes: bytes.byteLength,
+				duration_ms: Math.round( durationSeconds * 1000 ),
+				room_connections: docs.get( message.room )?.conns.size ?? 0,
+			} );
+		}
 	};
 
 	private dispatchMessage( message: ProtocolMessage ): void {

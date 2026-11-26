@@ -801,6 +801,62 @@ describe( 'MultiplexSession', () => {
 		physical.close();
 	} );
 
+	it( 'logs slow messages with their room at most once every 10 seconds', testContext => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		subscribeBootstrapRoom( physical, payload );
+
+		// On a fake clock, each send by the server takes `sendMs`. The clock starts
+		// far ahead of real time, so that a record from an earlier test cannot
+		// rate-limit this one.
+		let now = 1_000_000_000;
+		let sendMs = 100;
+		testContext.mock.method( performance, 'now', () => now );
+		physical.onSend = () => {
+			now += sendMs;
+		};
+		const warn = testContext.mock.method( console, 'warn', () => undefined );
+		const syncStep1: ProtocolMessage = {
+			type: 'data',
+			room,
+			payload: Uint8Array.from( [ 0, 0, 1, 0 ] ),
+		};
+
+		// A 100 ms message is under the threshold. Then three 600 ms messages 5 s
+		// apart: the second one is within 10 s of the first record.
+		physical.receive( syncStep1 );
+		sendMs = 600;
+		physical.receive( syncStep1 );
+		now += 5_000;
+		physical.receive( syncStep1 );
+		now += 5_000;
+		physical.receive( syncStep1 );
+
+		const record = {
+			level: 'warn',
+			service: 'vip-rtc-websocket-server',
+			event: 'slow_message',
+			room,
+			type: 'sync_step1',
+			bytes: encodeMessage( syncStep1 ).byteLength,
+			duration_ms: 600,
+			room_connections: 1,
+		};
+		const records = warn.mock.calls.map(
+			call => JSON.parse( String( call.arguments[ 0 ] ) ) as Record< string, unknown >
+		);
+		assert.deepStrictEqual(
+			records.map( ( { timestamp, pid, ...fields } ) => fields ),
+			[
+				{ ...record, suppressed: 0 },
+				{ ...record, suppressed: 1 },
+			]
+		);
+		physical.close();
+	} );
+
 	it( 'rejects unauthorized room data and closes repeated bypass attempts', async () => {
 		const { physical, session } = createSession();
 		session.start();
