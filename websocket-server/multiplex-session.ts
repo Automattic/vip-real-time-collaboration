@@ -91,6 +91,10 @@ export class MultiplexSession {
 			return;
 		}
 
+		this.dispatchMessage( message );
+	};
+
+	private dispatchMessage( message: ProtocolMessage ): void {
 		switch ( message.type ) {
 			case 'subscribe':
 				this.subscribe( message.room, message.grant );
@@ -119,7 +123,7 @@ export class MultiplexSession {
 				return exhaustive;
 			}
 		}
-	};
+	}
 
 	private readonly handlePhysicalClose = (): void => {
 		recordPeakRoomsPerConnection( this.peakRoomCount );
