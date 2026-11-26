@@ -217,6 +217,30 @@ async function zeroRoomTimeoutMetric(): Promise< number > {
 	return match ? Number( match[ 1 ] ) : 0;
 }
 
+async function messageDurationCountMetric( type: string, roomKind: string ): Promise< number > {
+	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_message_duration_seconds' );
+	const match = metric
+		.split( '\n' )
+		.find(
+			line =>
+				line.startsWith( 'wpvip_rtc_message_duration_seconds_count{' ) &&
+				line.includes( `type="${ type }"` ) &&
+				line.includes( `room_kind="${ roomKind }"` )
+		);
+	return match ? Number( match.split( ' ' ).pop() ) : 0;
+}
+
+async function postSyncReplyBytesMetric(): Promise< { count: number; sum: number } > {
+	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_sync_reply_bytes' );
+	const count = metric.match(
+		/^wpvip_rtc_sync_reply_bytes_count\{room_kind="postType\/post"\} (\d+)$/m
+	);
+	const sum = metric.match(
+		/^wpvip_rtc_sync_reply_bytes_sum\{room_kind="postType\/post"\} (\d+)$/m
+	);
+	return { count: count ? Number( count[ 1 ] ) : 0, sum: sum ? Number( sum[ 1 ] ) : 0 };
+}
+
 describe( 'MultiplexSession', () => {
 	it( 'closes an empty physical socket on the first heartbeat tick', async t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
@@ -712,6 +736,124 @@ describe( 'MultiplexSession', () => {
 		] );
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
 		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
+		physical.close();
+	} );
+
+	it( 'labels subscribe and unsubscribe with the room kind', async () => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		const subscribes = await messageDurationCountMetric( 'subscribe', 'postType/post' );
+		const unsubscribes = await messageDurationCountMetric( 'unsubscribe', 'postType/post' );
+
+		// Subscribe adds the room and unsubscribe removes it, so each message finds
+		// the room on only one side of its dispatch. Both must keep the room kind.
+		subscribeBootstrapRoom( physical, payload );
+		physical.receive( { type: 'unsubscribe', room } );
+
+		assert.strictEqual(
+			await messageDurationCountMetric( 'subscribe', 'postType/post' ),
+			subscribes + 1
+		);
+		assert.strictEqual(
+			await messageDurationCountMetric( 'unsubscribe', 'postType/post' ),
+			unsubscribes + 1
+		);
+		physical.close();
+	} );
+
+	it( 'labels messages for a room the session never subscribed to as other', async () => {
+		const { physical, session } = createSession();
+		session.start();
+		const baseline = await messageDurationCountMetric( 'sync_step1', 'other' );
+
+		// The room name matches the room pattern, so only the subscription check
+		// keeps it `other`.
+		physical.receive( {
+			type: 'data',
+			room: 'site-7/postType/client-chosen-99',
+			payload: Uint8Array.from( [ 0, 0 ] ),
+		} );
+
+		assert.strictEqual( await messageDurationCountMetric( 'sync_step1', 'other' ), baseline + 1 );
+	} );
+
+	it( 'records the size of each sync reply by room kind', async () => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		const baseline = await postSyncReplyBytesMetric();
+
+		// The server sends its own sync step 1 when the room opens, which is not a
+		// reply. The client then sends sync step 1 with an empty state vector, as a
+		// new client does.
+		subscribeBootstrapRoom( physical, payload );
+		physical.receive( { type: 'data', room, payload: Uint8Array.from( [ 0, 0, 1, 0 ] ) } );
+		const reply = decoded( physical ).at( -1 );
+		assertDataMessage( reply );
+
+		assert.deepStrictEqual( await postSyncReplyBytesMetric(), {
+			count: baseline.count + 1,
+			sum: baseline.sum + reply.payload.byteLength,
+		} );
+		physical.close();
+	} );
+
+	it( 'logs slow messages with their room at most once every 10 seconds', testContext => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		subscribeBootstrapRoom( physical, payload );
+
+		// On a fake clock, each send by the server takes `sendMs`. The clock starts
+		// far ahead of real time, so that a record from an earlier test cannot
+		// rate-limit this one.
+		let now = 1_000_000_000;
+		let sendMs = 100;
+		testContext.mock.method( performance, 'now', () => now );
+		physical.onSend = () => {
+			now += sendMs;
+		};
+		const warn = testContext.mock.method( console, 'warn', () => undefined );
+		const syncStep1: ProtocolMessage = {
+			type: 'data',
+			room,
+			payload: Uint8Array.from( [ 0, 0, 1, 0 ] ),
+		};
+
+		// A 100 ms message is under the threshold. Then three 600 ms messages 5 s
+		// apart: the second one is within 10 s of the first record.
+		physical.receive( syncStep1 );
+		sendMs = 600;
+		physical.receive( syncStep1 );
+		now += 5_000;
+		physical.receive( syncStep1 );
+		now += 5_000;
+		physical.receive( syncStep1 );
+
+		const record = {
+			level: 'warn',
+			service: 'vip-rtc-websocket-server',
+			event: 'slow_message',
+			room,
+			type: 'sync_step1',
+			bytes: encodeMessage( syncStep1 ).byteLength,
+			duration_ms: 600,
+			room_connections: 1,
+		};
+		const records = warn.mock.calls.map(
+			call => JSON.parse( String( call.arguments[ 0 ] ) ) as Record< string, unknown >
+		);
+		assert.deepStrictEqual(
+			records.map( ( { timestamp, pid, ...fields } ) => fields ),
+			[
+				{ ...record, suppressed: 0 },
+				{ ...record, suppressed: 1 },
+			]
+		);
 		physical.close();
 	} );
 

@@ -1,5 +1,12 @@
 import http from 'http';
-import { collectDefaultMetrics, register, Counter, Gauge, Histogram } from 'prom-client';
+import {
+	collectDefaultMetrics,
+	exponentialBuckets,
+	register,
+	Counter,
+	Gauge,
+	Histogram,
+} from 'prom-client';
 
 import {
 	getActiveClientCount,
@@ -8,6 +15,7 @@ import {
 } from './connection-limits';
 import { getRawDataSizeBytes, getRequestPathname } from './utils';
 
+import type { ProtocolMessage } from './protocol';
 import type { RawData, WebSocketServer } from 'ws';
 
 /**
@@ -24,7 +32,7 @@ const METRICS_NAMESPACE = 'wpvip_rtc';
  * ------------------------------------------------------------
  */
 const metricsTrackReconnectsWindow =
-	parseInt( process.env.METRICS_TRACK_RECONNECTS_WINDOW || '', 10 ) || 60;
+	parseInt( process.env.METRICS_TRACK_RECONNECTS_WINDOW || '', 10 ) || 300;
 
 /**
  * ------------------------------------------------------------
@@ -104,7 +112,21 @@ const connectionDurationHistogram = new Histogram( {
 const reconnectionTimeHistogram = new Histogram( {
 	name: `${ METRICS_NAMESPACE }_reconnection_time_seconds`,
 	help: 'Time between WebSocket disconnection and reconnection in seconds',
-	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60 ], // 100ms to 60s
+	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300 ], // 100ms to 5m
+} );
+
+const messageDurationHistogram = new Histogram( {
+	name: `${ METRICS_NAMESPACE }_message_duration_seconds`,
+	help: 'Time to handle one inbound multiplex message, by message type and room kind',
+	labelNames: [ 'type', 'room_kind' ],
+	buckets: [ 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 10 ], // 100µs to 10s
+} );
+
+const syncReplyBytesHistogram = new Histogram( {
+	name: `${ METRICS_NAMESPACE }_sync_reply_bytes`,
+	help: 'Size of each sync step 2 reply to a client, by room kind. A client with no document state receives the full document.',
+	labelNames: [ 'room_kind' ],
+	buckets: exponentialBuckets( 1024, 4, 8 ), // 1 KiB to 16 MiB
 } );
 
 /**
@@ -124,6 +146,72 @@ export function recordMessage( data: RawData, isBinary: boolean ): void {
 	if ( isBinary ) {
 		messageBytesCounter.inc( getRawDataSizeBytes( data ) );
 	}
+}
+
+export type MessageType =
+	| 'subscribe'
+	| 'unsubscribe'
+	| 'sync_step1'
+	| 'sync_step2'
+	| 'update'
+	| 'awareness'
+	| 'other';
+
+export function getMessageType( message: ProtocolMessage ): MessageType {
+	if ( message.type === 'subscribe' || message.type === 'unsubscribe' ) {
+		return message.type;
+	}
+	if ( message.type !== 'data' ) {
+		return 'other';
+	}
+
+	// A data payload is an unchanged y-websocket message. Its first byte is the
+	// message type (0 sync, 1 awareness). For a sync message, the second byte is
+	// the sync type (0 step 1, 1 step 2, 2 update). Each value fits in one varint byte.
+	const [ messageType, syncType ] = message.payload;
+	if ( messageType === 1 ) {
+		return 'awareness';
+	}
+	if ( messageType !== 0 ) {
+		return 'other';
+	}
+	switch ( syncType ) {
+		case 0:
+			return 'sync_step1';
+		case 1:
+			return 'sync_step2';
+		case 2:
+			return 'update';
+		default:
+			return 'other';
+	}
+}
+
+// Room names are `site-{blogId}/{entityKind}/{entityName}-{objectId}`, where the
+// object ID is a post ID or `collection`. Dropping the blog and post IDs keeps
+// the label bounded by the site's entity types: `postType/post` for one post, and
+// `postType/wp_block:collection` for a collection.
+const ROOM_NAME_PATTERN = /^site-\d+\/([^/]+\/.+)-(\d+|collection)$/;
+
+export function getRoomKind( room: string ): string {
+	const match = ROOM_NAME_PATTERN.exec( room );
+	if ( ! match ) {
+		return 'other';
+	}
+	const [ , entityType = 'other', objectId ] = match;
+	return objectId === 'collection' ? `${ entityType }:collection` : entityType;
+}
+
+export function recordMessageDuration(
+	type: MessageType,
+	roomKind: string,
+	durationSeconds: number
+): void {
+	messageDurationHistogram.observe( { type, room_kind: roomKind }, durationSeconds );
+}
+
+export function recordSyncReplyBytes( roomKind: string, bytes: number ): void {
+	syncReplyBytesHistogram.observe( { room_kind: roomKind }, bytes );
 }
 
 export function recordRoomOpen(): void {
