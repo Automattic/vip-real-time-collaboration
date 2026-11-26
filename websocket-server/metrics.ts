@@ -32,7 +32,7 @@ const METRICS_NAMESPACE = 'wpvip_rtc';
  * ------------------------------------------------------------
  */
 const metricsTrackReconnectsWindow =
-	parseInt( process.env.METRICS_TRACK_RECONNECTS_WINDOW || '', 10 ) || 60;
+	parseInt( process.env.METRICS_TRACK_RECONNECTS_WINDOW || '', 10 ) || 300;
 
 /**
  * ------------------------------------------------------------
@@ -112,7 +112,7 @@ const connectionDurationHistogram = new Histogram( {
 const reconnectionTimeHistogram = new Histogram( {
 	name: `${ METRICS_NAMESPACE }_reconnection_time_seconds`,
 	help: 'Time between WebSocket disconnection and reconnection in seconds',
-	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60 ], // 100ms to 60s
+	buckets: [ 0.1, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300 ], // 100ms to 5m
 } );
 
 const messageDurationHistogram = new Histogram( {
