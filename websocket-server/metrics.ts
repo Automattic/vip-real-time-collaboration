@@ -1,5 +1,12 @@
 import http from 'http';
-import { collectDefaultMetrics, register, Counter, Gauge, Histogram } from 'prom-client';
+import {
+	collectDefaultMetrics,
+	exponentialBuckets,
+	register,
+	Counter,
+	Gauge,
+	Histogram,
+} from 'prom-client';
 
 import {
 	getActiveClientCount,
@@ -115,6 +122,13 @@ const messageDurationHistogram = new Histogram( {
 	buckets: [ 0.0001, 0.0005, 0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 3, 10 ], // 100µs to 10s
 } );
 
+const syncReplyBytesHistogram = new Histogram( {
+	name: `${ METRICS_NAMESPACE }_sync_reply_bytes`,
+	help: 'Size of each sync step 2 reply to a client, by room kind. A client with no document state receives the full document.',
+	labelNames: [ 'room_kind' ],
+	buckets: exponentialBuckets( 1024, 4, 8 ), // 1 KiB to 16 MiB
+} );
+
 /**
  * ------------------------------------------------------------
  * Metrics tracking functions
@@ -194,6 +208,10 @@ export function recordMessageDuration(
 	durationSeconds: number
 ): void {
 	messageDurationHistogram.observe( { type, room_kind: roomKind }, durationSeconds );
+}
+
+export function recordSyncReplyBytes( roomKind: string, bytes: number ): void {
+	syncReplyBytesHistogram.observe( { room_kind: roomKind }, bytes );
 }
 
 export function recordRoomOpen(): void {

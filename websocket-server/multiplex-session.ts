@@ -17,6 +17,7 @@ import {
 	recordRoomClose,
 	recordRoomConnectionClose,
 	recordRoomOpen,
+	recordSyncReplyBytes,
 	type RoomConnectionCloseReason,
 } from './metrics';
 import { startPhysicalHeartbeat } from './physical-heartbeat';
@@ -237,8 +238,14 @@ export class MultiplexSession {
 	}
 
 	private addRoom( room: string ): void {
+		const roomKind = getRoomKind( room );
 		const roomSocket = new RoomWebSocket( ( payload, callback ) => {
-			this.sendPhysicalMessage( { type: 'data', room, payload }, callback );
+			const message = { type: 'data' as const, room, payload };
+			// The server sends sync step 2 only in reply to a client's sync step 1.
+			if ( getMessageType( message ) === 'sync_step2' ) {
+				recordSyncReplyBytes( roomKind, payload.byteLength );
+			}
+			this.sendPhysicalMessage( message, callback );
 		} );
 		this.rooms.set( room, roomSocket );
 		this.peakRoomCount = Math.max( this.peakRoomCount, this.rooms.size );

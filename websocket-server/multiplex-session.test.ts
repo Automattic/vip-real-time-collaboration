@@ -230,6 +230,17 @@ async function messageDurationCountMetric( type: string, roomKind: string ): Pro
 	return match ? Number( match.split( ' ' ).pop() ) : 0;
 }
 
+async function postSyncReplyBytesMetric(): Promise< { count: number; sum: number } > {
+	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_sync_reply_bytes' );
+	const count = metric.match(
+		/^wpvip_rtc_sync_reply_bytes_count\{room_kind="postType\/post"\} (\d+)$/m
+	);
+	const sum = metric.match(
+		/^wpvip_rtc_sync_reply_bytes_sum\{room_kind="postType\/post"\} (\d+)$/m
+	);
+	return { count: count ? Number( count[ 1 ] ) : 0, sum: sum ? Number( sum[ 1 ] ) : 0 };
+}
+
 describe( 'MultiplexSession', () => {
 	it( 'closes an empty physical socket on the first heartbeat tick', async t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
@@ -766,6 +777,28 @@ describe( 'MultiplexSession', () => {
 		} );
 
 		assert.strictEqual( await messageDurationCountMetric( 'sync_step1', 'other' ), baseline + 1 );
+	} );
+
+	it( 'records the size of each sync reply by room kind', async () => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		const baseline = await postSyncReplyBytesMetric();
+
+		// The server sends its own sync step 1 when the room opens, which is not a
+		// reply. The client then sends sync step 1 with an empty state vector, as a
+		// new client does.
+		subscribeBootstrapRoom( physical, payload );
+		physical.receive( { type: 'data', room, payload: Uint8Array.from( [ 0, 0, 1, 0 ] ) } );
+		const reply = decoded( physical ).at( -1 );
+		assertDataMessage( reply );
+
+		assert.deepStrictEqual( await postSyncReplyBytesMetric(), {
+			count: baseline.count + 1,
+			sum: baseline.sum + reply.payload.byteLength,
+		} );
+		physical.close();
 	} );
 
 	it( 'rejects unauthorized room data and closes repeated bypass attempts', async () => {
