@@ -9,7 +9,10 @@ import {
 } from './auth';
 import { CONNECTION_TIMEOUT_CLOSE } from './config';
 import {
+	getMessageType,
+	getRoomKind,
 	recordConnectionFailure,
+	recordMessageDuration,
 	recordPeakRoomsPerConnection,
 	recordRoomClose,
 	recordRoomConnectionClose,
@@ -91,7 +94,21 @@ export class MultiplexSession {
 			return;
 		}
 
+		// Dispatch runs the Yjs handler and the fan-out to the room synchronously,
+		// so timing this one call covers all work for the message.
+		const wasSubscribed = this.rooms.has( message.room );
+		const startTime = performance.now();
 		this.dispatchMessage( message );
+		const durationSeconds = ( performance.now() - startTime ) / 1000;
+
+		// Only label rooms that this session subscribed to, so that room names a
+		// client sends cannot create unbounded metric series.
+		const isSubscribed = wasSubscribed || this.rooms.has( message.room );
+		recordMessageDuration(
+			getMessageType( message ),
+			isSubscribed ? getRoomKind( message.room ) : 'other',
+			durationSeconds
+		);
 	};
 
 	private dispatchMessage( message: ProtocolMessage ): void {

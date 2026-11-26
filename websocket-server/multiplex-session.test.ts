@@ -217,6 +217,19 @@ async function zeroRoomTimeoutMetric(): Promise< number > {
 	return match ? Number( match[ 1 ] ) : 0;
 }
 
+async function messageDurationCountMetric( type: string, roomKind: string ): Promise< number > {
+	const metric = await register.getSingleMetricAsString( 'wpvip_rtc_message_duration_seconds' );
+	const match = metric
+		.split( '\n' )
+		.find(
+			line =>
+				line.startsWith( 'wpvip_rtc_message_duration_seconds_count{' ) &&
+				line.includes( `type="${ type }"` ) &&
+				line.includes( `room_kind="${ roomKind }"` )
+		);
+	return match ? Number( match.split( ' ' ).pop() ) : 0;
+}
+
 describe( 'MultiplexSession', () => {
 	it( 'closes an empty physical socket on the first heartbeat tick', async t => {
 		t.mock.timers.enable( { apis: [ 'setInterval' ] } );
@@ -713,6 +726,46 @@ describe( 'MultiplexSession', () => {
 		assert.strictEqual( physical.readyState, WebSocket.OPEN );
 		assert.strictEqual( docs.get( 'site-7/post-1' )?.conns.size, 1 );
 		physical.close();
+	} );
+
+	it( 'labels subscribe and unsubscribe with the room kind', async () => {
+		const room = 'site-7/postType/post-42';
+		const payload = tokenPayload( { room_name: room } );
+		const { physical, session } = createSession( payload );
+		session.start();
+		const subscribes = await messageDurationCountMetric( 'subscribe', 'postType/post' );
+		const unsubscribes = await messageDurationCountMetric( 'unsubscribe', 'postType/post' );
+
+		// Subscribe adds the room and unsubscribe removes it, so each message finds
+		// the room on only one side of its dispatch. Both must keep the room kind.
+		subscribeBootstrapRoom( physical, payload );
+		physical.receive( { type: 'unsubscribe', room } );
+
+		assert.strictEqual(
+			await messageDurationCountMetric( 'subscribe', 'postType/post' ),
+			subscribes + 1
+		);
+		assert.strictEqual(
+			await messageDurationCountMetric( 'unsubscribe', 'postType/post' ),
+			unsubscribes + 1
+		);
+		physical.close();
+	} );
+
+	it( 'labels messages for a room the session never subscribed to as other', async () => {
+		const { physical, session } = createSession();
+		session.start();
+		const baseline = await messageDurationCountMetric( 'sync_step1', 'other' );
+
+		// The room name matches the room pattern, so only the subscription check
+		// keeps it `other`.
+		physical.receive( {
+			type: 'data',
+			room: 'site-7/postType/client-chosen-99',
+			payload: Uint8Array.from( [ 0, 0 ] ),
+		} );
+
+		assert.strictEqual( await messageDurationCountMetric( 'sync_step1', 'other' ), baseline + 1 );
 	} );
 
 	it( 'rejects unauthorized room data and closes repeated bypass attempts', async () => {
